@@ -1,6 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 
 routerAdd('POST', '/backend/v1/public-booking', (e) => {
+  const timeToMinutes = (t) => {
+    if (!t || typeof t !== 'string') return 0
+    const parts = t.split(':')
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10)
+  }
+
   const body = e.requestInfo().body || {}
   const {
     org_slug,
@@ -27,19 +33,34 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
   }
 
   try {
-    // 1. Resolve organization
+    // 1. Resolve organization by unique slug
     const org = $app.findFirstRecordByData('organizations', 'slug', org_slug)
+    if (!org) {
+      return e.json(404, { error: 'Empresa ou estabelecimento não encontrado.' })
+    }
     const orgId = org.id
 
-    // 2. Fetch service & professional
-    const service = $app.findCollectionByNameOrId('services')
+    // 2. Fetch service & professional and ensure they belong strictly to this organization
     const servRecord = $app.findRecordById('services', service_id)
+    if (!servRecord || servRecord.getString('organization_id') !== orgId) {
+      return e.json(400, { error: 'Serviço inválido para esta organização.' })
+    }
+    if (servRecord.getBool('active') === false) {
+      return e.json(400, { error: 'O serviço selecionado está inativo no momento.' })
+    }
+
     const profRecord = $app.findRecordById('professionals', professional_id)
+    if (!profRecord || profRecord.getString('organization_id') !== orgId) {
+      return e.json(400, { error: 'Profissional inválido para esta organização.' })
+    }
+    if (profRecord.getBool('active') === false) {
+      return e.json(400, { error: 'O profissional selecionado está indisponível.' })
+    }
 
     const duration = servRecord.getInt('duration') || 30
     const price = servRecord.getFloat('price') || 0
 
-    // Calculate end_time
+    // 3. Calculate end_time
     const parts = start_time.split(':')
     const startHour = parseInt(parts[0], 10)
     const startMin = parseInt(parts[1], 10)
@@ -49,84 +70,103 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
       .padStart(2, '0')
     const endM = (totalMinutes % 60).toString().padStart(2, '0')
     const end_time = `${endH}:${endM}`
+    const newStartMin = startHour * 60 + startMin
+    const newEndMin = totalMinutes
 
-    // 3. Conflict check
-    const cleanDate = typeof date === 'string' ? date.slice(0, 10) : ''
-    const filter = `professional_id = "${professional_id}" && status != "CANCELADO" && date ~ "${cleanDate}"`
-    const existing = $app.findRecordsByFilter('appointments', filter, '', 50, 0)
-    for (const appt of existing) {
-      const existStart = appt.getString('start_time')
-      const existEnd = appt.getString('end_time')
-      if (start_time < existEnd && end_time > existStart) {
-        return e.json(409, {
-          error: `Horário indisponível. Já existe atendimento agendado entre ${existStart} e ${existEnd}.`,
+    // 4. Validate working hours
+    const profWorkHours = profRecord.get('work_hours')
+    if (profWorkHours && typeof profWorkHours === 'object') {
+      const pStart = profWorkHours.start ? timeToMinutes(profWorkHours.start) : 8 * 60
+      const pEnd = profWorkHours.end ? timeToMinutes(profWorkHours.end) : 19 * 60
+      if (newStartMin < pStart || newEndMin > pEnd) {
+        return e.json(400, {
+          error: `Horário fora do expediente do profissional (${profWorkHours.start || '08:00'} às ${profWorkHours.end || '18:00'}).`,
         })
       }
     }
 
-    // 4. Find or create client for this organization
+    // 5. Check conflict on the same date for the professional
+    const cleanDate = typeof date === 'string' ? date.slice(0, 10) : ''
+    const filter = `professional_id = "${professional_id}" && status != "CANCELADO" && date ~ "${cleanDate}"`
+    const existing = $app.findRecordsByFilter('appointments', filter, '', 100, 0)
+    for (const appt of existing) {
+      const existStart = appt.getString('start_time')
+      const existEnd = appt.getString('end_time')
+      const existStartMin = timeToMinutes(existStart)
+      const existEndMin = timeToMinutes(existEnd)
+
+      if (newStartMin < existEndMin && newEndMin > existStartMin) {
+        return e.json(409, {
+          error: `O horário selecionado (${start_time} às ${end_time}) acabou de ser ocupado. Por favor, escolha outro horário.`,
+        })
+      }
+    }
+
+    // 6. Find or Create Client within this organization
+    let clientId = ''
     const cleanPhone = client_phone.trim()
-    let clientRecord = null
     try {
       const clientFilter = `organization_id = "${orgId}" && phone = "${cleanPhone}"`
       const foundClients = $app.findRecordsByFilter('clients', clientFilter, '', 1, 0)
-      if (foundClients && foundClients.length > 0) {
-        clientRecord = foundClients[0]
+      if (foundClients.length > 0) {
+        clientId = foundClients[0].id
       }
     } catch (_) {}
 
-    if (!clientRecord) {
+    if (!clientId) {
       const clientsCol = $app.findCollectionByNameOrId('clients')
-      clientRecord = new Record(clientsCol)
+      const clientRecord = new Record(clientsCol)
       clientRecord.set('organization_id', orgId)
       clientRecord.set('name', client_name.trim())
       clientRecord.set('phone', cleanPhone)
-      clientRecord.set('whatsapp', cleanPhone)
       if (client_email) clientRecord.set('email', client_email.trim())
-      if (notes) clientRecord.set('notes', `Origem: Agendamento Online. ${notes}`)
+      clientRecord.set('notes', 'Cadastrado automaticamente via agendamento online')
       $app.save(clientRecord)
+      clientId = clientRecord.id
     }
 
-    // 5. Create Appointment
+    // 7. Create Appointment
     const apptsCol = $app.findCollectionByNameOrId('appointments')
     const apptRecord = new Record(apptsCol)
     apptRecord.set('organization_id', orgId)
-    apptRecord.set('client_id', clientRecord.id)
-    apptRecord.set('professional_id', professional_id)
+    apptRecord.set('client_id', clientId)
     apptRecord.set('service_id', service_id)
+    apptRecord.set('professional_id', professional_id)
     apptRecord.set('date', cleanDate + ' 00:00:00.000Z')
     apptRecord.set('start_time', start_time)
     apptRecord.set('end_time', end_time)
     apptRecord.set('duration', duration)
     apptRecord.set('price', price)
     apptRecord.set('status', 'AGENDADO')
-    apptRecord.set('notes', notes || 'Agendado via página pública')
     apptRecord.set('client_name_snapshot', client_name.trim())
     apptRecord.set('client_phone_snapshot', cleanPhone)
+    apptRecord.set('notes', notes ? notes.trim() : 'Agendado pelo cliente via página pública')
+
     $app.save(apptRecord)
 
-    // 6. Create initial unpaid payment record
+    // 8. Create associated pending payment entry
     const paymentsCol = $app.findCollectionByNameOrId('payments')
     const payRecord = new Record(paymentsCol)
     payRecord.set('organization_id', orgId)
     payRecord.set('appointment_id', apptRecord.id)
-    payRecord.set('client_id', clientRecord.id)
+    payRecord.set('client_id', clientId)
     payRecord.set('amount', price)
     payRecord.set('is_paid', false)
-    payRecord.set('payment_method', 'Outro')
-    payRecord.set('description', `${servRecord.getString('name')} - ${client_name}`)
+    payRecord.set('payment_method', 'PIX')
+    payRecord.set('description', `${servRecord.getString('name')} - Agendamento Online`)
     $app.save(payRecord)
 
     return e.json(200, {
       success: true,
       appointment_id: apptRecord.id,
-      client_id: clientRecord.id,
-      date: cleanDate,
       start_time: start_time,
       end_time: end_time,
+      date: cleanDate,
+      organization_name: org.getString('name'),
       service_name: servRecord.getString('name'),
       professional_name: profRecord.getString('name'),
       price: price,
+      message: 'Agendamento confirmado com sucesso!',
     })
   } catch (err) {
     return e.json(500, { error: err.message || 'Erro ao processar agendamento.' })
