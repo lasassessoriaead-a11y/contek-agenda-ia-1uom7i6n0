@@ -958,7 +958,7 @@ export const Agenda: React.FC = () => {
 
       {/* CREATE / EDIT APPOINTMENT MODAL */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSaveAppointment}>
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-slate-900">

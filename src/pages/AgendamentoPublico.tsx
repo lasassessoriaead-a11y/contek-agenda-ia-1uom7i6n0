@@ -147,42 +147,72 @@ export const AgendamentoPublico: React.FC = () => {
   const availableTimeSlots = useMemo(() => {
     if (!selectedDate || !selectedProf || !selectedService) return []
 
-    const startH = 8
-    const endH = 19
+    // Check if the selected date is a working day for the organization
+    const [y, m, d] = selectedDate.split('-').map(Number)
+    const dayOfWeekIdx = new Date(y, m - 1, d).getDay()
+    const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+    const currentDayKey = dayMap[dayOfWeekIdx]
+
+    if (settings?.working_days && settings.working_days.length > 0) {
+      if (!settings.working_days.includes(currentDayKey)) {
+        return []
+      }
+    }
+
+    // Check if the selected date is a working day for the professional
+    if (selectedProf.work_days && selectedProf.work_days.length > 0) {
+      if (!selectedProf.work_days.includes(currentDayKey)) {
+        return []
+      }
+    }
+
+    const startHStr = selectedProf.work_hours?.start || settings?.opening_time || '08:00'
+    const endHStr = selectedProf.work_hours?.end || settings?.closing_time || '18:00'
     const duration = selectedService.duration || 45
+    const slotStep = settings?.slot_interval_minutes || 30
+    const buffer = settings?.buffer_between_appointments || 0
+
     const slots: string[] = []
 
     // Appts on selected date for this professional
     const dayAppts = existingAppointments.filter(
-      (a) => a.professional_id === selectedProf.id && a.date?.startsWith(selectedDate),
+      (a) =>
+        a.professional_id === selectedProf.id &&
+        a.date?.startsWith(selectedDate) &&
+        a.status !== 'CANCELADO',
     )
 
-    // Generate potential slots every 30 mins
-    for (let h = startH; h < endH; h++) {
-      for (const m of [0, 30]) {
-        const slotStartStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+    const [startHour, startMin] = startHStr.split(':').map(Number)
+    const [endHour, endMin] = endHStr.split(':').map(Number)
 
-        // Calculate slot end
-        const totalMinutes = h * 60 + m + duration
-        const endHour = Math.floor(totalMinutes / 60)
-        const endMin = totalMinutes % 60
-        const slotEndStr = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`
+    let currentMinutes = startHour * 60 + startMin
+    const endMinutes = endHour * 60 + endMin
 
-        if (endHour > endH || (endHour === endH && endMin > 0)) continue
+    while (currentMinutes + duration <= endMinutes) {
+      const h = Math.floor(currentMinutes / 60)
+      const m = currentMinutes % 60
+      const slotStartStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+      const slotEndMinutes = currentMinutes + duration
 
-        // Check conflicts with existing appointments: (start < existEnd) && (end > existStart)
-        const hasConflict = dayAppts.some((a) => {
-          return slotStartStr < a.end_time && slotEndStr > a.start_time
-        })
+      // Check conflicts with existing appointments: (start < existEnd + buffer) && (end + buffer > existStart)
+      const hasConflict = dayAppts.some((a) => {
+        const [aSh, aSm] = a.start_time.split(':').map(Number)
+        const [aEh, aEm] = a.end_time.split(':').map(Number)
+        const aStart = aSh * 60 + aSm
+        const aEnd = aEh * 60 + aEm + buffer
 
-        if (!hasConflict) {
-          slots.push(slotStartStr)
-        }
+        return currentMinutes < aEnd && slotEndMinutes + buffer > aStart
+      })
+
+      if (!hasConflict) {
+        slots.push(slotStartStr)
       }
+
+      currentMinutes += slotStep
     }
 
     return slots
-  }, [selectedDate, selectedProf, selectedService, existingAppointments])
+  }, [selectedDate, selectedProf, selectedService, existingAppointments, settings])
 
   // Next 14 days selector
   const nextDays = useMemo(() => {

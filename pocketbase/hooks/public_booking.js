@@ -73,18 +73,44 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     const newStartMin = startHour * 60 + startMin
     const newEndMin = totalMinutes
 
-    // 4. Validate working hours
-    const profWorkHours = profRecord.get('work_hours')
-    if (profWorkHours && typeof profWorkHours === 'object') {
-      const pStart = profWorkHours.start ? timeToMinutes(profWorkHours.start) : 8 * 60
-      const pEnd = profWorkHours.end ? timeToMinutes(profWorkHours.end) : 19 * 60
-      if (newStartMin < pStart || newEndMin > pEnd) {
-        return e.json(400, {
-          error: `Horário fora do expediente do profissional (${profWorkHours.start || '08:00'} às ${profWorkHours.end || '18:00'}).`,
-        })
+    // 4. Validate working days and working hours
+    const [y, m, d] = date.split('-').map(Number)
+    const dayIdx = new Date(y, m - 1, d).getDay()
+    const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+    const dayKey = dayMap[dayIdx]
+
+    // Check organization settings working days if available
+    try {
+      const bizSettings = $app.findFirstRecordByData('business_settings', 'organization_id', orgId)
+      if (bizSettings) {
+        const orgWorkingDays = bizSettings.get('working_days')
+        if (
+          Array.isArray(orgWorkingDays) &&
+          orgWorkingDays.length > 0 &&
+          !orgWorkingDays.includes(dayKey)
+        ) {
+          return e.json(400, { error: 'O estabelecimento não abre no dia da semana selecionado.' })
+        }
+      }
+    } catch (_) {}
+
+    const profWorkDays = profRecord.get('work_days')
+    if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0) {
+      if (!profWorkDays.includes(dayKey)) {
+        return e.json(400, { error: 'O profissional não atende no dia da semana selecionado.' })
       }
     }
 
+    const profWorkHours = profRecord.get('work_hours')
+    if (profWorkHours && profWorkHours.start && profWorkHours.end) {
+      const pStart = timeToMinutes(profWorkHours.start)
+      const pEnd = timeToMinutes(profWorkHours.end)
+      if (startMin < pStart || endMin > pEnd) {
+        return e.json(400, {
+          error: `Horário fora do expediente do profissional (${profWorkHours.start} às ${profWorkHours.end}).`,
+        })
+      }
+    }
     // 5. Check conflict on the same date for the professional
     const cleanDate = typeof date === 'string' ? date.slice(0, 10) : ''
     const filter = `professional_id = "${professional_id}" && status != "CANCELADO" && date ~ "${cleanDate}"`

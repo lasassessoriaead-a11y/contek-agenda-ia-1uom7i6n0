@@ -99,9 +99,16 @@ export const Layout: React.FC = () => {
                   AGENDA IA
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium leading-none">
-                {organization?.name || 'Carregando empresa...'}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[130px]">
+                  {organization?.name || 'Carregando empresa...'}
+                </p>
+                {organization?.slug === 'contek-demo' && (
+                  <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
+                    DEMO
+                  </span>
+                )}
+              </div>
             </div>
           </Link>
         </div>

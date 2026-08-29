@@ -48,13 +48,37 @@ onRecordCreateRequest((e) => {
         throw new BadRequestError('O profissional selecionado está inativo para agendamentos.')
       }
 
+      // Check professional working days
+      const profWorkDays = prof.get('work_days')
+      if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0 && cleanDate) {
+        const [y, m, d] = cleanDate.split('-').map(Number)
+        const dayIdx = new Date(y, m - 1, d).getDay()
+        const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+        const dayKey = dayMap[dayIdx]
+        if (!profWorkDays.includes(dayKey)) {
+          throw new BadRequestError('O profissional não atende no dia da semana selecionado.')
+        }
+      }
+
+      // Check professional working days
+      const profWorkDays = prof.get('work_days')
+      if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0 && cleanDate) {
+        const [y, m, d] = cleanDate.split('-').map(Number)
+        const dayIdx = new Date(y, m - 1, d).getDay()
+        const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+        const dayKey = dayMap[dayIdx]
+        if (!profWorkDays.includes(dayKey)) {
+          throw new BadRequestError('O profissional não atende no dia da semana selecionado.')
+        }
+      }
+
       const workHours = prof.get('work_hours')
-      if (workHours && typeof workHours === 'object') {
-        const pStart = workHours.start ? timeToMinutes(workHours.start) : 8 * 60
-        const pEnd = workHours.end ? timeToMinutes(workHours.end) : 19 * 60
-        if (newStartMin < pStart || newEndMin > pEnd) {
+      if (workHours && workHours.start && workHours.end) {
+        const profStartMin = timeToMinutes(workHours.start)
+        const profEndMin = timeToMinutes(workHours.end)
+        if (newStartMin < profStartMin || newEndMin > profEndMin) {
           throw new BadRequestError(
-            `Horário fora do expediente do profissional (${workHours.start || '08:00'} às ${workHours.end || '18:00'}).`,
+            `Horário fora do expediente do profissional (${workHours.start} às ${workHours.end}).`,
           )
         }
       }

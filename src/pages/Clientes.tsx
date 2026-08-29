@@ -438,7 +438,7 @@ export const Clientes: React.FC = () => {
 
       {/* CREATE / EDIT CLIENT MODAL */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSave}>
             <DialogHeader>
               <DialogTitle className="text-lg font-bold text-slate-900">

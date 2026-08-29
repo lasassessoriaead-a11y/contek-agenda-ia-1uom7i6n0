@@ -217,13 +217,20 @@ export const Dashboard: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             Painel Geral
           </h1>
-          <p className="text-sm text-slate-500">
-            Visão consolidada da operação de{' '}
-            <span className="font-semibold text-slate-700">
-              {organization?.name || 'sua empresa'}
-            </span>{' '}
-            hoje, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.
-          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-slate-500">
+              Visão consolidada da operação de{' '}
+              <span className="font-semibold text-slate-700">
+                {organization?.name || 'sua empresa'}
+              </span>{' '}
+              hoje, {format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}.
+            </p>
+            {organization?.slug === 'contek-demo' && (
+              <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-semibold">
+                Ambiente de Demonstração (DEMO)
+              </Badge>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">
