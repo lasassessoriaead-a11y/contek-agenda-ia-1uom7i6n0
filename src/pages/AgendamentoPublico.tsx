@@ -67,7 +67,7 @@ export const AgendamentoPublico: React.FC = () => {
   // Selections
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedProf, setSelectedProf] = useState<Professional | null>(null)
-  const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('')
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
@@ -143,15 +143,45 @@ export const AgendamentoPublico: React.FC = () => {
     return professionals.filter((p) => linkedProfIds.includes(p.id))
   }, [selectedService, profServices, professionals])
 
+  // Helper to parse date string into dayKey ('dom', 'seg', 'ter', ...)
+  const getDayKeyFromDateStr = (dateStr: string) => {
+    if (!dateStr) return ''
+    const parts = dateStr.split('-')
+    if (parts.length !== 3) return ''
+    const y = parseInt(parts[0], 10)
+    const m = parseInt(parts[1], 10)
+    const d = parseInt(parts[2], 10)
+    const dayOfWeekIdx = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay()
+    const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
+    return dayMap[dayOfWeekIdx]
+  }
+
+  // Check if a specific date is a working day for selected professional and org
+  const isDateWorkingDay = (dateStr: string) => {
+    const currentDayKey = getDayKeyFromDateStr(dateStr)
+    if (!currentDayKey) return false
+
+    if (settings?.working_days && settings.working_days.length > 0) {
+      if (!settings.working_days.includes(currentDayKey)) {
+        return false
+      }
+    }
+
+    if (selectedProf?.work_days && selectedProf.work_days.length > 0) {
+      if (!selectedProf.work_days.includes(currentDayKey)) {
+        return false
+      }
+    }
+
+    return true
+  }
+
   // Step 4: Available Time Slots calculation for selectedDate and selectedProf
   const availableTimeSlots = useMemo(() => {
     if (!selectedDate || !selectedProf || !selectedService) return []
 
-    // Check if the selected date is a working day for the organization
-    const [y, m, d] = selectedDate.split('-').map(Number)
-    const dayOfWeekIdx = new Date(y, m - 1, d).getDay()
-    const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
-    const currentDayKey = dayMap[dayOfWeekIdx]
+    // Check if the selected date is a working day
+    const currentDayKey = getDayKeyFromDateStr(selectedDate)
 
     if (settings?.working_days && settings.working_days.length > 0) {
       if (!settings.working_days.includes(currentDayKey)) {
@@ -219,6 +249,28 @@ export const AgendamentoPublico: React.FC = () => {
     const today = startOfToday()
     return Array.from({ length: 14 }, (_, i) => addDays(today, i))
   }, [])
+
+  // When selectedProf changes or step changes, if selectedDate is no longer a working day, reset it
+  useEffect(() => {
+    if (selectedDate && selectedProf) {
+      if (!isDateWorkingDay(selectedDate)) {
+        // Find first available working day in next 14 days
+        const firstValidDay = nextDays.find((d) => isDateWorkingDay(format(d, 'yyyy-MM-dd')))
+        if (firstValidDay) {
+          setSelectedDate(format(firstValidDay, 'yyyy-MM-dd'))
+          setSelectedTimeSlot('')
+        } else {
+          setSelectedDate('')
+          setSelectedTimeSlot('')
+        }
+      }
+    } else if (!selectedDate && selectedProf) {
+      const firstValidDay = nextDays.find((d) => isDateWorkingDay(format(d, 'yyyy-MM-dd')))
+      if (firstValidDay) {
+        setSelectedDate(format(firstValidDay, 'yyyy-MM-dd'))
+      }
+    }
+  }, [selectedProf, selectedDate, nextDays, settings])
 
   // Confirm booking
   const handleConfirmBooking = async () => {
@@ -549,7 +601,9 @@ export const AgendamentoPublico: React.FC = () => {
               <CardFooter className="pt-2 flex justify-between">
                 <Button
                   variant="outline"
-                  onClick={() => setCurrentStep(1)}
+                  onClick={() => {
+                    setCurrentStep(1)
+                  }}
                   className="border-slate-700 text-slate-300 text-xs h-10"
                 >
                   <ChevronLeft className="w-4 h-4 mr-1" />
@@ -557,7 +611,19 @@ export const AgendamentoPublico: React.FC = () => {
                 </Button>
                 <Button
                   disabled={!selectedProf}
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => {
+                    if (selectedDate && !isDateWorkingDay(selectedDate)) {
+                      const firstValid = nextDays.find((d) =>
+                        isDateWorkingDay(format(d, 'yyyy-MM-dd')),
+                      )
+                      if (firstValid) {
+                        setSelectedDate(format(firstValid, 'yyyy-MM-dd'))
+                      } else {
+                        setSelectedDate('')
+                      }
+                    }
+                    setCurrentStep(3)
+                  }}
                   className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs h-10 px-5"
                 >
                   Continuar
@@ -584,16 +650,25 @@ export const AgendamentoPublico: React.FC = () => {
                   {nextDays.map((day) => {
                     const dayStr = format(day, 'yyyy-MM-dd')
                     const isSelected = selectedDate === dayStr
+                    const isWorking = isDateWorkingDay(dayStr)
 
                     return (
                       <button
                         key={dayStr}
                         type="button"
-                        onClick={() => setSelectedDate(dayStr)}
-                        className={`p-3 rounded-xl border text-center transition-all ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-600 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
-                            : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
+                        disabled={!isWorking}
+                        onClick={() => {
+                          if (isWorking) {
+                            setSelectedDate(dayStr)
+                            setSelectedTimeSlot('')
+                          }
+                        }}
+                        className={`p-3 rounded-xl border text-center transition-all relative ${
+                          !isWorking
+                            ? 'border-slate-800/40 bg-slate-950/40 text-slate-600 cursor-not-allowed opacity-50'
+                            : isSelected
+                              ? 'border-emerald-500 bg-emerald-600 text-slate-950 font-bold shadow-lg shadow-emerald-500/20'
+                              : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
                         }`}
                       >
                         <p className="text-[10px] uppercase font-semibold">
@@ -603,6 +678,11 @@ export const AgendamentoPublico: React.FC = () => {
                         <p className="text-[10px] opacity-80">
                           {format(day, 'MMM', { locale: ptBR })}
                         </p>
+                        {!isWorking && (
+                          <span className="text-[9px] text-rose-400 font-medium block mt-0.5">
+                            Folga
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -618,7 +698,7 @@ export const AgendamentoPublico: React.FC = () => {
                   Voltar
                 </Button>
                 <Button
-                  disabled={!selectedDate}
+                  disabled={!selectedDate || !isDateWorkingDay(selectedDate)}
                   onClick={() => setCurrentStep(4)}
                   className="bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs h-10 px-5"
                 >

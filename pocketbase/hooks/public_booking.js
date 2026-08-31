@@ -74,8 +74,13 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     const newEndMin = totalMinutes
 
     // 4. Validate working days and working hours
-    const [y, m, d] = date.split('-').map(Number)
-    const dayIdx = new Date(y, m - 1, d).getDay()
+    const dateStr = typeof date === 'string' ? date.slice(0, 10) : ''
+    const partsDate = dateStr.split('-')
+    const y = parseInt(partsDate[0], 10)
+    const m = parseInt(partsDate[1], 10)
+    const d = parseInt(partsDate[2], 10)
+    // Use UTC date to avoid any timezone/DST shift issues in JS runtime
+    const dayIdx = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay()
     const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
     const dayKey = dayMap[dayIdx]
 
@@ -83,7 +88,12 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     try {
       const bizSettings = $app.findFirstRecordByData('business_settings', 'organization_id', orgId)
       if (bizSettings) {
-        const orgWorkingDays = bizSettings.get('working_days')
+        let orgWorkingDays = bizSettings.get('working_days')
+        if (typeof orgWorkingDays === 'string') {
+          try {
+            orgWorkingDays = JSON.parse(orgWorkingDays)
+          } catch (_) {}
+        }
         if (
           Array.isArray(orgWorkingDays) &&
           orgWorkingDays.length > 0 &&
@@ -94,15 +104,30 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
       }
     } catch (_) {}
 
-    const profWorkDays = profRecord.get('work_days')
+    let profWorkDays = profRecord.get('work_days')
+    if (typeof profWorkDays === 'string') {
+      try {
+        profWorkDays = JSON.parse(profWorkDays)
+      } catch (_) {}
+    }
     if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0) {
       if (!profWorkDays.includes(dayKey)) {
         return e.json(400, { error: 'O profissional não atende no dia da semana selecionado.' })
       }
     }
 
-    const profWorkHours = profRecord.get('work_hours')
-    if (profWorkHours && profWorkHours.start && profWorkHours.end) {
+    let profWorkHours = profRecord.get('work_hours')
+    if (typeof profWorkHours === 'string') {
+      try {
+        profWorkHours = JSON.parse(profWorkHours)
+      } catch (_) {}
+    }
+    if (
+      profWorkHours &&
+      typeof profWorkHours === 'object' &&
+      profWorkHours.start &&
+      profWorkHours.end
+    ) {
       const pStart = timeToMinutes(profWorkHours.start)
       const pEnd = timeToMinutes(profWorkHours.end)
       if (startMin < pStart || endMin > pEnd) {

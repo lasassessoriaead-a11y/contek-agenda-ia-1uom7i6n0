@@ -49,10 +49,18 @@ onRecordCreateRequest((e) => {
       }
 
       // Check professional working days
-      const profWorkDays = prof.get('work_days')
+      let profWorkDays = prof.get('work_days')
+      if (typeof profWorkDays === 'string') {
+        try {
+          profWorkDays = JSON.parse(profWorkDays)
+        } catch (_) {}
+      }
       if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0 && cleanDate) {
-        const [y, m, d] = cleanDate.split('-').map(Number)
-        const dayIdx = new Date(y, m - 1, d).getDay()
+        const partsDate = cleanDate.split('-')
+        const y = parseInt(partsDate[0], 10)
+        const m = parseInt(partsDate[1], 10)
+        const d = parseInt(partsDate[2], 10)
+        const dayIdx = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay()
         const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
         const dayKey = dayMap[dayIdx]
         if (!profWorkDays.includes(dayKey)) {
@@ -60,20 +68,13 @@ onRecordCreateRequest((e) => {
         }
       }
 
-      // Check professional working days
-      const profWorkDays = prof.get('work_days')
-      if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0 && cleanDate) {
-        const [y, m, d] = cleanDate.split('-').map(Number)
-        const dayIdx = new Date(y, m - 1, d).getDay()
-        const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
-        const dayKey = dayMap[dayIdx]
-        if (!profWorkDays.includes(dayKey)) {
-          throw new BadRequestError('O profissional não atende no dia da semana selecionado.')
-        }
+      let workHours = prof.get('work_hours')
+      if (typeof workHours === 'string') {
+        try {
+          workHours = JSON.parse(workHours)
+        } catch (_) {}
       }
-
-      const workHours = prof.get('work_hours')
-      if (workHours && workHours.start && workHours.end) {
+      if (workHours && typeof workHours === 'object' && workHours.start && workHours.end) {
         const profStartMin = timeToMinutes(workHours.start)
         const profEndMin = timeToMinutes(workHours.end)
         if (newStartMin < profStartMin || newEndMin > profEndMin) {
@@ -162,7 +163,12 @@ onRecordUpdateRequest((e) => {
         throw new BadRequestError('O profissional selecionado está inativo para agendamentos.')
       }
 
-      const workHours = prof.get('work_hours')
+      let workHours = prof.get('work_hours')
+      if (typeof workHours === 'string') {
+        try {
+          workHours = JSON.parse(workHours)
+        } catch (_) {}
+      }
       if (workHours && typeof workHours === 'object') {
         const pStart = workHours.start ? timeToMinutes(workHours.start) : 8 * 60
         const pEnd = workHours.end ? timeToMinutes(workHours.end) : 19 * 60
