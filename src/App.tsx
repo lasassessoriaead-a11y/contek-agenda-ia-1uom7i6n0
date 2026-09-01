@@ -2,7 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Layout from '@/components/Layout'
-import Login from '@/pages/Login'
+import LoginPublic from '@/pages/LoginPublic'
 import Dashboard from '@/pages/Dashboard'
 import Agenda from '@/pages/Agenda'
 import Clientes from '@/pages/Clientes'
@@ -16,7 +16,7 @@ import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/sonner'
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth()
+  const { user, organization, loading } = useAuth()
 
   if (loading) {
     return (
@@ -29,7 +29,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     )
   }
 
-  if (!user) {
+  if (!user || !organization) {
     return <Navigate to="/login" replace />
   }
 
@@ -41,14 +41,10 @@ export function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public Booking Route (/agendar/:slug) */}
           <Route path="/agendar/:slug" element={<AgendamentoPublico />} />
           <Route path="/book/:slug" element={<AgendamentoPublico />} />
+          <Route path="/login" element={<LoginPublic />} />
 
-          {/* Login / Signup Route */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Protected Internal Routes */}
           <Route
             path="/"
             element={
@@ -67,7 +63,6 @@ export function App() {
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
 
-          {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster position="top-right" richColors />

@@ -71,7 +71,7 @@ import {
 import { ptBR } from 'date-fns/locale'
 
 export const Agenda: React.FC = () => {
-  const { organization, user, isProfessional } = useAuth()
+  const { organization, user, isProfessional, settings } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
@@ -253,6 +253,30 @@ export const Agenda: React.FC = () => {
     setSavingAppt(true)
     try {
       const endTime = calculateEndTime(formStartTime, formDuration)
+      const buffer = settings?.buffer_between_appointments || 0
+      const [newStartH, newStartM] = formStartTime.split(':').map(Number)
+      const [newEndH, newEndM] = endTime.split(':').map(Number)
+      const newStart = newStartH * 60 + newStartM
+      const newEnd = newEndH * 60 + newEndM
+
+      const hasConflict = appointments.some((appt) => {
+        if (appt.id === editApptId) return false
+        if (appt.professional_id !== formProfId) return false
+        if (!appt.date?.startsWith(formDate)) return false
+        if (appt.status === 'CANCELADO') return false
+
+        const [existingStartH, existingStartM] = appt.start_time.split(':').map(Number)
+        const [existingEndH, existingEndM] = appt.end_time.split(':').map(Number)
+        const existingStart = existingStartH * 60 + existingStartM
+        const existingEnd = existingEndH * 60 + existingEndM
+
+        return newStart < existingEnd + buffer && newEnd + buffer > existingStart
+      })
+
+      if (hasConflict) {
+        toast.error('Conflito de horário: este profissional já possui atendimento nesse período.')
+        return
+      }
 
       // 1. Resolve or Create Client
       let targetClientId = formClientId
@@ -339,25 +363,6 @@ export const Agenda: React.FC = () => {
     try {
       await pb.collection('appointments').update(apptId, { status: newStatus })
       toast.success(`Status atualizado para ${newStatus}`)
-
-      // If marked as CONCLUÍDO, prompt or automatically mark payment
-      if (newStatus === 'CONCLUÍDO') {
-        try {
-          const relatedPay = await pb
-            .collection('payments')
-            .getFirstListItem(`appointment_id = "${apptId}"`)
-          if (relatedPay && !relatedPay.is_paid) {
-            await pb.collection('payments').update(relatedPay.id, {
-              is_paid: true,
-              payment_date: new Date().toISOString(),
-              payment_method: 'PIX',
-            })
-            toast.success('Faturamento registrado automaticamente!')
-          }
-        } catch {
-          /* intentionally ignored */
-        }
-      }
 
       setDetailsSheetOpen(false)
       await loadData()
@@ -965,8 +970,7 @@ export const Agenda: React.FC = () => {
                 {isEditing ? 'Editar / Remarcar Agendamento' : 'Novo Agendamento'}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Preencha os detalhes do atendimento. Validação de conflitos e isolamento
-                multi-tenant são aplicados.
+                Preencha os detalhes do atendimento. O sistema impede conflitos conhecidos de horário.
               </DialogDescription>
             </DialogHeader>
 
