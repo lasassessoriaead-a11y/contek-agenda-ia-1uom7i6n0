@@ -72,7 +72,50 @@ export const Configuracoes: React.FC = () => {
   const [bufferBetween, setBufferBetween] = useState(10)
   const [defaultMessage, setDefaultMessage] = useState('')
   const [whatsappEnabled, setWhatsappEnabled] = useState(true)
+  const [whatsappPhoneNumber, setWhatsappPhoneNumber] = useState('')
+  const [whatsappWelcomeMessage, setWhatsappWelcomeMessage] = useState('')
+  const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('')
   const [savingSettings, setSavingSettings] = useState(false)
+
+  // Meta Integration Status (secrets & webhook)
+  const [metaStatus, setMetaStatus] = useState<{
+    is_configured: boolean
+    webhook_callback_url: string
+    verify_token_configured: boolean
+    has_access_token: boolean
+    has_phone_number_id: boolean
+    has_waba_id: boolean
+    has_app_secret: boolean
+    missing_secrets: string[]
+    central_phone: string
+  } | null>(null)
+  const [loadingMetaStatus, setLoadingMetaStatus] = useState(false)
+
+  useEffect(() => {
+    const fetchMetaStatus = async () => {
+      setLoadingMetaStatus(true)
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/whatsapp/status`,
+          {
+            headers: {
+              Authorization: (await import('@/lib/pocketbase/client')).default.authStore.token,
+            },
+          },
+        )
+        if (res.ok) {
+          const data = await res.json()
+          setMetaStatus(data)
+        }
+      } catch (err) {
+        console.error('Error fetching meta status:', err)
+      } finally {
+        setLoadingMetaStatus(false)
+      }
+    }
+
+    fetchMetaStatus()
+  }, [])
 
   useEffect(() => {
     if (organization) {
@@ -91,6 +134,9 @@ export const Configuracoes: React.FC = () => {
       setBufferBetween(settings.buffer_between_appointments || 10)
       setDefaultMessage(settings.default_booking_message || '')
       setWhatsappEnabled(settings.whatsapp_enabled !== false)
+      setWhatsappPhoneNumber(settings.whatsapp_phone_number || '')
+      setWhatsappWelcomeMessage(settings.whatsapp_welcome_message || '')
+      setWhatsappPhoneNumberId(settings.whatsapp_phone_number_id || '')
     }
   }, [organization, settings])
 
@@ -127,8 +173,11 @@ export const Configuracoes: React.FC = () => {
         buffer_between_appointments: Number(bufferBetween),
         default_booking_message: defaultMessage.trim(),
         whatsapp_enabled: whatsappEnabled,
+        whatsapp_phone_number: whatsappPhoneNumber.trim(),
+        whatsapp_welcome_message: whatsappWelcomeMessage.trim(),
+        whatsapp_phone_number_id: whatsappPhoneNumberId.trim(),
       })
-      toast.success('Configurações de agendamento salvas com sucesso!')
+      toast.success('Configurações salvas com sucesso!')
     } catch (err: unknown) {
       console.error(err)
       toast.error('Erro ao salvar configurações.')
@@ -405,74 +454,275 @@ export const Configuracoes: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB 3: WHATSAPP & MENSAGENS */}
+        {/* TAB 3: WHATSAPP & INTEGRAÇÃO META OFICIAL */}
         <TabsContent value="whatsapp">
-          <Card className="border-slate-200 bg-white shadow-sm">
-            <form onSubmit={handleSaveSettings}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base text-slate-900 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-emerald-600" />
-                  WhatsApp & Notificações (Arquitetura Preparada)
-                </CardTitle>
-                <CardDescription className="text-xs text-slate-500">
-                  Estrutura preparada para envio de mensagens automáticas de confirmação, lembrete e
-                  pós-atendimento.
-                </CardDescription>
+          <div className="space-y-4">
+            {/* Meta Cloud API Integration Diagnostic Panel */}
+            <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+              <CardHeader className="bg-slate-900 text-white pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base text-white flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4 text-emerald-400" />
+                      Integração Oficial Meta WhatsApp Business Platform
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-300">
+                      Conexão 100% oficial via Cloud API da Meta. Sem risco de banimento de número.
+                    </CardDescription>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`text-xs px-2.5 py-1 font-semibold ${
+                      metaStatus?.is_configured
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    }`}
+                  >
+                    {metaStatus?.is_configured ? '● Meta Cloud Conectado' : 'Pronto para Conectar'}
+                  </Badge>
+                </div>
               </CardHeader>
 
-              <CardContent className="space-y-4 text-xs">
-                <div className="p-3.5 bg-emerald-50/50 border border-emerald-200 rounded-xl text-xs text-emerald-900 space-y-1">
-                  <p className="font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    Arquitetura pronta para integração de API Oficial do WhatsApp
-                  </p>
-                  <p className="text-emerald-800 text-[11px]">
-                    Na V1, o sistema formata e salva os templates de mensagens com isolamento por
-                    organização para conexão com provedor homologado.
-                  </p>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700">
-                    Mensagem Padrão de Confirmação de Agendamento
-                  </Label>
-                  <Textarea
-                    value={defaultMessage}
-                    onChange={(e) => setDefaultMessage(e.target.value)}
-                    placeholder="Olá! Seu agendamento foi confirmado na nossa clínica..."
-                    className="text-xs h-24 resize-none"
-                  />
-                  <p className="text-[11px] text-slate-400">
-                    Exibida no comprovante de agendamento online e pronta para envio automático.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50">
-                  <div>
-                    <Label className="text-xs font-semibold text-slate-700 block">
-                      Habilitar Notificações WhatsApp
-                    </Label>
-                    <span className="text-[11px] text-slate-400">
-                      Disparar lembretes automáticos para clientes
-                    </span>
+              <CardContent className="space-y-4 pt-4 text-xs">
+                {/* Status explanation */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-900">Roteamento Inteligente V1:</span>
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] bg-emerald-100 text-emerald-800 font-mono"
+                    >
+                      Número Central + Deep Link por Slug
+                    </Badge>
                   </div>
-                  <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
+                  <p className="text-slate-600 leading-relaxed text-[11px]">
+                    Na V1, o número central da Contek atende as mensagens. O cliente clica no botão
+                    com o link{' '}
+                    <code className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-mono">
+                      wa.me/?text=...&ref={organization?.slug || 'slug'}
+                    </code>
+                    . O agente nativo Skip Cloud (
+                    <code className="font-mono text-slate-800">contek-whatsapp-bot</code>)
+                    identifica a sua empresa, apresenta os serviços e o link público oficial de
+                    agendamento.
+                  </p>
+                </div>
+
+                {/* Checklist of Meta Secrets */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-slate-800 block">
+                    Status das Credenciais Meta (Secrets do Backend)
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      {
+                        key: 'META_WA_ACCESS_TOKEN',
+                        label: 'Meta System User Access Token',
+                        ok: metaStatus?.has_access_token,
+                      },
+                      {
+                        key: 'META_WA_PHONE_NUMBER_ID',
+                        label: 'Phone Number ID (WABA)',
+                        ok: metaStatus?.has_phone_number_id,
+                      },
+                      {
+                        key: 'META_WA_BUSINESS_ACCOUNT_ID',
+                        label: 'WhatsApp Business Account ID (WABA)',
+                        ok: metaStatus?.has_waba_id,
+                      },
+                      {
+                        key: 'META_WA_APP_SECRET',
+                        label: 'Meta App Secret',
+                        ok: metaStatus?.has_app_secret,
+                      },
+                      {
+                        key: 'WHATSAPP_WEBHOOK_VERIFY_TOKEN',
+                        label: 'Webhook Verify Token',
+                        ok: metaStatus?.verify_token_configured,
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.key}
+                        className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50 text-[11px]"
+                      >
+                        <div className="space-y-0.5">
+                          <p className="font-medium text-slate-800">{item.label}</p>
+                          <p className="font-mono text-[10px] text-slate-400">{item.key}</p>
+                        </div>
+                        {item.ok ? (
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                            Configurado
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"
+                          >
+                            Pendente
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {metaStatus?.missing_secrets && metaStatus.missing_secrets.length > 0 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-[11px] space-y-1">
+                      <p className="font-semibold">O que falta para ativar as mensagens reais:</p>
+                      <p className="text-amber-800">
+                        Adicionar as credenciais da Meta aos secrets da plataforma:{' '}
+                        <b>{metaStatus.missing_secrets.join(', ')}</b>. Todo o código do webhook,
+                        agente e envio já está implantado e pronto.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Webhook endpoint URL box */}
+                <div className="space-y-1.5 pt-1">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    URL de Retorno do Webhook (para cadastrar no Painel Meta Developer)
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      readOnly
+                      value={
+                        metaStatus?.webhook_callback_url ||
+                        `${window.location.origin}/backend/v1/whatsapp/webhook`
+                      }
+                      className="text-xs font-mono bg-slate-50"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const url =
+                          metaStatus?.webhook_callback_url ||
+                          `${window.location.origin}/backend/v1/whatsapp/webhook`
+                        navigator.clipboard.writeText(url)
+                        toast.success('URL do webhook copiada!')
+                      }}
+                      className="text-xs text-slate-700 h-9"
+                    >
+                      Copiar
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    No Meta for Developers &gt; WhatsApp &gt; Configuração &gt; Webhook, insira esta
+                    URL e o Verify Token correspondente.
+                  </p>
                 </div>
               </CardContent>
+            </Card>
 
-              <CardFooter className="pt-2 border-t border-slate-100 flex justify-end">
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={savingSettings}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
-                >
-                  <Save className="w-3.5 h-3.5 mr-1.5" />
-                  Salvar Configuração de Mensagem
-                </Button>
-              </CardFooter>
-            </form>
-          </Card>
+            {/* Organization Specific WhatsApp Settings Form */}
+            <Card className="border-slate-200 bg-white shadow-sm">
+              <form onSubmit={handleSaveSettings}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base text-slate-900 flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-emerald-600" />
+                    Configurações do WhatsApp da Empresa ({organization?.name})
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500">
+                    Personalize o número exibido, a saudação do bot e regras de atendimento.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4 text-xs">
+                  {/* Enable / Disable WhatsApp for this org */}
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50">
+                    <div>
+                      <Label className="text-xs font-semibold text-slate-800 block">
+                        Ativar Atendimento por WhatsApp para esta Empresa
+                      </Label>
+                      <span className="text-[11px] text-slate-500">
+                        Exibe o botão de WhatsApp na página pública e permite que o bot responda por
+                        este tenant.
+                      </span>
+                    </div>
+                    <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">
+                        Número de WhatsApp Específico (opcional)
+                      </Label>
+                      <Input
+                        value={whatsappPhoneNumber}
+                        onChange={(e) => setWhatsappPhoneNumber(e.target.value)}
+                        placeholder="Ex: 5511987654321"
+                        className="text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-slate-400">
+                        Deixe em branco para usar o número central da Contek com roteamento
+                        automático por slug.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700">
+                        Phone Number ID Meta Específico (V2 multi-número)
+                      </Label>
+                      <Input
+                        value={whatsappPhoneNumberId}
+                        onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
+                        placeholder="Ex: 104589239847291"
+                        className="text-xs font-mono"
+                      />
+                      <p className="text-[11px] text-slate-400">
+                        Preencha apenas se sua empresa possuir seu próprio número registrado na
+                        Cloud API da Meta.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">
+                      Mensagem de Boas-Vindas Personalizada do Bot
+                    </Label>
+                    <Textarea
+                      value={whatsappWelcomeMessage}
+                      onChange={(e) => setWhatsappWelcomeMessage(e.target.value)}
+                      placeholder="Olá! Que bom ter você aqui na Contek Estética & Saúde. Como posso te ajudar hoje?"
+                      className="text-xs h-20 resize-none"
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      O agente inteligente utilizará esta saudação personalizada ao iniciar a
+                      conversa com seus clientes.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-700">
+                      Mensagem Padrão de Comprovante de Agendamento
+                    </Label>
+                    <Textarea
+                      value={defaultMessage}
+                      onChange={(e) => setDefaultMessage(e.target.value)}
+                      placeholder="Olá! Seu agendamento foi confirmado com sucesso. Estamos te aguardando!"
+                      className="text-xs h-20 resize-none"
+                    />
+                    <p className="text-[11px] text-slate-400">
+                      Enviada ou exibida na tela quando o agendamento for concluído com sucesso.
+                    </p>
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-2 border-t border-slate-100 flex justify-end">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={savingSettings}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                  >
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    {savingSettings ? 'Salvando...' : 'Salvar Configurações de WhatsApp'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* TAB 4: PLANO & MULTI-TENANT */}

@@ -41,6 +41,9 @@ export interface BusinessSettings {
   buffer_between_appointments?: number
   default_booking_message?: string
   whatsapp_enabled?: boolean
+  whatsapp_phone_number?: string
+  whatsapp_welcome_message?: string
+  whatsapp_phone_number_id?: string
   created: string
   updated: string
 }

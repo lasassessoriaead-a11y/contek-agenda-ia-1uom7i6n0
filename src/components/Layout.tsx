@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
 
 export const Layout: React.FC = () => {
   const { user, organization, logout, isAdmin } = useAuth()
@@ -115,16 +116,19 @@ export const Layout: React.FC = () => {
 
         {/* Action Header Items */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* PWA Install Button */}
+          <PwaInstallPrompt variant="button" />
+
           {publicUrl && (
             <Button
               variant="outline"
               size="sm"
               asChild
-              className="hidden sm:inline-flex border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-medium"
+              className="hidden lg:inline-flex border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-medium"
             >
               <Link to={publicUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                Página de Agendamento
+                Link Público
               </Link>
             </Button>
           )}
@@ -269,6 +273,11 @@ export const Layout: React.FC = () => {
                 </p>
               </div>
             </div>
+            {/* Install Button inside desktop sidebar */}
+            <PwaInstallPrompt
+              variant="button"
+              className="w-full justify-center bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-700/50"
+            />
           </div>
         </aside>
 

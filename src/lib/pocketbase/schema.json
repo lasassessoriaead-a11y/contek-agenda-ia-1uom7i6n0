@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-31T14:53:05.168Z",
+  "generatedAt": "2026-09-03T13:19:39.587Z",
   "collections": [
     {
       "name": "users",
@@ -797,6 +797,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "whatsapp_phone_number",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp_welcome_message",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp_phone_number_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [

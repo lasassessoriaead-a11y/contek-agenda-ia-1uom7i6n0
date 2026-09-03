@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="contekGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="bgGrad512" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad512)" />
+  <rect x="8" y="8" width="496" height="496" rx="108" fill="none" stroke="#10b981" stroke-width="6" stroke-opacity="0.3" />
+
+  <rect x="100" y="128" width="312" height="268" rx="36" fill="#1e293b" stroke="#334155" stroke-width="8" />
+  <path d="M 100 164 C 100 144 116 128 136 128 L 376 128 C 396 128 412 144 412 164 L 412 212 L 100 212 Z" fill="url(#contekGrad512)" />
+  
+  <rect x="168" y="96" width="28" height="64" rx="14" fill="#f8fafc" />
+  <rect x="316" y="96" width="28" height="64" rx="14" fill="#f8fafc" />
+
+  <path d="M 370 156 L 377 172 L 393 179 L 377 186 L 370 202 L 363 186 L 347 179 L 363 172 Z" fill="#ffffff" />
+
+  <path d="M 180 295 L 230 345 L 340 245" fill="none" stroke="#10b981" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="340" cy="245" r="8" fill="#34d399" />
+
+  <circle cx="160" cy="250" r="10" fill="#475569" />
+  <circle cx="160" cy="350" r="10" fill="#475569" />
+  <circle cx="350" cy="350" r="10" fill="#475569" />
+</svg>

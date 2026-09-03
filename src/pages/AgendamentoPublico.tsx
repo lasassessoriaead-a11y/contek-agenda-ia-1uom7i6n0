@@ -272,6 +272,20 @@ export const AgendamentoPublico: React.FC = () => {
     }
   }, [selectedProf, selectedDate, nextDays, settings])
 
+  // Calculate WhatsApp deep link for this organization
+  const whatsappLink = useMemo(() => {
+    if (!org) return '#'
+    // Prioritize business settings whatsapp phone, or org whatsapp, or default central number
+    const rawNumber =
+      settings?.whatsapp_phone_number || org.whatsapp || org.phone || '5511987654321'
+    const cleanNumber = rawNumber.replace(/\D/g, '')
+    const finalNumber = cleanNumber.startsWith('55') ? cleanNumber : `55${cleanNumber}`
+    const prefilledText = encodeURIComponent(
+      `Olá! Quero agendar um horário na ${org.name}. [ref:${org.slug}]`,
+    )
+    return `https://wa.me/${finalNumber}?text=${prefilledText}`
+  }, [org, settings])
+
   // Confirm booking
   const handleConfirmBooking = async () => {
     if (
@@ -409,7 +423,18 @@ export const AgendamentoPublico: React.FC = () => {
             </p>
           )}
 
-          <div className="pt-2 flex flex-col gap-2">
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+            {settings?.whatsapp_enabled !== false && (
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500/30 text-xs font-semibold transition-colors"
+              >
+                <Phone className="w-4 h-4 fill-current" />
+                Falar com a Empresa no WhatsApp
+              </a>
+            )}
             <Button
               onClick={() => {
                 setBookingSuccessData(null)
@@ -450,6 +475,21 @@ export const AgendamentoPublico: React.FC = () => {
               <MapPin className="w-3.5 h-3.5 text-emerald-500" />
               {org.address}
             </p>
+          )}
+
+          {/* WHATSAPP ACTION BUTTON ON PUBLIC PAGE */}
+          {settings?.whatsapp_enabled !== false && (
+            <div className="pt-1 flex justify-center">
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all hover:scale-105"
+              >
+                <Phone className="w-4 h-4 fill-current" />
+                <span>Agendar ou tirar dúvidas pelo WhatsApp</span>
+              </a>
+            </div>
           )}
         </div>
 
