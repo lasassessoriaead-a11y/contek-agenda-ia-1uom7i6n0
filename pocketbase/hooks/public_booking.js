@@ -84,50 +84,53 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     const dayMap = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab']
     const dayKey = dayMap[dayIdx]
 
+    // Parse helper for JSON/array fields
+    const parseListField = (val) => {
+      if (!val) return []
+      if (Array.isArray(val)) return val
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val)
+          return Array.isArray(parsed) ? parsed : []
+        } catch (_) {
+          return []
+        }
+      }
+      return []
+    }
+
+    const parseObjField = (val) => {
+      if (!val) return null
+      if (typeof val === 'object' && !Array.isArray(val)) return val
+      if (typeof val === 'string') {
+        try {
+          const parsed = JSON.parse(val)
+          return typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+        } catch (_) {
+          return null
+        }
+      }
+      return null
+    }
+
     // Check organization settings working days if available
     try {
       const bizSettings = $app.findFirstRecordByData('business_settings', 'organization_id', orgId)
       if (bizSettings) {
-        let orgWorkingDays = bizSettings.get('working_days')
-        if (typeof orgWorkingDays === 'string') {
-          try {
-            orgWorkingDays = JSON.parse(orgWorkingDays)
-          } catch (_) {}
-        }
-        if (
-          Array.isArray(orgWorkingDays) &&
-          orgWorkingDays.length > 0 &&
-          !orgWorkingDays.includes(dayKey)
-        ) {
+        const orgWorkingDays = parseListField(bizSettings.get('working_days'))
+        if (orgWorkingDays.length > 0 && !orgWorkingDays.includes(dayKey)) {
           return e.json(400, { error: 'O estabelecimento não abre no dia da semana selecionado.' })
         }
       }
     } catch (_) {}
 
-    let profWorkDays = profRecord.get('work_days')
-    if (typeof profWorkDays === 'string') {
-      try {
-        profWorkDays = JSON.parse(profWorkDays)
-      } catch (_) {}
-    }
-    if (profWorkDays && Array.isArray(profWorkDays) && profWorkDays.length > 0) {
-      if (!profWorkDays.includes(dayKey)) {
-        return e.json(400, { error: 'O profissional não atende no dia da semana selecionado.' })
-      }
+    const profWorkDays = parseListField(profRecord.get('work_days'))
+    if (profWorkDays.length > 0 && !profWorkDays.includes(dayKey)) {
+      return e.json(400, { error: 'O profissional não atende no dia da semana selecionado.' })
     }
 
-    let profWorkHours = profRecord.get('work_hours')
-    if (typeof profWorkHours === 'string') {
-      try {
-        profWorkHours = JSON.parse(profWorkHours)
-      } catch (_) {}
-    }
-    if (
-      profWorkHours &&
-      typeof profWorkHours === 'object' &&
-      profWorkHours.start &&
-      profWorkHours.end
-    ) {
+    const profWorkHours = parseObjField(profRecord.get('work_hours'))
+    if (profWorkHours && profWorkHours.start && profWorkHours.end) {
       const pStart = timeToMinutes(profWorkHours.start)
       const pEnd = timeToMinutes(profWorkHours.end)
       if (startMin < pStart || endMin > pEnd) {
