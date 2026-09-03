@@ -159,7 +159,7 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     if (profWorkHours && profWorkHours.start && profWorkHours.end) {
       const pStart = timeToMinutes(profWorkHours.start)
       const pEnd = timeToMinutes(profWorkHours.end)
-      if (startMin < pStart || endMin > pEnd) {
+      if (newStartMin < pStart || newEndMin > pEnd) {
         return e.json(400, {
           error: `Horário fora do expediente do profissional (${profWorkHours.start} às ${profWorkHours.end}).`,
         })
