@@ -143,6 +143,62 @@ export const AgendamentoPublico: React.FC = () => {
     return professionals.filter((p) => linkedProfIds.includes(p.id))
   }, [selectedService, profServices, professionals])
 
+  // Robust parser for JSON or byte-array lists from PocketBase
+  const parseListField = (val: unknown): string[] => {
+    if (!val) return []
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...(val as number[]))
+          const parsed = JSON.parse(str)
+          return Array.isArray(parsed) ? (parsed as string[]) : []
+        } catch {
+          return []
+        }
+      }
+      return val as string[]
+    }
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return Array.isArray(parsed) ? (parsed as string[]) : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  // Robust parser for JSON or byte-array object from PocketBase
+  const parseWorkHours = (
+    val: unknown,
+  ): { start?: string; end?: string; lunch_start?: string; lunch_end?: string } | null => {
+    if (!val) return null
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...(val as number[]))
+          const parsed = JSON.parse(str)
+          return typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+        } catch {
+          return null
+        }
+      }
+      return null
+    }
+    if (typeof val === 'object')
+      return val as { start?: string; end?: string; lunch_start?: string; lunch_end?: string }
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+
   // Helper to parse date string into dayKey ('dom', 'seg', 'ter', ...)
   const getDayKeyFromDateStr = (dateStr: string) => {
     if (!dateStr) return ''
@@ -161,14 +217,16 @@ export const AgendamentoPublico: React.FC = () => {
     const currentDayKey = getDayKeyFromDateStr(dateStr)
     if (!currentDayKey) return false
 
-    if (settings?.working_days && settings.working_days.length > 0) {
-      if (!settings.working_days.includes(currentDayKey)) {
+    const orgWorkingDays = parseListField(settings?.working_days)
+    if (orgWorkingDays.length > 0) {
+      if (!orgWorkingDays.includes(currentDayKey)) {
         return false
       }
     }
 
-    if (selectedProf?.work_days && selectedProf.work_days.length > 0) {
-      if (!selectedProf.work_days.includes(currentDayKey)) {
+    const profWorkingDays = parseListField(selectedProf?.work_days)
+    if (profWorkingDays.length > 0) {
+      if (!profWorkingDays.includes(currentDayKey)) {
         return false
       }
     }
@@ -183,32 +241,36 @@ export const AgendamentoPublico: React.FC = () => {
     // Check if the selected date is a working day
     const currentDayKey = getDayKeyFromDateStr(selectedDate)
 
-    if (settings?.working_days && settings.working_days.length > 0) {
-      if (!settings.working_days.includes(currentDayKey)) {
+    const orgWorkingDays = parseListField(settings?.working_days)
+    if (orgWorkingDays.length > 0) {
+      if (!orgWorkingDays.includes(currentDayKey)) {
         return []
       }
     }
 
     // Check if the selected date is a working day for the professional
-    if (selectedProf.work_days && selectedProf.work_days.length > 0) {
-      if (!selectedProf.work_days.includes(currentDayKey)) {
+    const profWorkingDays = parseListField(selectedProf.work_days)
+    if (profWorkingDays.length > 0) {
+      if (!profWorkingDays.includes(currentDayKey)) {
         return []
       }
     }
 
-    const startHStr = selectedProf.work_hours?.start || settings?.opening_time || '08:00'
-    const endHStr = selectedProf.work_hours?.end || settings?.closing_time || '18:00'
+    const parsedHours = parseWorkHours(selectedProf.work_hours)
+    const startHStr = parsedHours?.start || settings?.opening_time || '08:00'
+    const endHStr = parsedHours?.end || settings?.closing_time || '18:00'
     const duration = selectedService.duration || 45
     const slotStep = settings?.slot_interval_minutes || 30
     const buffer = settings?.buffer_between_appointments || 0
 
     const slots: string[] = []
 
-    // Appts on selected date for this professional
+    // Appts on selected date for this professional (match YYYY-MM-DD regardless of trailing time/zone format)
     const dayAppts = existingAppointments.filter(
       (a) =>
         a.professional_id === selectedProf.id &&
-        a.date?.startsWith(selectedDate) &&
+        a.date &&
+        a.date.slice(0, 10) === selectedDate &&
         a.status !== 'CANCELADO',
     )
 
@@ -218,21 +280,42 @@ export const AgendamentoPublico: React.FC = () => {
     let currentMinutes = startHour * 60 + startMin
     const endMinutes = endHour * 60 + endMin
 
+    const lunchStartStr = parsedHours?.lunch_start
+    const lunchEndStr = parsedHours?.lunch_end
+    let lunchStartMin = -1
+    let lunchEndMin = -1
+    if (lunchStartStr && lunchEndStr) {
+      const [lSh, lSm] = lunchStartStr.split(':').map(Number)
+      const [lEh, lEm] = lunchEndStr.split(':').map(Number)
+      lunchStartMin = lSh * 60 + lSm
+      lunchEndMin = lEh * 60 + lEm
+    }
+
     while (currentMinutes + duration <= endMinutes) {
       const h = Math.floor(currentMinutes / 60)
       const m = currentMinutes % 60
       const slotStartStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
       const slotEndMinutes = currentMinutes + duration
 
-      // Check conflicts with existing appointments: (start < existEnd + buffer) && (end + buffer > existStart)
-      const hasConflict = dayAppts.some((a) => {
-        const [aSh, aSm] = a.start_time.split(':').map(Number)
-        const [aEh, aEm] = a.end_time.split(':').map(Number)
-        const aStart = aSh * 60 + aSm
-        const aEnd = aEh * 60 + aEm + buffer
+      // Skip slot if it overlaps with professional lunch break
+      const overlapsLunch =
+        lunchStartMin >= 0 &&
+        lunchEndMin > lunchStartMin &&
+        currentMinutes < lunchEndMin &&
+        slotEndMinutes > lunchStartMin
 
-        return currentMinutes < aEnd && slotEndMinutes + buffer > aStart
-      })
+      // Check conflicts with existing appointments on the same day:
+      // slotStart < existEnd && slotEnd > existStart
+      const hasConflict =
+        overlapsLunch ||
+        dayAppts.some((a) => {
+          const [aSh, aSm] = a.start_time.split(':').map(Number)
+          const [aEh, aEm] = a.end_time.split(':').map(Number)
+          const aStart = aSh * 60 + aSm
+          const aEnd = aEh * 60 + aEm
+
+          return currentMinutes < aEnd && slotEndMinutes > aStart
+        })
 
       if (!hasConflict) {
         slots.push(slotStartStr)

@@ -167,9 +167,12 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     }
     // 5. Check conflict on the same date for the professional
     const cleanDate = typeof date === 'string' ? date.slice(0, 10) : ''
-    const filter = `professional_id = "${professional_id}" && status != "CANCELADO" && date ~ "${cleanDate}"`
-    const existing = $app.findRecordsByFilter('appointments', filter, '', 100, 0)
+    const filter = `professional_id = "${professional_id}" && status != "CANCELADO"`
+    const existing = $app.findRecordsByFilter('appointments', filter, '', 200, 0)
     for (const appt of existing) {
+      const apptDateStr = (appt.getString('date') || '').slice(0, 10)
+      if (apptDateStr !== cleanDate) continue
+
       const existStart = appt.getString('start_time')
       const existEnd = appt.getString('end_time')
       const existStartMin = timeToMinutes(existStart)
@@ -177,7 +180,7 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
 
       if (newStartMin < existEndMin && newEndMin > existStartMin) {
         return e.json(409, {
-          error: `O horário selecionado (${start_time} às ${end_time}) acabou de ser ocupado. Por favor, escolha outro horário.`,
+          error: `Conflito de horário para este profissional: já existe agendamento das ${existStart} às ${existEnd}.`,
         })
       }
     }

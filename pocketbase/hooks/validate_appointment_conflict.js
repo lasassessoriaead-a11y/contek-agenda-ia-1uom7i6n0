@@ -161,11 +161,13 @@ onRecordCreateRequest((e) => {
   }
 
   try {
-    const filter = `professional_id = "${profId}" && status != "CANCELADO" && date ~ "${cleanDate}"`
-    const existing = $app.findRecordsByFilter('appointments', filter, '', 100, 0)
+    const filter = `professional_id = "${profId}" && status != "CANCELADO"`
+    const existing = $app.findRecordsByFilter('appointments', filter, '', 200, 0)
 
     for (const appt of existing) {
       if (e.record && appt.id === e.record.id) continue
+      const apptDateStr = (appt.getString('date') || '').slice(0, 10)
+      if (apptDateStr !== cleanDate) continue
 
       const existStart = appt.getString('start_time')
       const existEnd = appt.getString('end_time')
@@ -277,11 +279,13 @@ onRecordUpdateRequest((e) => {
   }
 
   try {
-    const filter = `professional_id = "${profId}" && status != "CANCELADO" && date ~ "${cleanDate}"`
-    const existing = $app.findRecordsByFilter('appointments', filter, '', 100, 0)
+    const filter = `professional_id = "${profId}" && status != "CANCELADO"`
+    const existing = $app.findRecordsByFilter('appointments', filter, '', 200, 0)
 
     for (const appt of existing) {
       if (e.record && appt.id === e.record.id) continue
+      const apptDateStr = (appt.getString('date') || '').slice(0, 10)
+      if (apptDateStr !== cleanDate) continue
 
       const existStart = appt.getString('start_time')
       const existEnd = appt.getString('end_time')
