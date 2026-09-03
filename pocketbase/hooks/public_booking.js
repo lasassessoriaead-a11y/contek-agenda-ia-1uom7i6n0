@@ -118,6 +118,9 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
       const bizSettings = $app.findFirstRecordByData('business_settings', 'organization_id', orgId)
       if (bizSettings) {
         const orgWorkingDays = parseListField(bizSettings.get('working_days'))
+        console.log(
+          `[public_booking] date=${date} dayKey=${dayKey} orgDays=${JSON.stringify(orgWorkingDays)}`,
+        )
         if (orgWorkingDays.length > 0 && !orgWorkingDays.includes(dayKey)) {
           return e.json(400, { error: 'O estabelecimento não abre no dia da semana selecionado.' })
         }
