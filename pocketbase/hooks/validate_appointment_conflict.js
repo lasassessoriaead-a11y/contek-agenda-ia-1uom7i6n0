@@ -51,7 +51,18 @@ onRecordCreateRequest((e) => {
       // Helper to parse list fields safely
       const parseList = (val) => {
         if (!val) return []
-        if (Array.isArray(val)) return val
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === 'number') {
+            try {
+              const str = String.fromCharCode(...val)
+              const p = JSON.parse(str)
+              return Array.isArray(p) ? p : []
+            } catch (_) {
+              return []
+            }
+          }
+          return val
+        }
         if (typeof val === 'string') {
           try {
             const p = JSON.parse(val)
@@ -65,6 +76,18 @@ onRecordCreateRequest((e) => {
 
       const parseObj = (val) => {
         if (!val) return null
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === 'number') {
+            try {
+              const str = String.fromCharCode(...val)
+              const p = JSON.parse(str)
+              return typeof p === 'object' && !Array.isArray(p) ? p : null
+            } catch (_) {
+              return null
+            }
+          }
+          return null
+        }
         if (typeof val === 'object' && !Array.isArray(val)) return val
         if (typeof val === 'string') {
           try {
@@ -214,6 +237,18 @@ onRecordUpdateRequest((e) => {
 
       const parseObj = (val) => {
         if (!val) return null
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === 'number') {
+            try {
+              const str = String.fromCharCode(...val)
+              const p = JSON.parse(str)
+              return typeof p === 'object' && !Array.isArray(p) ? p : null
+            } catch (_) {
+              return null
+            }
+          }
+          return null
+        }
         if (typeof val === 'object' && !Array.isArray(val)) return val
         if (typeof val === 'string') {
           try {

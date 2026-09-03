@@ -87,7 +87,18 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     // Parse helper for JSON/array fields
     const parseListField = (val) => {
       if (!val) return []
-      if (Array.isArray(val)) return val
+      if (Array.isArray(val)) {
+        if (val.length > 0 && typeof val[0] === 'number') {
+          try {
+            const str = String.fromCharCode(...val)
+            const parsed = JSON.parse(str)
+            return Array.isArray(parsed) ? parsed : []
+          } catch (_) {
+            return []
+          }
+        }
+        return val
+      }
       if (typeof val === 'string') {
         try {
           const parsed = JSON.parse(val)
@@ -101,6 +112,18 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
 
     const parseObjField = (val) => {
       if (!val) return null
+      if (Array.isArray(val)) {
+        if (val.length > 0 && typeof val[0] === 'number') {
+          try {
+            const str = String.fromCharCode(...val)
+            const parsed = JSON.parse(str)
+            return typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null
+          } catch (_) {
+            return null
+          }
+        }
+        return null
+      }
       if (typeof val === 'object' && !Array.isArray(val)) return val
       if (typeof val === 'string') {
         try {
