@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
+import { useAuth } from '@/context/AuthContext'
 import { Download, Smartphone, Share, PlusSquare, X, Sparkles, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +11,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { MarkalyEmblem } from '@/components/MarkalyBranding'
+import { AgyliEmblem } from '@/components/AgyliBranding'
 
 interface PwaInstallPromptProps {
   className?: string
@@ -20,6 +23,8 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
   className = '',
   variant = 'button',
 }) => {
+  const { currentProduct, branding } = useAuth()
+  const isMarkaly = currentProduct === 'markaly'
   const { isInstallable, isStandalone, isIos, promptInstall } = usePwaInstall()
   const [showIosModal, setShowIosModal] = useState(false)
   const [dismissed, setDismissed] = useState(false)
@@ -46,23 +51,45 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
           type="button"
           size="sm"
           onClick={handleInstallClick}
-          className={`bg-slate-900 hover:bg-slate-800 text-blue-400 border border-blue-500/30 text-xs font-semibold shadow-sm flex items-center gap-1.5 h-9 ${className}`}
+          className={`text-xs font-semibold shadow-sm flex items-center gap-1.5 h-9 ${
+            isMarkaly
+              ? 'bg-[#3B0764] hover:bg-purple-950 text-orange-300 border border-orange-400/30'
+              : 'bg-slate-900 hover:bg-slate-800 text-blue-400 border border-blue-500/30'
+          } ${className}`}
         >
-          <Smartphone className="w-3.5 h-3.5 text-[#3B82F6] animate-pulse" />
+          <Smartphone
+            className={`w-3.5 h-3.5 animate-pulse ${
+              isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'
+            }`}
+          />
           <span>Instalar App</span>
         </Button>
 
         <Dialog open={showIosModal} onOpenChange={setShowIosModal}>
-          <DialogContent className="max-w-md bg-[#0F172A] border-slate-800 text-slate-100 rounded-2xl">
+          <DialogContent
+            className={`max-w-md rounded-2xl text-slate-100 ${
+              isMarkaly ? 'bg-[#3B0764] border-purple-800' : 'bg-[#0F172A] border-slate-800'
+            }`}
+          >
             <DialogHeader>
-              <div className="w-12 h-12 rounded-2xl bg-blue-950 border border-blue-800 text-[#3B82F6] flex items-center justify-center mx-auto mb-2">
-                <Smartphone className="w-6 h-6" />
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-2 ${
+                  isMarkaly
+                    ? 'bg-purple-950 border border-orange-500/40 text-[#F97316]'
+                    : 'bg-blue-950 border border-blue-800 text-[#3B82F6]'
+                }`}
+              >
+                {isMarkaly ? <MarkalyEmblem size={28} /> : <AgyliEmblem size={28} />}
               </div>
               <DialogTitle className="text-center text-lg font-bold text-white">
-                Instalar AGYLI
+                Instalar {branding.name}
               </DialogTitle>
-              <DialogDescription className="text-center text-xs text-slate-400">
-                Agendar ficou simples. Adicione o aplicativo à tela inicial do seu celular ou
+              <DialogDescription
+                className={`text-center text-xs ${
+                  isMarkaly ? 'text-purple-200' : 'text-slate-400'
+                }`}
+              >
+                {branding.tagline}. Adicione o aplicativo à tela inicial do seu celular ou
                 computador para abrir em tela cheia.
               </DialogDescription>
             </DialogHeader>
@@ -99,7 +126,8 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
                       Selecione <b>Instalar aplicativo</b> ou <b>Adicionar à tela inicial</b>.
                     </li>
                     <li>
-                      Confirme a instalação. O ícone oficial do AGYLI aparecerá entre seus apps.
+                      Confirme a instalação. O ícone oficial do {branding.name} aparecerá entre seus
+                      apps.
                     </li>
                   </ol>
                 </div>
@@ -137,18 +165,30 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
         className={`bg-gradient-to-r from-blue-950 via-[#0F172A] to-indigo-950 border border-blue-500/40 text-white rounded-xl p-3 shadow-lg flex items-center justify-between gap-3 ${className}`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white flex items-center justify-center flex-shrink-0 shadow-md">
+          <div
+            className={`w-9 h-9 rounded-lg text-white flex items-center justify-center flex-shrink-0 shadow-md ${
+              isMarkaly
+                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED]'
+                : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]'
+            }`}
+          >
             <Download className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-bold text-white">Instalar AGYLI no Celular</p>
-              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-[9px] px-1.5 py-0">
+              <p className="text-xs font-bold text-white">Instalar {branding.name} no Celular</p>
+              <Badge
+                className={`text-[9px] px-1.5 py-0 ${
+                  isMarkaly
+                    ? 'bg-orange-500/20 text-orange-200 border-orange-500/30'
+                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                }`}
+              >
                 App PWA
               </Badge>
             </div>
             <p className="text-[11px] text-slate-300">
-              Agendar ficou simples. Acesse sua agenda direto da tela de início em tela cheia.
+              {branding.tagline} Acesse sua agenda direto da tela de início em tela cheia.
             </p>
           </div>
         </div>
@@ -157,7 +197,11 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
           <Button
             size="sm"
             onClick={handleInstallClick}
-            className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-8 px-3"
+            className={`text-white font-bold text-xs h-8 px-3 ${
+              isMarkaly
+                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
+                : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+            }`}
           >
             Instalar
           </Button>

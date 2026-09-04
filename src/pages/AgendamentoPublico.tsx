@@ -44,6 +44,7 @@ import { toast } from 'sonner'
 import { format, addDays, isBefore, startOfToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
+import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
 
 export const AgendamentoPublico: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -505,8 +506,18 @@ export const AgendamentoPublico: React.FC = () => {
   if (bookingSuccessData) {
     return (
       <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative font-['Poppins',sans-serif]">
-        <div className="max-w-lg w-full bg-[#1E293B] border border-[#3B82F6]/40 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/20 animate-bounce">
+        <div
+          className={`max-w-lg w-full bg-[#1E293B] border rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 text-center ${
+            isMarkaly ? 'border-orange-500/40' : 'border-[#3B82F6]/40'
+          }`}
+        >
+          <div
+            className={`w-16 h-16 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg animate-bounce ${
+              isMarkaly
+                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] shadow-orange-500/20'
+                : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] shadow-blue-500/20'
+            }`}
+          >
             <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
           </div>
 
@@ -514,7 +525,7 @@ export const AgendamentoPublico: React.FC = () => {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Agendamento Realizado com Sucesso!
             </h1>
-            <p className="text-xs text-blue-300 mt-1">
+            <p className={`text-xs mt-1 ${isMarkaly ? 'text-orange-300' : 'text-blue-300'}`}>
               Seu horário está confirmado em <b>{org.name}</b>.
             </p>
           </div>
@@ -532,7 +543,7 @@ export const AgendamentoPublico: React.FC = () => {
             </div>
             <div className="flex justify-between border-b border-slate-800 pb-2">
               <span className="text-slate-400">Data e Horário:</span>
-              <span className="font-bold text-[#3B82F6]">
+              <span className={`font-bold ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}>
                 {format(parseISO(bookingSuccessData.date), "dd 'de' MMMM", { locale: ptBR })} às{' '}
                 {bookingSuccessData.start_time}
               </span>
@@ -557,7 +568,11 @@ export const AgendamentoPublico: React.FC = () => {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-400 border border-blue-500/30 text-xs font-semibold transition-colors"
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition-colors border ${
+                  isMarkaly
+                    ? 'text-orange-300 border-orange-500/30'
+                    : 'text-blue-400 border-blue-500/30'
+                }`}
               >
                 <Phone className="w-4 h-4 fill-current" />
                 Falar com a Empresa no WhatsApp
@@ -571,7 +586,11 @@ export const AgendamentoPublico: React.FC = () => {
                 setSelectedProf(null)
                 setSelectedTimeSlot('')
               }}
-              className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold h-11"
+              className={`text-white font-bold h-11 ${
+                isMarkaly
+                  ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                  : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+              }`}
             >
               Fazer Outro Agendamento
             </Button>
@@ -579,11 +598,23 @@ export const AgendamentoPublico: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 mt-6">
-          <AgyliEmblem size={20} />
-          <p className="text-[11px] text-slate-400">
-            Powered by <b>AGYLI</b> • Agendar ficou simples. Uma solução{' '}
-            <span className="text-[#3B82F6]">Contek</span>
-          </p>
+          {isMarkaly ? (
+            <>
+              <MarkalyEmblem size={20} />
+              <p className="text-[11px] text-slate-400">
+                Powered by <b>MARKALY</b> • Organizar hoje, crescer sempre. Uma solução{' '}
+                <span className="text-orange-400">Contek</span>
+              </p>
+            </>
+          ) : (
+            <>
+              <AgyliEmblem size={20} />
+              <p className="text-[11px] text-slate-400">
+                Powered by <b>AGYLI</b> • Agendar ficou simples. Uma solução{' '}
+                <span className="text-[#3B82F6]">Contek</span>
+              </p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -592,16 +623,20 @@ export const AgendamentoPublico: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-x-hidden font-['Poppins',sans-serif]">
       {/* Background accents */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 bg-[#3B82F6]/15 rounded-full blur-3xl pointer-events-none" />
+      <div
+        className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 rounded-full blur-3xl pointer-events-none ${
+          isMarkaly ? 'bg-orange-500/15' : 'bg-[#3B82F6]/15'
+        }`}
+      />
 
       <div className="max-w-2xl w-full space-y-6 relative z-10">
         {/* ORGANIZATION BRAND HEADER */}
         <div className="text-center space-y-3">
           <div className="flex justify-center">
             {isMarkaly ? (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-800 text-sky-400 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5" />
-                Agendamento Online MARKALY
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3B0764] border border-orange-400/40 text-orange-300 text-xs font-semibold shadow-sm">
+                <MarkalyEmblem size={16} />
+                <span>Agendamento Oficial • MARKALY</span>
               </div>
             ) : (
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1E293B] border border-blue-500/30 text-blue-300 text-xs font-semibold">
@@ -614,7 +649,9 @@ export const AgendamentoPublico: React.FC = () => {
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{org.name}</h1>
           {org.address && (
             <p className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#3B82F6]" />
+              <MapPin
+                className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+              />
               {org.address}
             </p>
           )}
@@ -626,7 +663,11 @@ export const AgendamentoPublico: React.FC = () => {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold text-xs shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-white font-semibold text-xs shadow-lg transition-all hover:scale-105 ${
+                  isMarkaly
+                    ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
+                    : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/30'
+                }`}
               >
                 <Phone className="w-4 h-4 fill-current" />
                 <span>Agendar ou tirar dúvidas pelo WhatsApp</span>
@@ -639,7 +680,7 @@ export const AgendamentoPublico: React.FC = () => {
         <div className="bg-[#1E293B] border border-slate-800 rounded-xl p-3 sm:p-4 shadow-xl">
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2">
             <span>Passo {currentStep} de 6</span>
-            <span className="text-[#3B82F6]">
+            <span className={isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}>
               {currentStep === 1 && '1. Escolher Serviço'}
               {currentStep === 2 && '2. Escolher Profissional'}
               {currentStep === 3 && '3. Escolher Data'}
@@ -651,7 +692,11 @@ export const AgendamentoPublico: React.FC = () => {
 
           <div className="w-full bg-[#0F172A] h-2 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] h-full transition-all duration-300 rounded-full"
+              className={`h-full transition-all duration-300 rounded-full ${
+                isMarkaly
+                  ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED]'
+                  : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]'
+              }`}
               style={{ width: `${(currentStep / 6) * 100}%` }}
             />
           </div>
@@ -664,7 +709,9 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <Scissors className="w-5 h-5 text-[#3B82F6]" />
+                  <Scissors
+                    className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                  />
                   Passo 1: Selecione o Serviço Desejado
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -680,7 +727,9 @@ export const AgendamentoPublico: React.FC = () => {
                       onClick={() => setSelectedService(serv)}
                       className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'border-[#3B82F6] bg-blue-950/40 text-white shadow-md'
+                          ? isMarkaly
+                            ? 'border-orange-500 bg-orange-950/30 text-white shadow-md'
+                            : 'border-[#3B82F6] bg-blue-950/40 text-white shadow-md'
                           : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700 text-slate-300'
                       }`}
                     >
@@ -700,13 +749,19 @@ export const AgendamentoPublico: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <span className="font-bold text-sm text-[#3B82F6]">
+                        <span
+                          className={`font-bold text-sm ${
+                            isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'
+                          }`}
+                        >
                           {formatCurrency(serv.price)}
                         </span>
                         <div
                           className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                             isSelected
-                              ? 'bg-[#3B82F6] border-[#3B82F6] text-white'
+                              ? isMarkaly
+                                ? 'bg-[#F97316] border-[#F97316] text-white'
+                                : 'bg-[#3B82F6] border-[#3B82F6] text-white'
                               : 'border-slate-700'
                           }`}
                         >
@@ -721,7 +776,11 @@ export const AgendamentoPublico: React.FC = () => {
                 <Button
                   disabled={!selectedService}
                   onClick={() => setCurrentStep(2)}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-10 px-5"
+                  className={`text-white font-bold text-xs h-10 px-5 ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                  }`}
                 >
                   Continuar
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -735,7 +794,7 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-[#3B82F6]" />
+                  <User className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`} />
                   Passo 2: Escolha o Profissional
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -751,12 +810,18 @@ export const AgendamentoPublico: React.FC = () => {
                       onClick={() => setSelectedProf(prof)}
                       className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isSelected
-                          ? 'border-[#3B82F6] bg-blue-950/40 text-white shadow-md'
+                          ? isMarkaly
+                            ? 'border-orange-500 bg-orange-950/30 text-white shadow-md'
+                            : 'border-[#3B82F6] bg-blue-950/40 text-white shadow-md'
                           : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-[#3B82F6] flex items-center justify-center font-bold text-sm">
+                        <div
+                          className={`w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-sm ${
+                            isMarkaly ? 'text-orange-400' : 'text-[#3B82F6]'
+                          }`}
+                        >
                           {prof.name.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -770,7 +835,9 @@ export const AgendamentoPublico: React.FC = () => {
                       <div
                         className={`w-5 h-5 rounded-full border flex items-center justify-center ${
                           isSelected
-                            ? 'bg-[#3B82F6] border-[#3B82F6] text-white'
+                            ? isMarkaly
+                              ? 'bg-[#F97316] border-[#F97316] text-white'
+                              : 'bg-[#3B82F6] border-[#3B82F6] text-white'
                             : 'border-slate-700'
                         }`}
                       >
@@ -806,7 +873,11 @@ export const AgendamentoPublico: React.FC = () => {
                     }
                     setCurrentStep(3)
                   }}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-10 px-5"
+                  className={`text-white font-bold text-xs h-10 px-5 ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                  }`}
                 >
                   Continuar
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -820,7 +891,9 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <CalendarIcon className="w-5 h-5 text-[#3B82F6]" />
+                  <CalendarIcon
+                    className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                  />
                   Passo 3: Escolha a Data
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -849,7 +922,9 @@ export const AgendamentoPublico: React.FC = () => {
                           !isWorking
                             ? 'border-slate-800/40 bg-slate-950/40 text-slate-600 cursor-not-allowed opacity-50'
                             : isSelected
-                              ? 'border-[#3B82F6] bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-bold shadow-lg shadow-blue-500/20'
+                              ? isMarkaly
+                                ? 'border-[#F97316] bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] text-white font-bold shadow-lg shadow-orange-500/20'
+                                : 'border-[#3B82F6] bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white font-bold shadow-lg shadow-blue-500/20'
                               : 'border-slate-800 bg-[#0F172A]/80 hover:border-slate-700 text-slate-300'
                         }`}
                       >
@@ -882,7 +957,11 @@ export const AgendamentoPublico: React.FC = () => {
                 <Button
                   disabled={!selectedDate || !isDateWorkingDay(selectedDate)}
                   onClick={() => setCurrentStep(4)}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-10 px-5"
+                  className={`text-white font-bold text-xs h-10 px-5 ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                  }`}
                 >
                   Continuar
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -896,7 +975,7 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-[#3B82F6]" />
+                  <Clock className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`} />
                   Passo 4: Escolha o Horário Disponível
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -924,8 +1003,10 @@ export const AgendamentoPublico: React.FC = () => {
                           onClick={() => setSelectedTimeSlot(slot)}
                           className={`p-3 rounded-lg border font-mono text-xs font-bold text-center transition-all ${
                             isSelected
-                              ? 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] border-[#3B82F6] text-white shadow-md scale-105'
-                              : 'bg-[#0F172A] border-slate-800 hover:border-blue-500 text-slate-200'
+                              ? isMarkaly
+                                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] border-[#F97316] text-white shadow-md scale-105'
+                                : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] border-[#3B82F6] text-white shadow-md scale-105'
+                              : 'bg-[#0F172A] border-slate-800 hover:border-orange-500 text-slate-200'
                           }`}
                         >
                           {slot}
@@ -947,7 +1028,11 @@ export const AgendamentoPublico: React.FC = () => {
                 <Button
                   disabled={!selectedTimeSlot}
                   onClick={() => setCurrentStep(5)}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-10 px-5"
+                  className={`text-white font-bold text-xs h-10 px-5 ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                  }`}
                 >
                   Continuar
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -961,7 +1046,7 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <User className="w-5 h-5 text-[#3B82F6]" />
+                  <User className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`} />
                   Passo 5: Seus Dados de Contato
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -978,14 +1063,18 @@ export const AgendamentoPublico: React.FC = () => {
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Ex: Mariana Silva"
                     required
-                    className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                    className={`bg-[#0F172A] border-slate-700 text-white ${
+                      isMarkaly ? 'focus-visible:ring-[#F97316]' : 'focus-visible:ring-[#3B82F6]'
+                    }`}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-[#3B82F6]" />
+                      <Phone
+                        className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                      />
                       Telefone / WhatsApp *
                     </Label>
                     <Input
@@ -993,7 +1082,9 @@ export const AgendamentoPublico: React.FC = () => {
                       onChange={(e) => setClientPhone(e.target.value)}
                       placeholder="(11) 99999-8888"
                       required
-                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                      className={`bg-[#0F172A] border-slate-700 text-white ${
+                        isMarkaly ? 'focus-visible:ring-[#F97316]' : 'focus-visible:ring-[#3B82F6]'
+                      }`}
                     />
                   </div>
 
@@ -1007,7 +1098,9 @@ export const AgendamentoPublico: React.FC = () => {
                       value={clientEmail}
                       onChange={(e) => setClientEmail(e.target.value)}
                       placeholder="seu@email.com"
-                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                      className={`bg-[#0F172A] border-slate-700 text-white ${
+                        isMarkaly ? 'focus-visible:ring-[#F97316]' : 'focus-visible:ring-[#3B82F6]'
+                      }`}
                     />
                   </div>
                 </div>
@@ -1036,7 +1129,11 @@ export const AgendamentoPublico: React.FC = () => {
                 <Button
                   disabled={!clientName.trim() || !clientPhone.trim()}
                   onClick={() => setCurrentStep(6)}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-10 px-5"
+                  className={`text-white font-bold text-xs h-10 px-5 ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                  }`}
                 >
                   Revisar e Confirmar
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -1050,7 +1147,9 @@ export const AgendamentoPublico: React.FC = () => {
             <>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg text-white flex items-center gap-2">
-                  <CalendarCheck className="w-5 h-5 text-[#3B82F6]" />
+                  <CalendarCheck
+                    className={`w-5 h-5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                  />
                   Passo 6: Confirmação do Agendamento
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-400">
@@ -1065,7 +1164,11 @@ export const AgendamentoPublico: React.FC = () => {
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Serviço:</span>
-                    <span className="font-semibold text-[#3B82F6]">{selectedService?.name}</span>
+                    <span
+                      className={`font-semibold ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                    >
+                      {selectedService?.name}
+                    </span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Profissional:</span>
@@ -1088,7 +1191,11 @@ export const AgendamentoPublico: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Valor Estimado:</span>
-                    <span className="font-bold text-[#3B82F6] text-sm">
+                    <span
+                      className={`font-bold text-sm ${
+                        isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'
+                      }`}
+                    >
                       {formatCurrency(selectedService?.price || 0)}
                     </span>
                   </div>
@@ -1106,7 +1213,11 @@ export const AgendamentoPublico: React.FC = () => {
                 <Button
                   disabled={bookingInProgress}
                   onClick={handleConfirmBooking}
-                  className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-bold text-xs h-11 px-6 shadow-lg shadow-blue-500/30"
+                  className={`text-white font-bold text-xs h-11 px-6 shadow-lg ${
+                    isMarkaly
+                      ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
+                      : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/30'
+                  }`}
                 >
                   {bookingInProgress ? 'Agendando...' : 'Confirmar Agendamento Agora'}
                   <CheckCircle2 className="w-4 h-4 ml-1.5" />

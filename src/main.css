@@ -62,6 +62,58 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  /* MARKALY Theme Variant (aplicado via classe .theme-markaly no elemento html/body ou container) */
+  /* Paleta oficial:
+     Laranja principal: #F97316 (hsl 24.6 95% 53.1%)
+     Rosa coral: #EC4899 (hsl 329.8 82.5% 60%)
+     Roxo: #7C3AED (hsl 262.1 83.3% 57.8%)
+     Roxo escuro: #3B0764 (hsl 273.4 87.2% 21.2%)
+     Bege claro: #FEF3E2 (hsl 37.1 94.6% 94.3%)
+     Cinza suave: #F8FAFC (hsl 210 40% 98%)
+     Branco: #FFFFFF
+  */
+  .theme-markaly {
+    --background: 210 40% 98%; /* #F8FAFC Cinza suave */
+    --foreground: 273.4 87.2% 21.2%; /* #3B0764 Roxo escuro para excelente contraste */
+
+    --card: 0 0% 100%;
+    --card-foreground: 273.4 87.2% 21.2%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 273.4 87.2% 21.2%;
+
+    --primary: 24.6 95% 53.1%; /* #F97316 Laranja principal */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 262.1 83.3% 57.8%; /* #7C3AED Roxo destaque */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 37.1 94.6% 95%; /* #FEF3E2 Bege claro */
+    --muted-foreground: 260 20% 40%;
+
+    --accent: 37.1 94.6% 94.3%; /* #FEF3E2 Bege claro */
+    --accent-foreground: 273.4 87.2% 21.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 270 20% 90%;
+    --input: 270 20% 90%;
+    --ring: 24.6 95% 53.1%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar oficial MARKALY: Roxo Escuro #3B0764 com itens em gradiente Laranja->Rosa */
+    --sidebar-background: 273.4 87.2% 21.2%; /* #3B0764 */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 24.6 95% 53.1%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 273 60% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 273 60% 28%;
+    --sidebar-ring: 24.6 95% 53.1%;
 
     --chart-1: 217 91% 60%;
     --chart-2: 258 90% 66%;

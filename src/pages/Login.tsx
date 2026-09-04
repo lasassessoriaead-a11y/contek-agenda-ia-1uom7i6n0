@@ -25,11 +25,21 @@ import {
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
-import { AgyliLogo } from '@/components/AgyliBranding'
+import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
+import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { resolveProductByDomain } from '@/lib/branding'
 
 export const Login: React.FC = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Detect initial product preference from domain or default to agyli
+  const initialDetectedProduct =
+    typeof window !== 'undefined'
+      ? resolveProductByDomain(window.location.hostname, 'agyli')
+      : 'agyli'
+
+  const [activeBrand, setActiveBrand] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
 
   // Sign in state
   const [email, setEmail] = useState('luka2510@hotmail.com')
@@ -42,7 +52,7 @@ export const Login: React.FC = () => {
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupPhone, setSignupPhone] = useState('')
-  const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>('agyli')
+  const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
   const [loadingSignup, setLoadingSignup] = useState(false)
 
   // Manual Contek admin creation state
@@ -51,8 +61,10 @@ export const Login: React.FC = () => {
   const [manualAdminName, setManualAdminName] = useState('')
   const [manualAdminEmail, setManualAdminEmail] = useState('')
   const [manualAdminPassword, setManualAdminPassword] = useState('')
-  const [manualProduct, setManualProduct] = useState<'agyli' | 'markaly'>('agyli')
-  const [manualPlan, setManualPlan] = useState('agyli-pro')
+  const [manualProduct, setManualProduct] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
+  const [manualPlan, setManualPlan] = useState(
+    initialDetectedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
+  )
   const [loadingManual, setLoadingManual] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -64,7 +76,9 @@ export const Login: React.FC = () => {
     setLoadingLogin(true)
     try {
       await login(email, password)
-      toast.success('Bem-vindo ao Contek Agenda IA!')
+      toast.success(
+        activeBrand === 'markaly' ? 'Bem-vindo ao MARKALY!' : 'Bem-vindo ao AGYLI Agenda IA!',
+      )
       navigate('/')
     } catch (err: unknown) {
       console.error(err)
@@ -180,50 +194,151 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-['Poppins',sans-serif]">
-      {/* Background glow effects com cores oficiais AGYLI (#3B82F6 e #8B5CF6) */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#3B82F6]/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#8B5CF6]/15 rounded-full blur-3xl pointer-events-none" />
+    <div
+      className={`min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-['Poppins',sans-serif] transition-colors duration-300 ${
+        activeBrand === 'markaly' ? 'bg-[#F8FAFC] text-[#3B0764]' : 'bg-[#0F172A] text-slate-100'
+      }`}
+    >
+      {/* Background glow effects fieis a cada produto */}
+      {activeBrand === 'markaly' ? (
+        <>
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl pointer-events-none" />
+        </>
+      ) : (
+        <>
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#3B82F6]/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#8B5CF6]/15 rounded-full blur-3xl pointer-events-none" />
+        </>
+      )}
 
-      {/* Cabeçalho Oficial AGYLI */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex flex-col items-center text-center px-4">
-        {/* Badge Institucional */}
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E293B]/90 border border-blue-500/30 text-blue-300 text-xs font-medium mb-5 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-[#3B82F6]" />
-          <span>Plataforma Inteligente de Gestão</span>
+      {/* Seletor Rápido de Marca no Topo do Login (permite alternar e testar ambas perfeitamente) */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex justify-center mb-4">
+        <div
+          className={`inline-flex items-center gap-1 p-1 rounded-full border shadow-sm text-xs font-semibold ${
+            activeBrand === 'markaly'
+              ? 'bg-white border-purple-200 text-[#3B0764]'
+              : 'bg-[#1E293B] border-slate-700 text-slate-300'
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setActiveBrand('agyli')
+              setSignupProduct('agyli')
+            }}
+            className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all ${
+              activeBrand === 'agyli'
+                ? 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <AgyliEmblem size={14} />
+            <span>AGYLI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveBrand('markaly')
+              setSignupProduct('markaly')
+            }}
+            className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all ${
+              activeBrand === 'markaly'
+                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <MarkalyEmblem size={14} />
+            <span>MARKALY</span>
+          </button>
         </div>
-
-        {/* Logo Oficial Completa AGYLI */}
-        <div className="flex items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl mb-3">
-          <AgyliLogo height={48} theme="dark" showSlogan={true} showSignature={true} />
-        </div>
-
-        <p className="text-xs text-slate-300 max-w-sm mt-1">
-          Mais tempo para o que realmente importa. Gestão simplificada para clínicas, consultórios,
-          salões e profissionais.
-        </p>
       </div>
 
-      <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-xl px-4 relative z-10">
-        <Card className="border-slate-800 bg-[#1E293B]/95 backdrop-blur-xl shadow-2xl text-slate-100 rounded-2xl">
+      {/* Cabeçalho Oficial Conforme Marca Selecionada */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex flex-col items-center text-center px-4">
+        {activeBrand === 'markaly' ? (
+          <>
+            {/* Badge Institucional MARKALY */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FEF3E2] border border-orange-200 text-[#3B0764] text-xs font-medium mb-4 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-[#F97316]" />
+              <span>Organização que impulsiona seu negócio</span>
+            </div>
+
+            {/* Logo Oficial Completa MARKALY em fundo claro conforme manual */}
+            <div className="flex items-center justify-center p-4 rounded-2xl bg-white border border-purple-100 shadow-xl mb-3">
+              <MarkalyLogo height={48} theme="light" showSlogan={true} showSignature={true} />
+            </div>
+
+            <p className="text-xs text-slate-600 max-w-sm mt-1">
+              A MARKALY é a solução completa para gestão de agendamentos, clientes e serviços, com
+              praticidade, controle e resultados reais.
+            </p>
+          </>
+        ) : (
+          <>
+            {/* Badge Institucional AGYLI */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E293B]/90 border border-blue-500/30 text-blue-300 text-xs font-medium mb-4 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-[#3B82F6]" />
+              <span>Plataforma Inteligente de Gestão</span>
+            </div>
+
+            {/* Logo Oficial Completa AGYLI */}
+            <div className="flex items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl mb-3">
+              <AgyliLogo height={48} theme="dark" showSlogan={true} showSignature={true} />
+            </div>
+
+            <p className="text-xs text-slate-300 max-w-sm mt-1">
+              Mais tempo para o que realmente importa. Gestão simplificada para clínicas,
+              consultórios, salões e profissionais.
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl px-4 relative z-10">
+        <Card
+          className={`shadow-2xl rounded-2xl transition-all ${
+            activeBrand === 'markaly'
+              ? 'border-purple-100 bg-white text-[#3B0764]'
+              : 'border-slate-800 bg-[#1E293B]/95 text-slate-100'
+          }`}
+        >
           <Tabs defaultValue="login" className="w-full">
             <CardHeader className="pb-3 pt-5">
-              <TabsList className="grid w-full grid-cols-3 bg-[#0F172A]/80 p-1 border border-slate-700/60 rounded-xl">
+              <TabsList
+                className={`grid w-full grid-cols-3 p-1 rounded-xl border ${
+                  activeBrand === 'markaly'
+                    ? 'bg-[#FEF3E2]/60 border-purple-100 text-slate-600'
+                    : 'bg-[#0F172A]/80 border-slate-700/60 text-slate-300'
+                }`}
+              >
                 <TabsTrigger
                   value="login"
-                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
+                  className={`text-xs sm:text-sm font-medium rounded-lg ${
+                    activeBrand === 'markaly'
+                      ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#F97316] data-[state=active]:via-[#EC4899] data-[state=active]:to-[#7C3AED] data-[state=active]:text-white data-[state=active]:shadow-md'
+                      : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
+                  }`}
                 >
                   Entrar
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
-                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
+                  className={`text-xs sm:text-sm font-medium rounded-lg ${
+                    activeBrand === 'markaly'
+                      ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#F97316] data-[state=active]:via-[#EC4899] data-[state=active]:to-[#7C3AED] data-[state=active]:text-white data-[state=active]:shadow-md'
+                      : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
+                  }`}
                 >
                   Criar Empresa
                 </TabsTrigger>
                 <TabsTrigger
                   value="manual"
-                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
+                  className={`text-xs sm:text-sm font-medium rounded-lg ${
+                    activeBrand === 'markaly'
+                      ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#F97316] data-[state=active]:via-[#EC4899] data-[state=active]:to-[#7C3AED] data-[state=active]:text-white data-[state=active]:shadow-md'
+                      : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
+                  }`}
                 >
                   Cadastro Contek
                 </TabsTrigger>
@@ -235,18 +350,42 @@ export const Login: React.FC = () => {
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4 pt-1">
                   <div className="text-center pb-1">
-                    <h2 className="text-lg font-bold text-white tracking-tight">Bem-vindo(a)</h2>
-                    <p className="text-xs text-slate-400">Acesse sua conta para continuar</p>
+                    <h2
+                      className={`text-lg font-bold tracking-tight ${
+                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-white'
+                      }`}
+                    >
+                      Bem-vindo(a)
+                    </h2>
+                    <p
+                      className={`text-xs ${
+                        activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
+                      }`}
+                    >
+                      Acesse sua conta para continuar
+                    </p>
                   </div>
 
                   {import.meta.env.DEV && (
-                    <div className="p-3 bg-blue-950/40 border border-blue-800/40 rounded-xl flex items-center gap-3 text-xs text-blue-200">
-                      <ShieldCheck className="w-5 h-5 flex-shrink-0 text-[#3B82F6]" />
+                    <div
+                      className={`p-3 rounded-xl flex items-center gap-3 text-xs ${
+                        activeBrand === 'markaly'
+                          ? 'bg-[#FEF3E2] border border-orange-200 text-[#3B0764]'
+                          : 'bg-blue-950/40 border border-blue-800/40 text-blue-200'
+                      }`}
+                    >
+                      <ShieldCheck
+                        className={`w-5 h-5 flex-shrink-0 ${
+                          activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
+                        }`}
+                      />
                       <div>
-                        <p className="font-semibold text-white">
+                        <p className="font-semibold">
                           Acesso de Demonstração (Ambiente Dev/Preview):
                         </p>
-                        <p className="text-blue-300">
+                        <p
+                          className={activeBrand === 'markaly' ? 'text-slate-600' : 'text-blue-300'}
+                        >
                           E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
                         </p>
                       </div>
@@ -256,9 +395,15 @@ export const Login: React.FC = () => {
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="login-email"
-                      className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                      className={`text-xs font-medium flex items-center gap-1.5 ${
+                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
+                      }`}
                     >
-                      <Mail className="w-3.5 h-3.5 text-blue-400" />
+                      <Mail
+                        className={`w-3.5 h-3.5 ${
+                          activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
+                        }`}
+                      />
                       E-mail
                     </Label>
                     <Input
@@ -268,16 +413,26 @@ export const Login: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6] rounded-xl h-11"
+                      className={`rounded-xl h-11 ${
+                        activeBrand === 'markaly'
+                          ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
+                          : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
+                      }`}
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label
                       htmlFor="login-password"
-                      className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                      className={`text-xs font-medium flex items-center gap-1.5 ${
+                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
+                      }`}
                     >
-                      <Lock className="w-3.5 h-3.5 text-blue-400" />
+                      <Lock
+                        className={`w-3.5 h-3.5 ${
+                          activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
+                        }`}
+                      />
                       Senha
                     </Label>
                     <Input
@@ -287,7 +442,11 @@ export const Login: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6] rounded-xl h-11"
+                      className={`rounded-xl h-11 ${
+                        activeBrand === 'markaly'
+                          ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
+                          : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
+                      }`}
                     />
                   </div>
                 </CardContent>
@@ -296,17 +455,31 @@ export const Login: React.FC = () => {
                   <Button
                     type="submit"
                     disabled={loadingLogin}
-                    className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold shadow-lg shadow-blue-500/25 h-11 rounded-xl transition-all"
+                    className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl transition-all ${
+                      activeBrand === 'markaly'
+                        ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
+                        : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                    }`}
                   >
-                    {loadingLogin ? 'Entrando no sistema...' : 'Entrar no AGYLI'}
+                    {loadingLogin
+                      ? 'Entrando no sistema...'
+                      : activeBrand === 'markaly'
+                        ? 'Entrar no MARKALY'
+                        : 'Entrar no AGYLI'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
 
-                  <div className="text-center text-xs text-slate-400 pt-1">
+                  <div
+                    className={`text-center text-xs pt-1 ${
+                      activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
+                    }`}
+                  >
                     Quer ver a página pública de agendamento?{' '}
                     <Link
                       to="/agendar/contek-demo"
-                      className="text-[#3B82F6] hover:underline font-medium"
+                      className={`hover:underline font-medium ${
+                        activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
+                      }`}
                     >
                       Ver /agendar/contek-demo
                     </Link>
@@ -364,12 +537,14 @@ export const Login: React.FC = () => {
                         onClick={() => setSignupProduct('markaly')}
                         className={`p-2.5 rounded-xl border text-left transition-all ${
                           signupProduct === 'markaly'
-                            ? 'border-sky-500 bg-sky-950/50 text-white shadow-sm'
-                            : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
+                            ? 'border-[#F97316] bg-orange-950/40 text-white shadow-sm'
+                            : activeBrand === 'markaly'
+                              ? 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+                              : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <p className="text-xs font-bold text-sky-400">MARKALY (Essencial)</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
+                        <p className="text-xs font-bold text-[#F97316]">MARKALY (Essencial)</p>
+                        <p className="text-[10px] opacity-80 mt-0.5">
                           Agenda ágil + Clientes + Serviços
                         </p>
                       </button>
@@ -441,7 +616,11 @@ export const Login: React.FC = () => {
                   <Button
                     type="submit"
                     disabled={loadingSignup}
-                    className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold shadow-lg shadow-blue-500/25 h-11 rounded-xl"
+                    className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl ${
+                      signupProduct === 'markaly' || activeBrand === 'markaly'
+                        ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
+                        : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                    }`}
                   >
                     {loadingSignup ? 'Criando sua conta SaaS...' : 'Cadastrar Empresa e Começar'}
                     <CheckCircle2 className="w-4 h-4 ml-2" />
@@ -580,12 +759,29 @@ export const Login: React.FC = () => {
         </Card>
 
         <div className="mt-6 text-center space-y-1">
-          <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
-          <p className="text-[11px] text-slate-500">
-            Uma solução{' '}
-            <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>.
-            Todos os direitos reservados.
-          </p>
+          {activeBrand === 'markaly' ? (
+            <>
+              <p className="text-xs text-slate-600 font-medium">
+                MARKALY • Organizar hoje, crescer sempre.
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Uma solução{' '}
+                <span className="text-[#3B0764] font-semibold">
+                  Contek Tecnologia e Consultoria
+                </span>
+                . Todos os direitos reservados.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
+              <p className="text-[11px] text-slate-500">
+                Uma solução{' '}
+                <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>.
+                Todos os direitos reservados.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -36,6 +36,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
+import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
 
 export const Layout: React.FC = () => {
   const { user, organization, logout, isSuperAdmin, hasFeature, branding, currentProduct } =
@@ -104,9 +105,21 @@ export const Layout: React.FC = () => {
   const publicUrl = organization?.slug ? `/agendar/${organization.slug}` : null
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col antialiased">
+    <div
+      className={cn(
+        'min-h-screen flex flex-col antialiased',
+        currentProduct === 'markaly'
+          ? 'theme-markaly bg-[#F8FAFC] text-[#3B0764]'
+          : 'bg-slate-50 text-slate-900',
+      )}
+    >
       {/* TOP HEADER */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header
+        className={cn(
+          'sticky top-0 z-40 bg-white/95 backdrop-blur border-b px-4 sm:px-6 h-16 flex items-center justify-between',
+          currentProduct === 'markaly' ? 'border-purple-100' : 'border-slate-200',
+        )}
+      >
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -150,21 +163,22 @@ export const Layout: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <>
-                <div className="w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md bg-sky-600 shadow-sky-600/20 group-hover:scale-105 transition-transform">
-                  <Calendar className="w-5 h-5 stroke-[2.5]" />
-                </div>
+              <div className="flex items-center gap-2">
+                <MarkalyEmblem
+                  size={36}
+                  className="shadow-md group-hover:scale-105 transition-transform"
+                />
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-base tracking-tight text-slate-900">
-                      MARKALY
+                    <span className="font-black text-lg tracking-tight text-[#3B0764] font-['Poppins',sans-serif] lowercase">
+                      markaly
                     </span>
-                    <span className="font-semibold text-xs px-1.5 py-0.5 rounded font-mono uppercase tracking-wider bg-sky-100 text-sky-800">
-                      MARKALY
+                    <span className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#FEF3E2] text-[#3B0764] border border-orange-200">
+                      ESSENCIAL
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[130px]">
+                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[140px]">
                       {organization?.name || 'Carregando empresa...'}
                     </p>
                     {organization?.slug === 'contek-demo' && (
@@ -179,7 +193,7 @@ export const Layout: React.FC = () => {
                     )}
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </Link>
         </div>
@@ -210,7 +224,7 @@ export const Layout: React.FC = () => {
               className={cn(
                 'hidden lg:inline-flex text-xs font-medium',
                 currentProduct === 'markaly'
-                  ? 'border-sky-300 text-sky-800 hover:bg-sky-50'
+                  ? 'border-orange-300 text-[#3B0764] hover:bg-[#FEF3E2]'
                   : 'border-blue-300 text-blue-800 hover:bg-blue-50',
               )}
             >
@@ -218,7 +232,7 @@ export const Layout: React.FC = () => {
                 <ExternalLink
                   className={cn(
                     'w-3.5 h-3.5 mr-1.5',
-                    currentProduct === 'markaly' ? 'text-sky-600' : 'text-[#3B82F6]',
+                    currentProduct === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]',
                   )}
                 />
                 Link Público
@@ -232,7 +246,7 @@ export const Layout: React.FC = () => {
             className={cn(
               'text-white text-xs font-semibold shadow-sm',
               currentProduct === 'markaly'
-                ? 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'
+                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
                 : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/20',
             )}
           >
@@ -248,14 +262,14 @@ export const Layout: React.FC = () => {
                 <Avatar
                   className={cn(
                     'h-9 w-9 border',
-                    currentProduct === 'markaly' ? 'border-sky-200' : 'border-blue-200',
+                    currentProduct === 'markaly' ? 'border-purple-200' : 'border-blue-200',
                   )}
                 >
                   <AvatarFallback
                     className={cn(
                       'font-semibold text-xs',
                       currentProduct === 'markaly'
-                        ? 'bg-sky-100 text-sky-800'
+                        ? 'bg-[#FEF3E2] text-[#3B0764]'
                         : 'bg-blue-100 text-blue-800',
                     )}
                   >
@@ -335,34 +349,54 @@ export const Layout: React.FC = () => {
       {/* BODY WITH SIDEBAR + MAIN CONTENT */}
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR */}
-        <aside className="hidden md:flex md:w-64 flex-col bg-[#0F172A] text-slate-300 border-r border-slate-800 flex-shrink-0">
+        <aside
+          className={cn(
+            'hidden md:flex md:w-64 flex-col flex-shrink-0 border-r transition-colors',
+            currentProduct === 'markaly'
+              ? 'bg-[#3B0764] text-purple-100 border-purple-900/60'
+              : 'bg-[#0F172A] text-slate-300 border-slate-800',
+          )}
+        >
           {/* Top Brand & Org Header */}
-          <div className="p-4 border-b border-slate-800/80 space-y-3">
+          <div
+            className={cn(
+              'p-4 border-b space-y-3',
+              currentProduct === 'markaly' ? 'border-purple-900/60' : 'border-slate-800/80',
+            )}
+          >
             {currentProduct === 'agyli' ? (
               <div className="pt-1">
                 <AgyliLogo height={34} theme="dark" showSlogan={true} showSignature={false} />
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
-                  M
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-white">MARKALY</p>
-                  <p className="text-[10px] text-sky-400">Agendamento Simples</p>
-                </div>
+              <div className="pt-1">
+                <MarkalyLogo height={34} theme="dark" showSlogan={true} showSignature={false} />
               </div>
             )}
 
             <div className="flex items-center gap-2.5 overflow-hidden pt-1">
-              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-[#3B82F6] flex-shrink-0">
+              <div
+                className={cn(
+                  'w-7 h-7 rounded-lg border flex items-center justify-center flex-shrink-0',
+                  currentProduct === 'markaly'
+                    ? 'bg-purple-950/70 border-purple-800 text-[#F97316]'
+                    : 'bg-slate-800 border-slate-700 text-[#3B82F6]',
+                )}
+              >
                 <Building className="w-3.5 h-3.5" />
               </div>
               <div className="truncate">
                 <p className="text-xs font-semibold text-white truncate">
                   {organization?.name || 'Sua Empresa'}
                 </p>
-                <p className="text-[10px] text-blue-400 font-mono">Tenant Ativo</p>
+                <p
+                  className={cn(
+                    'text-[10px] font-mono',
+                    currentProduct === 'markaly' ? 'text-orange-300' : 'text-blue-400',
+                  )}
+                >
+                  Tenant Ativo
+                </p>
               </div>
             </div>
           </div>
@@ -381,9 +415,11 @@ export const Layout: React.FC = () => {
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group',
                       active
                         ? currentProduct === 'markaly'
-                          ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
+                          ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] text-white shadow-md shadow-orange-500/20'
                           : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white shadow-md shadow-blue-500/20'
-                        : 'text-slate-300 hover:bg-slate-800/80 hover:text-white',
+                        : currentProduct === 'markaly'
+                          ? 'text-purple-200 hover:bg-white/10 hover:text-white'
+                          : 'text-slate-300 hover:bg-slate-800/80 hover:text-white',
                       item.isAi &&
                         !active &&
                         'text-violet-300 hover:text-violet-200 hover:bg-violet-950/40',
@@ -393,7 +429,13 @@ export const Layout: React.FC = () => {
                   <Icon
                     className={cn(
                       'w-4 h-4 transition-transform group-hover:scale-110',
-                      isActive ? 'text-white' : item.isAi ? 'text-[#8B5CF6]' : 'text-slate-400',
+                      isActive
+                        ? 'text-white'
+                        : currentProduct === 'markaly'
+                          ? 'text-purple-300'
+                          : item.isAi
+                            ? 'text-[#8B5CF6]'
+                            : 'text-slate-400',
                     )}
                   />
                   <span>{item.name}</span>
@@ -407,7 +449,12 @@ export const Layout: React.FC = () => {
             })}
 
             {isSuperAdmin && (
-              <div className="pt-2 mt-2 border-t border-slate-800">
+              <div
+                className={cn(
+                  'pt-2 mt-2 border-t',
+                  currentProduct === 'markaly' ? 'border-purple-900/60' : 'border-slate-800',
+                )}
+              >
                 <NavLink
                   to="/admin"
                   className={({ isActive: active }) =>
@@ -430,25 +477,53 @@ export const Layout: React.FC = () => {
           </nav>
 
           {/* Sidebar Footer Info */}
-          <div className="p-3 border-t border-slate-800 text-xs text-slate-400 space-y-2">
-            <div className="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-start gap-2">
+          <div
+            className={cn(
+              'p-3 border-t text-xs space-y-2',
+              currentProduct === 'markaly'
+                ? 'border-purple-900/60 text-purple-300'
+                : 'border-slate-800 text-slate-400',
+            )}
+          >
+            <div
+              className={cn(
+                'p-2.5 rounded-lg border flex items-start gap-2',
+                currentProduct === 'markaly'
+                  ? 'bg-purple-950/60 border-purple-800/60 text-purple-200'
+                  : 'bg-slate-800/60 border-slate-700/60 text-slate-200',
+              )}
+            >
               {currentProduct === 'agyli' ? (
                 <AgyliEmblem size={20} className="mt-0.5 flex-shrink-0" />
               ) : (
-                <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-400" />
+                <MarkalyEmblem size={20} className="mt-0.5 flex-shrink-0" />
               )}
               <div>
-                <p className="text-[11px] font-semibold text-slate-200">{branding.fullName}</p>
-                <p className="text-[10px] text-slate-400">
-                  {currentProduct === 'markaly'
-                    ? 'Versão MARKALY Simplificada'
-                    : 'Agendar ficou simples.'}
+                <p className="text-[11px] font-semibold text-white">{branding.fullName}</p>
+                <p
+                  className={cn(
+                    'text-[10px]',
+                    currentProduct === 'markaly' ? 'text-purple-300' : 'text-slate-400',
+                  )}
+                >
+                  {branding.tagline}
                 </p>
-                {currentProduct === 'agyli' && (
-                  <p className="text-[9px] text-slate-400 mt-0.5">
-                    Uma solução <span className="text-[#3B82F6] font-medium">Contek</span>
-                  </p>
-                )}
+                <p
+                  className={cn(
+                    'text-[9px] mt-0.5',
+                    currentProduct === 'markaly' ? 'text-purple-400' : 'text-slate-400',
+                  )}
+                >
+                  Uma solução{' '}
+                  <span
+                    className={cn(
+                      'font-medium',
+                      currentProduct === 'markaly' ? 'text-orange-400' : 'text-[#3B82F6]',
+                    )}
+                  >
+                    Contek
+                  </span>
+                </p>
               </div>
             </div>
             {/* Install Button inside desktop sidebar */}
@@ -457,7 +532,7 @@ export const Layout: React.FC = () => {
               className={cn(
                 'w-full justify-center',
                 currentProduct === 'markaly'
-                  ? 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-700/50'
+                  ? 'bg-orange-950/40 hover:bg-orange-900/60 border-orange-500/40 text-orange-200'
                   : 'bg-blue-950/40 hover:bg-blue-900/60 border-blue-700/50 text-blue-300',
               )}
             />
@@ -467,9 +542,21 @@ export const Layout: React.FC = () => {
         {/* MOBILE SLIDE-OVER MENU */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 md:hidden bg-slate-950/80 backdrop-blur-sm flex">
-            <div className="w-4/5 max-w-xs bg-[#0F172A] text-slate-200 h-full p-4 flex flex-col justify-between shadow-2xl">
+            <div
+              className={cn(
+                'w-4/5 max-w-xs h-full p-4 flex flex-col justify-between shadow-2xl',
+                currentProduct === 'markaly'
+                  ? 'bg-[#3B0764] text-purple-100'
+                  : 'bg-[#0F172A] text-slate-200',
+              )}
+            >
               <div className="space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div
+                  className={cn(
+                    'flex items-center justify-between pb-3 border-b',
+                    currentProduct === 'markaly' ? 'border-purple-800' : 'border-slate-800',
+                  )}
+                >
                   {currentProduct === 'agyli' ? (
                     <div className="flex items-center gap-2">
                       <AgyliEmblem size={32} />
@@ -482,18 +569,18 @@ export const Layout: React.FC = () => {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
-                        M
-                      </div>
+                      <MarkalyEmblem size={32} />
                       <div>
-                        <p className="font-bold text-sm text-white">{organization?.name}</p>
-                        <p className="text-[10px] text-sky-400">MARKALY</p>
+                        <p className="font-bold text-sm text-white">
+                          {organization?.name || 'MARKALY'}
+                        </p>
+                        <p className="text-[10px] text-orange-300">Uma solução Contek</p>
                       </div>
                     </div>
                   )}
                   <button
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -512,9 +599,11 @@ export const Layout: React.FC = () => {
                           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                           isActive
                             ? currentProduct === 'markaly'
-                              ? 'bg-sky-600 text-white'
+                              ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] text-white'
                               : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white'
-                            : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                            : currentProduct === 'markaly'
+                              ? 'text-purple-200 hover:bg-white/10 hover:text-white'
+                              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                         )}
                       >
                         <Icon className="w-4 h-4" />
@@ -530,7 +619,12 @@ export const Layout: React.FC = () => {
                 </nav>
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-slate-800">
+              <div
+                className={cn(
+                  'space-y-3 pt-4 border-t',
+                  currentProduct === 'markaly' ? 'border-purple-800' : 'border-slate-800',
+                )}
+              >
                 {isSuperAdmin && (
                   <Button
                     variant="outline"
@@ -549,7 +643,7 @@ export const Layout: React.FC = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs justify-start border-slate-700 text-slate-200 hover:bg-slate-800"
+                    className="w-full text-xs justify-start border-white/20 text-white hover:bg-white/10"
                     onClick={() => {
                       setMobileMenuOpen(false)
                       window.open(publicUrl, '_blank')
@@ -558,7 +652,7 @@ export const Layout: React.FC = () => {
                     <ExternalLink
                       className={cn(
                         'w-3.5 h-3.5 mr-2',
-                        currentProduct === 'markaly' ? 'text-sky-400' : 'text-blue-400',
+                        currentProduct === 'markaly' ? 'text-orange-400' : 'text-blue-400',
                       )}
                     />
                     Página de Agendamento
@@ -585,7 +679,8 @@ export const Layout: React.FC = () => {
         {/* MAIN SCROLLABLE CONTENT */}
         <main
           className={cn(
-            'flex-1 min-w-0 bg-slate-50',
+            'flex-1 min-w-0',
+            currentProduct === 'markaly' ? 'bg-[#F8FAFC]' : 'bg-slate-50',
             location.pathname === '/assistente-ia'
               ? 'flex flex-col h-full overflow-hidden p-3 sm:p-4 md:p-6 pb-20 md:pb-6'
               : 'overflow-y-auto pb-20 md:pb-8 p-4 sm:p-6 lg:p-8',
@@ -596,7 +691,12 @@ export const Layout: React.FC = () => {
       </div>
 
       {/* MOBILE BOTTOM NAVIGATION BAR */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+      <div
+        className={cn(
+          'md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t flex items-center justify-around py-2 px-1 shadow-lg',
+          currentProduct === 'markaly' ? 'border-purple-100' : 'border-slate-200',
+        )}
+      >
         {bottomNavItems.map((item, idx) => {
           const Icon = item.icon
           const isActive = item.path ? location.pathname === item.path : false
@@ -609,7 +709,7 @@ export const Layout: React.FC = () => {
                 onClick={item.onClick}
                 className={cn(
                   'flex flex-col items-center justify-center flex-1 py-1 text-slate-500 transition-colors',
-                  currentProduct === 'markaly' ? 'hover:text-sky-600' : 'hover:text-[#3B82F6]',
+                  currentProduct === 'markaly' ? 'hover:text-[#F97316]' : 'hover:text-[#3B82F6]',
                 )}
               >
                 <Icon className="w-5 h-5" />
@@ -620,7 +720,7 @@ export const Layout: React.FC = () => {
 
           const activeColor =
             currentProduct === 'markaly'
-              ? 'text-sky-600 font-semibold'
+              ? 'text-[#F97316] font-semibold'
               : 'text-[#3B82F6] font-semibold'
 
           return (

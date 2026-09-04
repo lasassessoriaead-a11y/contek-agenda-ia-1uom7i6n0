@@ -42,20 +42,20 @@ export const PRODUCTS_CONFIG: Record<ProductType, ProductBranding> = {
   markaly: {
     id: 'markaly',
     name: 'MARKALY',
-    fullName: 'MARKALY Agendamento',
-    tagline: 'Agendamento Simples, Rápido e Descomplicado',
+    fullName: 'MARKALY Gestão & Agendamento',
+    tagline: 'Organizar hoje, crescer sempre.',
     badgeText: 'MARKALY',
     description:
-      'Focado no fluxo essencial de agendamento de consultas e serviços, rápido e intuitivo.',
+      'A MARKALY é a solução completa para gestão de agendamentos, clientes e serviços, com praticidade, controle e resultados reais.',
     colors: {
-      primary: '#0284c7', // sky-600
-      primaryHover: '#0ea5e9', // sky-500
-      primaryLight: '#e0f2fe', // sky-100
-      primaryBg: '#0c4a6e', // sky-900
-      accent: '#3b82f6', // blue-500
-      border: '#bae6fd', // sky-200
-      badgeBg: '#f0f9ff',
-      badgeText: '#0369a1',
+      primary: '#F97316', // Laranja principal
+      primaryHover: '#EA580C', // Laranja hover
+      primaryLight: '#FEF3E2', // Bege claro oficial
+      primaryBg: '#3B0764', // Roxo escuro oficial
+      accent: '#EC4899', // Rosa / Coral secundária
+      border: '#FDE68A', // Tom suave de borda
+      badgeBg: '#FEF3E2', // Bege claro
+      badgeText: '#3B0764', // Roxo escuro
     },
   },
 }

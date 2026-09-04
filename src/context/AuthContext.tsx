@@ -297,6 +297,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return getProductBranding(currentProduct)
   }, [currentProduct])
 
+  // Efeito para sincronizar atributos globais: título da página, cor da status bar e favicon/manifest PWA
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    // Sincroniza barra de status no mobile
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]')
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', branding.id === 'markaly' ? '#3B0764' : '#0F172A')
+    }
+
+    // Favicon dinâmico de acordo com o produto
+    const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (favicon) {
+      favicon.href = branding.id === 'markaly' ? '/markaly-icon.svg' : '/pwa-icon.svg'
+    }
+
+    // Manifest dinâmico para PWA quando tenant for MARKALY
+    const manifestLink = document.querySelector<HTMLLinkElement>('link[rel="manifest"]')
+    if (manifestLink && branding.id === 'markaly') {
+      const markalyManifest = {
+        name: 'MARKALY - Gestão & Agendamento',
+        short_name: 'MARKALY',
+        description: 'Organizar hoje, crescer sempre. Uma solução Contek.',
+        start_url: '/',
+        display: 'standalone',
+        background_color: '#3B0764',
+        theme_color: '#3B0764',
+        icons: [
+          {
+            src: '/markaly-icon.svg',
+            sizes: '192x192 512x512',
+            type: 'image/svg+xml',
+            purpose: 'any maskable',
+          },
+        ],
+      }
+      const stringManifest = JSON.stringify(markalyManifest)
+      const blob = new Blob([stringManifest], { type: 'application/json' })
+      manifestLink.href = URL.createObjectURL(blob)
+    }
+  }, [branding])
+
   const hasFeature = useCallback(
     (featureKey: string): boolean => {
       const effectiveProduct = organization?.product || features?.product || currentProduct

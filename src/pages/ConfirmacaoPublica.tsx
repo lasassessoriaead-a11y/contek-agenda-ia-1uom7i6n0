@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AgyliEmblem } from '@/components/AgyliBranding'
+import { MarkalyEmblem } from '@/components/MarkalyBranding'
 
 interface ConfirmationResult {
   success: boolean
@@ -35,6 +36,7 @@ interface ConfirmationResult {
     date: string
     start_time: string
     organization_name: string
+    organization_product?: 'agyli' | 'markaly'
   }
   thanks_message?: string
 }
@@ -202,10 +204,17 @@ export const ConfirmacaoPublica: React.FC = () => {
             </CardContent>
 
             <CardFooter className="pt-2 pb-4 flex justify-center border-t border-slate-800">
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <AgyliEmblem size={14} />
-                <span>AGYLI • Agendar ficou simples. Uma solução Contek</span>
-              </div>
+              {result.appointment?.organization_product === 'markaly' ? (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <MarkalyEmblem size={14} />
+                  <span>MARKALY • Organizar hoje, crescer sempre. Uma solução Contek</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <AgyliEmblem size={14} />
+                  <span>AGYLI • Agendar ficou simples. Uma solução Contek</span>
+                </div>
+              )}
             </CardFooter>
           </Card>
         )}

@@ -160,6 +160,12 @@ describe('Multi-product and Feature Isolation Logic (AGYLI vs MARKALY)', () => {
     expect(PRODUCTS_CONFIG.agyli.colors.primary).toBe('#3B82F6')
     expect(PRODUCTS_CONFIG.agyli.colors.accent).toBe('#8B5CF6')
     expect(PRODUCTS_CONFIG.agyli.tagline).toBe('Agendar ficou simples.')
+
+    // Identidade visual oficial MARKALY
+    expect(PRODUCTS_CONFIG.markaly.tagline).toBe('Organizar hoje, crescer sempre.')
+    expect(PRODUCTS_CONFIG.markaly.colors.primary).toBe('#F97316')
+    expect(PRODUCTS_CONFIG.markaly.colors.accent).toBe('#EC4899')
+    expect(PRODUCTS_CONFIG.markaly.colors.primaryBg).toBe('#3B0764')
   })
 
   it('resolves product correctly by domain for agyli and markaly', () => {
