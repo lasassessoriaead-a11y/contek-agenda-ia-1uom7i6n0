@@ -55,6 +55,29 @@ onRecordAfterUpdateSuccess((e) => {
             $app.save(pay)
           }
         }
+      } else {
+        // Se foi marcado como CONCLUÍDO e não possuía nenhum pagamento vinculado, cria o pagamento quitado
+        try {
+          const paymentsCol = $app.findCollectionByNameOrId('payments')
+          const pay = new Record(paymentsCol)
+          pay.set('organization_id', orgId)
+          pay.set('appointment_id', apptId)
+          pay.set('client_id', appt.getString('client_id'))
+          pay.set('amount', appt.getFloat('price') || 0)
+          pay.set('is_paid', true)
+          pay.set('payment_date', appt.getString('date') || new Date().toISOString())
+          pay.set('payment_method', 'PIX')
+          pay.set(
+            'description',
+            `Atendimento Concluído - ${appt.getString('client_name_snapshot') || 'Cliente'}`,
+          )
+          $app.save(pay)
+        } catch (createErr) {
+          console.error(
+            '[payment_sync] Erro ao criar pagamento automático para concluído:',
+            createErr,
+          )
+        }
       }
     } catch (err) {
       console.error('[payment_sync] Erro ao atualizar pagamento para concluído:', err)

@@ -656,6 +656,63 @@ export const Agenda: React.FC = () => {
     setCurrentDate(new Date())
   }
 
+  // Jump to specific month (0 to 11) keeping day if possible or 1st
+  const handleSelectMonth = (monthIndexStr: string) => {
+    const newMonth = parseInt(monthIndexStr, 10)
+    setCurrentDate((d) => {
+      const year = d.getFullYear()
+      const day = d.getDate()
+      const maxDaysInNewMonth = new Date(year, newMonth + 1, 0).getDate()
+      const safeDay = Math.min(day, maxDaysInNewMonth)
+      return new Date(year, newMonth, safeDay)
+    })
+  }
+
+  // Jump to specific year keeping month and safe day
+  const handleSelectYear = (yearStr: string) => {
+    const newYear = parseInt(yearStr, 10)
+    setCurrentDate((d) => {
+      const month = d.getMonth()
+      const day = d.getDate()
+      const maxDays = new Date(newYear, month + 1, 0).getDate()
+      const safeDay = Math.min(day, maxDays)
+      return new Date(newYear, month, safeDay)
+    })
+  }
+
+  // Direct date picker jump (YYYY-MM-DD input)
+  const handleDateInputJump = (dateVal: string) => {
+    if (!dateVal) return
+    const [y, m, d] = dateVal.split('-').map(Number)
+    if (y && m && d) {
+      setCurrentDate(new Date(y, m - 1, d))
+    }
+  }
+
+  const monthsList = [
+    { value: '0', label: 'Janeiro' },
+    { value: '1', label: 'Fevereiro' },
+    { value: '2', label: 'Março' },
+    { value: '3', label: 'Abril' },
+    { value: '4', label: 'Maio' },
+    { value: '5', label: 'Junho' },
+    { value: '6', label: 'Julho' },
+    { value: '7', label: 'Agosto' },
+    { value: '8', label: 'Setembro' },
+    { value: '9', label: 'Outubro' },
+    { value: '10', label: 'Novembro' },
+    { value: '11', label: 'Dezembro' },
+  ]
+
+  const availableYears = useMemo(() => {
+    const currentYear = new Date().getFullYear()
+    const years: number[] = []
+    for (let y = currentYear - 3; y <= currentYear + 3; y++) {
+      years.push(y)
+    }
+    return years
+  }, [])
+
   const getStatusBadge = (status: AppointmentStatus) => {
     switch (status) {
       case 'AGENDADO':
@@ -880,7 +937,7 @@ export const Agenda: React.FC = () => {
       <div className="flex flex-col gap-3 pb-3 border-b border-slate-200">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           {/* Navegação e Título */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap min-w-0 flex-1">
             <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
               <Button
                 variant="ghost"
@@ -908,6 +965,55 @@ export const Agenda: React.FC = () => {
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
+            </div>
+
+            {/* SELETOR RÁPIDO DE MÊS, ANO E DATE PICKER */}
+            <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+              {/* Dropdown de Mês */}
+              <div className="w-[115px] sm:w-[130px]">
+                <Select value={currentDate.getMonth().toString()} onValueChange={handleSelectMonth}>
+                  <SelectTrigger className="h-8 text-xs bg-white font-medium px-2 shadow-xs border-slate-200">
+                    <SelectValue placeholder="Mês" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {monthsList.map((m) => (
+                      <SelectItem key={m.value} value={m.value} className="text-xs">
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dropdown de Ano */}
+              <div className="w-[80px] sm:w-[85px]">
+                <Select
+                  value={currentDate.getFullYear().toString()}
+                  onValueChange={handleSelectYear}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-white font-medium px-2 shadow-xs border-slate-200">
+                    <SelectValue placeholder="Ano" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {availableYears.map((y) => (
+                      <SelectItem key={y} value={y.toString()} className="text-xs">
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date picker direto para pular para um dia específico */}
+              <div className="relative inline-flex items-center">
+                <input
+                  type="date"
+                  value={format(currentDate, 'yyyy-MM-dd')}
+                  onChange={(e) => handleDateInputJump(e.target.value)}
+                  title="Selecionar data específica no calendário"
+                  className="h-8 px-2 text-xs bg-white border border-slate-200 rounded-md font-mono text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-xs cursor-pointer w-[120px] sm:w-[130px]"
+                />
+              </div>
             </div>
 
             <div className="min-w-0 flex-1">

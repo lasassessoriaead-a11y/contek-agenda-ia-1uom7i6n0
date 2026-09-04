@@ -32,6 +32,12 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     return e.json(400, { error: 'Todos os campos obrigatórios devem ser preenchidos.' })
   }
 
+  const cleanPhoneDigits = (client_phone || '').toString().replace(/\D/g, '')
+  if (cleanPhoneDigits.length < 8) {
+    return e.json(400, {
+      error: 'Número de telefone/WhatsApp inválido. Informe DDD + número (mínimo 10 dígitos).',
+    })
+  }
   try {
     // 1. Resolve organization by unique slug
     const org = $app.findFirstRecordByData('organizations', 'slug', org_slug)
