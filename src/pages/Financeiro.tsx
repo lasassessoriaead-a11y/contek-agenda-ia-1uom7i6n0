@@ -104,6 +104,17 @@ export const Financeiro: React.FC = () => {
     loadData()
   }, [orgId])
 
+  // Valid active payments: ignora lançamentos vinculados a consultas canceladas ou faltosas
+  const validPayments = useMemo(() => {
+    return payments.filter((p) => {
+      const apptStatus = p.expand?.appointment_id?.status
+      if (apptStatus === 'CANCELADO' || apptStatus === 'FALTOU') {
+        return false
+      }
+      return true
+    })
+  }, [payments])
+
   // Summary Metrics
   const todayStr = new Date().toISOString().slice(0, 10)
   const now = new Date()
@@ -113,48 +124,50 @@ export const Financeiro: React.FC = () => {
   const monthEnd = endOfMonth(now)
 
   const faturamentoDiario = useMemo(() => {
-    return payments
+    return validPayments
       .filter((p) => p.is_paid && p.payment_date?.startsWith(todayStr))
       .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments, todayStr])
+  }, [validPayments, todayStr])
 
   const faturamentoSemanal = useMemo(() => {
-    return payments
+    return validPayments
       .filter((p) => {
         if (!p.is_paid || !p.payment_date) return false
         const d = parseISO(p.payment_date)
         return isWithinInterval(d, { start: weekStart, end: weekEnd })
       })
       .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments, weekStart, weekEnd])
+  }, [validPayments, weekStart, weekEnd])
 
   const faturamentoMensal = useMemo(() => {
-    return payments
+    return validPayments
       .filter((p) => {
         if (!p.is_paid || !p.payment_date) return false
         const d = parseISO(p.payment_date)
         return isWithinInterval(d, { start: monthStart, end: monthEnd })
       })
       .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments, monthStart, monthEnd])
+  }, [validPayments, monthStart, monthEnd])
 
   const valoresRecebidos = useMemo(() => {
-    return payments.filter((p) => p.is_paid).reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments])
+    return validPayments.filter((p) => p.is_paid).reduce((acc, curr) => acc + (curr.amount || 0), 0)
+  }, [validPayments])
 
   const valoresPendentes = useMemo(() => {
-    return payments.filter((p) => !p.is_paid).reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments])
+    return validPayments
+      .filter((p) => !p.is_paid)
+      .reduce((acc, curr) => acc + (curr.amount || 0), 0)
+  }, [validPayments])
 
   // Filtered payments list
   const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
+    return validPayments.filter((p) => {
       if (statusFilter === 'paid' && !p.is_paid) return false
       if (statusFilter === 'pending' && p.is_paid) return false
       if (methodFilter !== 'all' && p.payment_method !== methodFilter) return false
       return true
     })
-  }, [payments, statusFilter, methodFilter])
+  }, [validPayments, statusFilter, methodFilter])
 
   const openCreateModal = () => {
     setIsEditing(false)

@@ -117,10 +117,23 @@ routerAdd(
         })
         .sort((a, b) => b.count - a.count)
 
+      // Map cancelled/missed appointment ids to exclude any stale payment records
+      const invalidApptIds = {}
+      for (const a of appointments) {
+        const st = a.getString('status')
+        if (st === 'CANCELADO' || st === 'FALTOU') {
+          invalidApptIds[a.id] = true
+        }
+      }
+
       // Financial totals
       let totalRevenue = 0
       let paidPaymentsCount = 0
       for (const p of payments) {
+        const pApptId = p.getString('appointment_id')
+        if (pApptId && invalidApptIds[pApptId]) {
+          continue
+        }
         if (p.getBool('is_paid')) {
           totalRevenue += p.getInt('amount') || 0
           paidPaymentsCount++

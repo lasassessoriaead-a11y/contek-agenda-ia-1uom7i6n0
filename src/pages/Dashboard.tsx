@@ -66,10 +66,11 @@ export const Dashboard: React.FC = () => {
       })
       setClientsCount(clientsResult.totalItems)
 
-      // 3. Fetch payments
+      // 3. Fetch payments with appointment expand to filter out cancelled/missed
       const pays = await pb.collection('payments').getFullList<Payment>({
         filter: `organization_id = "${orgId}"`,
         sort: '-created',
+        expand: 'appointment_id',
       })
       setPayments(pays)
     } catch (err) {
@@ -126,18 +127,29 @@ export const Dashboard: React.FC = () => {
     return appointments.filter((a) => a.status === 'FALTOU')
   }, [appointments])
 
+  // Valid active payments (ignoring payments linked to cancelled or missed appointments)
+  const validPayments = useMemo(() => {
+    return payments.filter((p) => {
+      const apptStatus = p.expand?.appointment_id?.status
+      if (apptStatus === 'CANCELADO' || apptStatus === 'FALTOU') {
+        return false
+      }
+      return true
+    })
+  }, [payments])
+
   // Financial calculations
   const todayRevenue = useMemo(() => {
-    return payments
+    return validPayments
       .filter((p) => p.is_paid && p.payment_date?.startsWith(todayStr))
       .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments, todayStr])
+  }, [validPayments, todayStr])
 
   const monthRevenue = useMemo(() => {
-    return payments
+    return validPayments
       .filter((p) => p.is_paid && p.payment_date?.startsWith(currentMonthStr))
       .reduce((acc, curr) => acc + (curr.amount || 0), 0)
-  }, [payments, currentMonthStr])
+  }, [validPayments, currentMonthStr])
 
   // Status breakdown for Pie Chart
   const statusPieData = useMemo(() => {
@@ -171,7 +183,7 @@ export const Dashboard: React.FC = () => {
       }
     })
 
-    payments.forEach((p) => {
+    validPayments.forEach((p) => {
       if (p.is_paid && p.payment_date) {
         try {
           const d = new Date(p.payment_date)
@@ -184,7 +196,7 @@ export const Dashboard: React.FC = () => {
     })
 
     return result
-  }, [appointments, payments])
+  }, [appointments, validPayments])
 
   const getStatusBadge = (status: string) => {
     switch (status) {

@@ -2,7 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import pb from '@/lib/pocketbase/client'
-import type { Appointment, AppointmentStatus, Client, Professional, Service } from '@/types'
+import type {
+  Appointment,
+  AppointmentStatus,
+  Client,
+  Payment,
+  Professional,
+  Service,
+} from '@/types'
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -349,24 +356,70 @@ export const Agenda: React.FC = () => {
 
       if (isEditing && editApptId) {
         await pb.collection('appointments').update(editApptId, apptData)
+
+        // Sincronização financeira em caso de edição de status
+        try {
+          const relatedPayments = await pb
+            .collection('payments')
+            .getFullList<Payment>({ filter: `appointment_id = "${editApptId}"` })
+
+          if (formStatus === 'CANCELADO' || formStatus === 'FALTOU') {
+            for (const p of relatedPayments) {
+              await pb.collection('payments').delete(p.id)
+            }
+          } else if (formStatus === 'CONCLUÍDO') {
+            if (relatedPayments.length > 0) {
+              for (const p of relatedPayments) {
+                if (!p.is_paid) {
+                  await pb.collection('payments').update(p.id, {
+                    is_paid: true,
+                    payment_date: p.payment_date || new Date().toISOString(),
+                    payment_method:
+                      p.payment_method && p.payment_method !== 'Outro' ? p.payment_method : 'PIX',
+                  })
+                }
+              }
+            } else {
+              // Se foi editado diretamente para CONCLUÍDO e não tinha pagamento, cria como quitado
+              const serv = services.find((s) => s.id === formServiceId)
+              await pb.collection('payments').create({
+                organization_id: orgId,
+                appointment_id: editApptId,
+                client_id: targetClientId,
+                amount: formPrice,
+                is_paid: true,
+                payment_date: new Date().toISOString(),
+                payment_method: 'PIX',
+                description: `${serv?.name || 'Serviço'} - ${cName}`,
+              })
+            }
+          }
+        } catch (paySyncErr) {
+          console.error('Erro ao sincronizar pagamento no update do agendamento:', paySyncErr)
+        }
+
         toast.success('Agendamento atualizado com sucesso!')
       } else {
         const createdAppt = await pb.collection('appointments').create<Appointment>(apptData)
 
-        // Create accompanying payment record
-        try {
-          const serv = services.find((s) => s.id === formServiceId)
-          await pb.collection('payments').create({
-            organization_id: orgId,
-            appointment_id: createdAppt.id,
-            client_id: targetClientId,
-            amount: formPrice,
-            is_paid: false,
-            payment_method: 'Outro',
-            description: `${serv?.name || 'Serviço'} - ${cName}`,
-          })
-        } catch {
-          /* intentionally ignored */
+        // Create accompanying payment record APENAS se status não for CANCELADO ou FALTOU
+        if (formStatus !== 'CANCELADO' && formStatus !== 'FALTOU') {
+          try {
+            const serv = services.find((s) => s.id === formServiceId)
+            const isCompleted = formStatus === 'CONCLUÍDO'
+            await pb.collection('payments').create({
+              organization_id: orgId,
+              appointment_id: createdAppt.id,
+              client_id: targetClientId,
+              amount: formPrice,
+              is_paid: isCompleted,
+              payment_date: isCompleted ? new Date().toISOString() : null,
+              payment_method: isCompleted ? 'PIX' : 'Outro',
+              description: `${serv?.name || 'Serviço'} - ${cName}`,
+            })
+          } catch {
+            /* intentionally ignored */
+          }
         }
 
         toast.success('Agendamento cadastrado com sucesso!')
@@ -389,19 +442,55 @@ export const Agenda: React.FC = () => {
       await pb.collection('appointments').update(apptId, { status: newStatus })
       toast.success(`Status atualizado para ${newStatus}`)
 
-      // If marked as CONCLUÍDO, prompt or automatically mark payment
-      if (newStatus === 'CONCLUÍDO') {
+      // Regra Financeira:
+      // - CANCELADO ou FALTOU: remove lançamentos vinculados imediatamente
+      // - CONCLUÍDO: marca pagamento vinculado como quitado
+      if (newStatus === 'CANCELADO' || newStatus === 'FALTOU') {
         try {
-          const relatedPay = await pb
+          const relatedPays = await pb
             .collection('payments')
-            .getFirstListItem(`appointment_id = "${apptId}"`)
-          if (relatedPay && !relatedPay.is_paid) {
-            await pb.collection('payments').update(relatedPay.id, {
-              is_paid: true,
-              payment_date: new Date().toISOString(),
-              payment_method: 'PIX',
-            })
+            .getFullList<Payment>({ filter: `appointment_id = "${apptId}"` })
+          for (const p of relatedPays) {
+            await pb.collection('payments').delete(p.id)
+          }
+        } catch {
+          /* intentionally ignored */
+        }
+      } else if (newStatus === 'CONCLUÍDO') {
+        try {
+          const relatedPays = await pb
+            .collection('payments')
+            .getFullList<Payment>({ filter: `appointment_id = "${apptId}"` })
+          if (relatedPays.length > 0) {
+            for (const p of relatedPays) {
+              if (!p.is_paid) {
+                await pb.collection('payments').update(p.id, {
+                  is_paid: true,
+                  payment_date: p.payment_date || new Date().toISOString(),
+                  payment_method:
+                    p.payment_method && p.payment_method !== 'Outro' ? p.payment_method : 'PIX',
+                })
+              }
+            }
             toast.success('Faturamento registrado automaticamente!')
+          } else {
+            // Se não tinha pagamento vinculado, cria um quitado para a consulta concluída
+            const appt = appointments.find((a) => a.id === apptId)
+            if (appt && orgId) {
+              const serv = services.find((s) => s.id === appt.service_id)
+              const cName = appt.client_name_snapshot || appt.expand?.client_id?.name || 'Cliente'
+              await pb.collection('payments').create({
+                organization_id: orgId,
+                appointment_id: appt.id,
+                client_id: appt.client_id || null,
+                amount: appt.price || 0,
+                is_paid: true,
+                payment_date: new Date().toISOString(),
+                payment_method: 'PIX',
+                description: `${serv?.name || 'Serviço'} - ${cName}`,
+              })
+              toast.success('Faturamento registrado automaticamente!')
+            }
           }
         } catch {
           /* intentionally ignored */
@@ -511,6 +600,18 @@ export const Agenda: React.FC = () => {
   const handleDeleteAppointment = async (apptId: string) => {
     if (!confirm('Tem certeza que deseja excluir permanentemente este agendamento?')) return
     try {
+      // Exclui pagamentos vinculados para integridade financeira
+      try {
+        const relatedPays = await pb
+          .collection('payments')
+          .getFullList<Payment>({ filter: `appointment_id = "${apptId}"` })
+        for (const p of relatedPays) {
+          await pb.collection('payments').delete(p.id)
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+
       await pb.collection('appointments').delete(apptId)
       toast.success('Agendamento excluído.')
       setDetailsSheetOpen(false)
