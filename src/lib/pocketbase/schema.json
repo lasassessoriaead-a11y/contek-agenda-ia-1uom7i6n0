@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T16:59:26.774Z",
+  "generatedAt": "2026-09-04T17:15:38.841Z",
   "collections": [
     {
       "name": "users",
@@ -290,6 +290,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "work_shifts",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_professionals_org ON professionals (organization_id)"]

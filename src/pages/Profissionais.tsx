@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import pb from '@/lib/pocketbase/client'
-import type { Professional, Service, ProfessionalService } from '@/types'
+import type { Professional, Service, ProfessionalService, WorkShift } from '@/types'
 import {
   UserCheck,
   Plus,
@@ -14,6 +14,7 @@ import {
   Edit2,
   Trash2,
   Scissors,
+  Coffee,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,6 +65,12 @@ export const Profissionais: React.FC = () => {
   const [workDays, setWorkDays] = useState<string[]>(['seg', 'ter', 'qua', 'qui', 'sex'])
   const [startHour, setStartHour] = useState('08:00')
   const [endHour, setEndHour] = useState('18:00')
+  const [lunchStart, setLunchStart] = useState('')
+  const [lunchEnd, setLunchEnd] = useState('')
+  const [workShifts, setWorkShifts] = useState<WorkShift[]>([
+    { start: '08:00', end: '12:00' },
+    { start: '14:00', end: '18:00' },
+  ])
   const [active, setActive] = useState(true)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -100,6 +107,58 @@ export const Profissionais: React.FC = () => {
     loadData()
   }, [orgId])
 
+  // Robust parser for JSON or byte-array lists from PocketBase
+  const parseListField = <T,>(val: unknown): T[] => {
+    if (!val) return []
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...(val as number[]))
+          const parsed = JSON.parse(str)
+          return Array.isArray(parsed) ? (parsed as T[]) : []
+        } catch {
+          return []
+        }
+      }
+      return val as T[]
+    }
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return Array.isArray(parsed) ? (parsed as T[]) : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  const parseObjField = <T extends object>(val: unknown): T | null => {
+    if (!val) return null
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...(val as number[]))
+          const parsed = JSON.parse(str)
+          return typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null
+        } catch {
+          return null
+        }
+      }
+      return null
+    }
+    if (typeof val === 'object' && !Array.isArray(val)) return val as T
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+
   const openCreateModal = () => {
     setIsEditing(false)
     setEditId(null)
@@ -111,6 +170,12 @@ export const Profissionais: React.FC = () => {
     setWorkDays(['seg', 'ter', 'qua', 'qui', 'sex'])
     setStartHour('08:00')
     setEndHour('18:00')
+    setLunchStart('')
+    setLunchEnd('')
+    setWorkShifts([
+      { start: '08:00', end: '12:00' },
+      { start: '14:00', end: '18:00' },
+    ])
     setActive(true)
     setSelectedServiceIds(services.map((s) => s.id))
     setModalOpen(true)
@@ -125,8 +190,39 @@ export const Profissionais: React.FC = () => {
     setEmail(prof.email || '')
     setDefaultDuration(prof.default_duration || 45)
     setWorkDays(prof.work_days || ['seg', 'ter', 'qua', 'qui', 'sex'])
-    setStartHour(prof.work_hours?.start || '08:00')
-    setEndHour(prof.work_hours?.end || '18:00')
+
+    const parsedHours = parseObjField<{
+      start?: string
+      end?: string
+      lunch_start?: string
+      lunch_end?: string
+    }>(prof.work_hours)
+
+    const parsedShifts = parseListField<WorkShift>(prof.work_shifts)
+
+    setStartHour(parsedHours?.start || '08:00')
+    setEndHour(parsedHours?.end || '18:00')
+    setLunchStart(parsedHours?.lunch_start || '')
+    setLunchEnd(parsedHours?.lunch_end || '')
+
+    if (parsedShifts && parsedShifts.length > 0) {
+      setWorkShifts(parsedShifts)
+    } else if (parsedHours?.start && parsedHours?.end) {
+      if (parsedHours.lunch_start && parsedHours.lunch_end) {
+        setWorkShifts([
+          { start: parsedHours.start, end: parsedHours.lunch_start },
+          { start: parsedHours.lunch_end, end: parsedHours.end },
+        ])
+      } else {
+        setWorkShifts([{ start: parsedHours.start, end: parsedHours.end }])
+      }
+    } else {
+      setWorkShifts([
+        { start: '08:00', end: '12:00' },
+        { start: '14:00', end: '18:00' },
+      ])
+    }
+
     setActive(prof.active !== false)
 
     const linkedServices = profServices
@@ -149,6 +245,22 @@ export const Profissionais: React.FC = () => {
     )
   }
 
+  const handleAddShift = () => {
+    setWorkShifts((prev) => [...prev, { start: '19:00', end: '22:00' }])
+  }
+
+  const handleRemoveShift = (index: number) => {
+    setWorkShifts((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleShiftChange = (index: number, field: 'start' | 'end', value: string) => {
+    setWorkShifts((prev) => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!orgId || !name.trim()) {
@@ -156,8 +268,50 @@ export const Profissionais: React.FC = () => {
       return
     }
 
+    // Validate shifts
+    if (workShifts.length === 0) {
+      toast.error('Adicione pelo menos um turno de trabalho para o profissional.')
+      return
+    }
+
+    for (let i = 0; i < workShifts.length; i++) {
+      const shift = workShifts[i]
+      if (!shift.start || !shift.end) {
+        toast.error(`Preencha o início e fim do turno ${i + 1}.`)
+        return
+      }
+      if (shift.end <= shift.start) {
+        toast.error(
+          `O término do turno ${i + 1} (${shift.end}) deve ser maior que o início (${shift.start}).`,
+        )
+        return
+      }
+    }
+
+    // Sort shifts by start time
+    const sortedShifts = [...workShifts].sort((a, b) => a.start.localeCompare(b.start))
+
+    // Determine primary start and end for backward compatibility
+    const overallStart = sortedShifts[0].start
+    const overallEnd = sortedShifts[sortedShifts.length - 1].end
+
     setSaving(true)
     try {
+      const workHoursData: {
+        start: string
+        end: string
+        lunch_start?: string
+        lunch_end?: string
+      } = {
+        start: overallStart,
+        end: overallEnd,
+      }
+
+      if (lunchStart && lunchEnd) {
+        workHoursData.lunch_start = lunchStart
+        workHoursData.lunch_end = lunchEnd
+      }
+
       const data = {
         organization_id: orgId,
         name: name.trim(),
@@ -166,7 +320,8 @@ export const Profissionais: React.FC = () => {
         email: email.trim(),
         default_duration: defaultDuration,
         work_days: workDays,
-        work_hours: { start: startHour, end: endHour },
+        work_shifts: sortedShifts,
+        work_hours: workHoursData,
         active: active,
       }
 
@@ -318,12 +473,47 @@ export const Profissionais: React.FC = () => {
                         <span className="truncate">{prof.email}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      <span>
-                        {prof.work_hours?.start || '08:00'} às {prof.work_hours?.end || '18:00'}{' '}
-                        (padrão: {prof.default_duration || 45}m)
-                      </span>
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                      <div>
+                        {(() => {
+                          const shifts = parseListField<WorkShift>(prof.work_shifts)
+                          if (shifts && shifts.length > 0) {
+                            return (
+                              <div className="flex flex-wrap gap-1">
+                                {shifts.map((s, i) => (
+                                  <span
+                                    key={i}
+                                    className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-mono font-medium"
+                                  >
+                                    {s.start} - {s.end}
+                                  </span>
+                                ))}
+                                <span className="text-[10px] text-slate-400 ml-1">
+                                  ({prof.default_duration || 45}m)
+                                </span>
+                              </div>
+                            )
+                          }
+                          const parsedHours = parseObjField<{
+                            start?: string
+                            end?: string
+                            lunch_start?: string
+                            lunch_end?: string
+                          }>(prof.work_hours)
+                          return (
+                            <span>
+                              {parsedHours?.start || '08:00'} às {parsedHours?.end || '18:00'}
+                              {parsedHours?.lunch_start && parsedHours?.lunch_end && (
+                                <span className="text-slate-400 text-[10px] ml-1">
+                                  (int: {parsedHours.lunch_start}-{parsedHours.lunch_end})
+                                </span>
+                              )}{' '}
+                              (padrão: {prof.default_duration || 45}m)
+                            </span>
+                          )
+                        })()}
+                      </div>
                     </div>
                   </div>
 
@@ -456,36 +646,116 @@ export const Profissionais: React.FC = () => {
                 </div>
               </div>
 
-              {/* Working Hours & Duration */}
-              <div className="grid grid-cols-3 gap-2.5 bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Início Expediente</Label>
-                  <Input
-                    type="time"
-                    value={startHour}
-                    onChange={(e) => setStartHour(e.target.value)}
-                    className="text-xs"
-                  />
+              {/* Turnos de Trabalho (Múltiplos Turnos) */}
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      Turnos de Atendimento (Expediente)
+                    </Label>
+                    <p className="text-[11px] text-slate-500">
+                      Configure os períodos em que o profissional atende (ex: 08:00–12:00 e
+                      14:00–16:00).
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddShift}
+                    className="h-7 text-xs bg-white text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-emerald-300 font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Adicionar turno
+                  </Button>
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Fim Expediente</Label>
-                  <Input
-                    type="time"
-                    value={endHour}
-                    onChange={(e) => setEndHour(e.target.value)}
-                    className="text-xs"
-                  />
+                <div className="space-y-2">
+                  {workShifts.map((shift, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-2 bg-white p-2 rounded-md border border-slate-200 shadow-2xs"
+                    >
+                      <span className="text-[11px] font-semibold text-slate-500 w-16 shrink-0">
+                        Turno {idx + 1}:
+                      </span>
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <Input
+                          type="time"
+                          value={shift.start}
+                          onChange={(e) => handleShiftChange(idx, 'start', e.target.value)}
+                          className="text-xs h-8"
+                          required
+                        />
+                        <span className="text-slate-400 text-xs">até</span>
+                        <Input
+                          type="time"
+                          value={shift.end}
+                          onChange={(e) => handleShiftChange(idx, 'end', e.target.value)}
+                          className="text-xs h-8"
+                          required
+                        />
+                      </div>
+                      {workShifts.length > 1 && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleRemoveShift(idx)}
+                          className="h-8 w-8 text-rose-500 hover:text-rose-700 hover:bg-rose-50 shrink-0"
+                          title="Remover turno"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
-                <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Duração Padrão (m)</Label>
-                  <Input
-                    type="number"
-                    value={defaultDuration}
-                    onChange={(e) => setDefaultDuration(Number(e.target.value))}
-                    className="text-xs"
-                  />
+                {/* Duração Padrão e Intervalo Opcional */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-200">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-700">
+                      Duração Padrão (m)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={defaultDuration}
+                      onChange={(e) => setDefaultDuration(Number(e.target.value))}
+                      className="text-xs h-8 bg-white"
+                      min={5}
+                      step={5}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+                      <Coffee className="w-3 h-3 text-amber-600" />
+                      Pausa/Almoço Início
+                    </Label>
+                    <Input
+                      type="time"
+                      value={lunchStart}
+                      onChange={(e) => setLunchStart(e.target.value)}
+                      placeholder="Opcional"
+                      className="text-xs h-8 bg-white"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+                      <Coffee className="w-3 h-3 text-amber-600" />
+                      Pausa/Almoço Fim
+                    </Label>
+                    <Input
+                      type="time"
+                      value={lunchEnd}
+                      onChange={(e) => setLunchEnd(e.target.value)}
+                      placeholder="Opcional"
+                      className="text-xs h-8 bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -239,6 +239,11 @@ export const Agenda: React.FC = () => {
     setFormStartTime(defaultTime || '09:00')
     setFormStatus('AGENDADO')
     setFormNotes('')
+    if (selectedProfFilter !== 'all') {
+      setFormProfId(selectedProfFilter)
+    } else if (professionals.length > 0) {
+      setFormProfId(professionals[0].id)
+    }
     if (services.length > 0) {
       handleServiceChange(services[0].id)
     }
@@ -717,6 +722,38 @@ export const Agenda: React.FC = () => {
   const dateStr = format(currentDate, 'yyyy-MM-dd')
   const dayAppointments = filteredAppointments.filter((a) => a.date?.startsWith(dateStr))
 
+  // Helper to parse list fields safely
+  const parseListField = <T = string,>(val: unknown): T[] => {
+    if (!val) return []
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...(val as number[]))
+          const parsed = JSON.parse(str)
+          return Array.isArray(parsed) ? (parsed as T[]) : []
+        } catch {
+          return []
+        }
+      }
+      return val as T[]
+    }
+    if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val)
+        return Array.isArray(parsed) ? (parsed as T[]) : []
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  // Selected professional info when a single professional is filtered
+  const singleFilteredProf = useMemo(() => {
+    if (selectedProfFilter === 'all') return null
+    return professionals.find((p) => p.id === selectedProfFilter) || null
+  }, [selectedProfFilter, professionals])
+
   // Week days interval
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
@@ -978,10 +1015,41 @@ export const Agenda: React.FC = () => {
           {/* 1. DAY VIEW */}
           {viewMode === 'day' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">
-                  Horários de Atendimento
-                </span>
+              <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">
+                    Horários de Atendimento
+                  </span>
+                  {singleFilteredProf && (
+                    <div className="flex items-center gap-1">
+                      {(() => {
+                        const shifts = parseListField<{ start: string; end: string }>(
+                          singleFilteredProf.work_shifts,
+                        )
+                        if (shifts && shifts.length > 0) {
+                          return shifts.map((s, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-300 font-mono"
+                            >
+                              {s.start} - {s.end}
+                            </Badge>
+                          ))
+                        }
+                        return (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] bg-slate-100 text-slate-700 border-slate-300 font-mono"
+                          >
+                            {singleFilteredProf.work_hours?.start || '08:00'} -{' '}
+                            {singleFilteredProf.work_hours?.end || '18:00'}
+                          </Badge>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </div>
                 <span className="text-xs text-slate-500">Clique em um horário para agendar</span>
               </div>
 

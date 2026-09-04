@@ -155,13 +155,52 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
       return e.json(400, { error: 'O profissional não atende no dia da semana selecionado.' })
     }
 
+    // Check multiple work shifts or fallback to work_hours
+    const rawShifts = parseListField(profRecord.get('work_shifts'))
+    let activeShifts = []
+    if (rawShifts && rawShifts.length > 0) {
+      for (const s of rawShifts) {
+        if (s && s.start && s.end) {
+          activeShifts.push({
+            start: s.start,
+            end: s.end,
+            startMin: timeToMinutes(s.start),
+            endMin: timeToMinutes(s.end),
+          })
+        }
+      }
+    }
+
     const profWorkHours = parseObjField(profRecord.get('work_hours'))
-    if (profWorkHours && profWorkHours.start && profWorkHours.end) {
-      const pStart = timeToMinutes(profWorkHours.start)
-      const pEnd = timeToMinutes(profWorkHours.end)
-      if (newStartMin < pStart || newEndMin > pEnd) {
+    if (activeShifts.length === 0 && profWorkHours && profWorkHours.start && profWorkHours.end) {
+      activeShifts.push({
+        start: profWorkHours.start,
+        end: profWorkHours.end,
+        startMin: timeToMinutes(profWorkHours.start),
+        endMin: timeToMinutes(profWorkHours.end),
+      })
+    }
+
+    if (activeShifts.length > 0) {
+      // Must fit ENTIRELY inside at least one shift
+      const fitsInShift = activeShifts.some(
+        (sh) => newStartMin >= sh.startMin && newEndMin <= sh.endMin,
+      )
+      if (!fitsInShift) {
+        const shiftTexts = activeShifts.map((sh) => `${sh.start} às ${sh.end}`).join(', ')
         return e.json(400, {
-          error: `Horário fora do expediente do profissional (${profWorkHours.start} às ${profWorkHours.end}).`,
+          error: `Horário fora dos turnos de atendimento do profissional (${shiftTexts}).`,
+        })
+      }
+    }
+
+    // Check lunch break / interval if configured in work_hours
+    if (profWorkHours && profWorkHours.lunch_start && profWorkHours.lunch_end) {
+      const lStart = timeToMinutes(profWorkHours.lunch_start)
+      const lEnd = timeToMinutes(profWorkHours.lunch_end)
+      if (lEnd > lStart && newStartMin < lEnd && newEndMin > lStart) {
+        return e.json(400, {
+          error: `Horário coincide com o intervalo do profissional (${profWorkHours.lunch_start} às ${profWorkHours.lunch_end}).`,
         })
       }
     }

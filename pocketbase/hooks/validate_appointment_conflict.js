@@ -145,13 +145,50 @@ onRecordCreateRequest((e) => {
         }
       }
 
+      // Check multiple work shifts or fallback to work_hours
+      const rawShifts = parseList(prof.get('work_shifts'))
+      let activeShifts = []
+      if (rawShifts && rawShifts.length > 0) {
+        for (const s of rawShifts) {
+          if (s && s.start && s.end) {
+            activeShifts.push({
+              start: s.start,
+              end: s.end,
+              startMin: timeToMinutes(s.start),
+              endMin: timeToMinutes(s.end),
+            })
+          }
+        }
+      }
+
       const workHours = parseObj(prof.get('work_hours'))
-      if (workHours && workHours.start && workHours.end) {
-        const profStartMin = timeToMinutes(workHours.start)
-        const profEndMin = timeToMinutes(workHours.end)
-        if (newStartMin < profStartMin || newEndMin > profEndMin) {
+      if (activeShifts.length === 0 && workHours && workHours.start && workHours.end) {
+        activeShifts.push({
+          start: workHours.start,
+          end: workHours.end,
+          startMin: timeToMinutes(workHours.start),
+          endMin: timeToMinutes(workHours.end),
+        })
+      }
+
+      if (activeShifts.length > 0) {
+        const fitsInShift = activeShifts.some(
+          (sh) => newStartMin >= sh.startMin && newEndMin <= sh.endMin,
+        )
+        if (!fitsInShift) {
+          const shiftTexts = activeShifts.map((sh) => `${sh.start} às ${sh.end}`).join(', ')
           throw new BadRequestError(
-            `Horário fora do expediente do profissional (${workHours.start} às ${workHours.end}).`,
+            `Horário fora dos turnos de atendimento do profissional (${shiftTexts}).`,
+          )
+        }
+      }
+
+      if (workHours && workHours.lunch_start && workHours.lunch_end) {
+        const lStart = timeToMinutes(workHours.lunch_start)
+        const lEnd = timeToMinutes(workHours.lunch_end)
+        if (lEnd > lStart && newStartMin < lEnd && newEndMin > lStart) {
+          throw new BadRequestError(
+            `Horário coincide com o intervalo do profissional (${workHours.lunch_start} às ${workHours.lunch_end}).`,
           )
         }
       }
@@ -263,13 +300,75 @@ onRecordUpdateRequest((e) => {
         return null
       }
 
+      // Helper to parse list fields safely
+      const parseList = (val) => {
+        if (!val) return []
+        if (Array.isArray(val)) {
+          if (val.length > 0 && typeof val[0] === 'number') {
+            try {
+              const str = String.fromCharCode(...val)
+              const p = JSON.parse(str)
+              return Array.isArray(p) ? p : []
+            } catch (_) {
+              return []
+            }
+          }
+          return val
+        }
+        if (typeof val === 'string') {
+          try {
+            const p = JSON.parse(val)
+            return Array.isArray(p) ? p : []
+          } catch (_) {
+            return []
+          }
+        }
+        return []
+      }
+
+      const rawShifts = parseList(prof.get('work_shifts'))
+      let activeShifts = []
+      if (rawShifts && rawShifts.length > 0) {
+        for (const s of rawShifts) {
+          if (s && s.start && s.end) {
+            activeShifts.push({
+              start: s.start,
+              end: s.end,
+              startMin: timeToMinutes(s.start),
+              endMin: timeToMinutes(s.end),
+            })
+          }
+        }
+      }
+
       const workHours = parseObj(prof.get('work_hours'))
-      if (workHours) {
-        const pStart = workHours.start ? timeToMinutes(workHours.start) : 8 * 60
-        const pEnd = workHours.end ? timeToMinutes(workHours.end) : 19 * 60
-        if (newStartMin < pStart || newEndMin > pEnd) {
+      if (activeShifts.length === 0 && workHours && workHours.start && workHours.end) {
+        activeShifts.push({
+          start: workHours.start,
+          end: workHours.end,
+          startMin: timeToMinutes(workHours.start),
+          endMin: timeToMinutes(workHours.end),
+        })
+      }
+
+      if (activeShifts.length > 0) {
+        const fitsInShift = activeShifts.some(
+          (sh) => newStartMin >= sh.startMin && newEndMin <= sh.endMin,
+        )
+        if (!fitsInShift) {
+          const shiftTexts = activeShifts.map((sh) => `${sh.start} às ${sh.end}`).join(', ')
           throw new BadRequestError(
-            `Horário fora do expediente do profissional (${workHours.start || '08:00'} às ${workHours.end || '18:00'}).`,
+            `Horário fora dos turnos de atendimento do profissional (${shiftTexts}).`,
+          )
+        }
+      }
+
+      if (workHours && workHours.lunch_start && workHours.lunch_end) {
+        const lStart = timeToMinutes(workHours.lunch_start)
+        const lEnd = timeToMinutes(workHours.lunch_end)
+        if (lEnd > lStart && newStartMin < lEnd && newEndMin > lStart) {
+          throw new BadRequestError(
+            `Horário coincide com o intervalo do profissional (${workHours.lunch_start} às ${workHours.lunch_end}).`,
           )
         }
       }

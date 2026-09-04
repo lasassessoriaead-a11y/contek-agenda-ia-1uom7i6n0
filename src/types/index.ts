@@ -52,6 +52,12 @@ export interface BusinessSettings {
   updated: string
 }
 
+export interface WorkShift {
+  id?: string
+  start: string
+  end: string
+}
+
 export interface Professional {
   id: string
   organization_id: string
@@ -69,6 +75,7 @@ export interface Professional {
     lunch_start?: string
     lunch_end?: string
   }
+  work_shifts?: WorkShift[]
   active: boolean
   created: string
   updated: string
