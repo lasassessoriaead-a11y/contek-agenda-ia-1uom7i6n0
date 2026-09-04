@@ -19,7 +19,9 @@ import {
   Bell,
   CheckCircle2,
   CalendarDays,
+  Shield,
 } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {

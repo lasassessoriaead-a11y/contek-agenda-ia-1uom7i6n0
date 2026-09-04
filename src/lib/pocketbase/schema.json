@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T19:00:04.912Z",
+  "generatedAt": "2026-09-04T19:20:02.876Z",
   "collections": [
     {
       "name": "users",
@@ -74,10 +74,10 @@
       "name": "organizations",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= id",
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= id))",
         "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= id))",
         "delete": "@request.auth.id != ''"
       },
       "fields": [
