@@ -223,9 +223,248 @@ routerAdd(
           (result.content ? result.content.slice(0, 100) : 'empty'),
       )
 
+      let finalContent = result.content || ''
+
+      // =========================================================================
+      // GUARDA RÍGIDA NO SERVIDOR CONTRA AFIRMAÇÃO FALSA DE CADASTRO
+      // =========================================================================
+      const REGISTRATION_CLAIM_PATTERNS = [
+        // Padrões explícitos de cadastro/adicionado concluído
+        { regex: /cadastro\s+conclu[ií]do/i, entity: 'any', label: 'cadastro concluído' },
+        { regex: /cadastrad[oa]\s+com\s+sucesso/i, entity: 'any', label: 'cadastrado com sucesso' },
+        { regex: /registrad[oa]\s+com\s+sucesso/i, entity: 'any', label: 'registrado com sucesso' },
+        { regex: /adicionad[oa]\s+com\s+sucesso/i, entity: 'any', label: 'adicionado com sucesso' },
+        { regex: /criad[oa]\s+com\s+sucesso/i, entity: 'any', label: 'criado com sucesso' },
+        {
+          regex: /profissional\s+adicionad[oa]/i,
+          entity: 'professional',
+          label: 'profissional adicionado',
+        },
+        {
+          regex: /profissional\s+cadastrad[oa]/i,
+          entity: 'professional',
+          label: 'profissional cadastrado',
+        },
+        { regex: /cliente\s+adicionad[oa]/i, entity: 'client', label: 'cliente adicionado' },
+        { regex: /cliente\s+cadastrad[oa]/i, entity: 'client', label: 'cliente cadastrado' },
+        { regex: /servi[çc]o\s+adicionad[oa]/i, entity: 'service', label: 'serviço adicionado' },
+        { regex: /servi[çc]o\s+cadastrad[oa]/i, entity: 'service', label: 'serviço cadastrado' },
+        // Afirmação em primeira pessoa ou voz passiva ("cadastrei o Dr...", "foi cadastrado")
+        {
+          regex: /\bcadastrei\s+(?:o|a|os|as|um|uma|o\(a\))?\b/i,
+          entity: 'any',
+          label: 'cadastrei',
+        },
+        {
+          regex: /\badicionei\s+(?:o|a|os|as|um|uma|o\(a\))?\b/i,
+          entity: 'any',
+          label: 'adicionei',
+        },
+        { regex: /\bfoi\s+cadastrad[oa]\b/i, entity: 'any', label: 'foi cadastrado' },
+        { regex: /\bfoi\s+adicionad[oa]\b/i, entity: 'any', label: 'foi adicionado' },
+        { regex: /\bforam\s+cadastrad[oa]s\b/i, entity: 'any', label: 'foram cadastrados' },
+        { regex: /\bforam\s+adicionad[oa]s\b/i, entity: 'any', label: 'foram adicionados' },
+        // Emojis de confirmação combinados com termos de cadastro/criação
+        {
+          regex: /✅[^\n\r]*(?:cadastro|cadastrad[oa]|adicionad[oa]|criad[oa]|registrad[oa])/i,
+          entity: 'any',
+          label: 'emoji check + cadastro',
+        },
+        {
+          regex: /(?:cadastro|cadastrad[oa]|adicionad[oa]|criad[oa]|registrad[oa])[^\n\r]*✅/i,
+          entity: 'any',
+          label: 'cadastro + emoji check',
+        },
+        // Tabelas Markdown com cabeçalho ou linha indicando adição/cadastro concluído
+        {
+          regex:
+            /\|\s*\*{0,2}(?:Profissional|Cliente|Serviço|Servico)\s+(?:adicionado|cadastrado)\*{0,2}\s*\|/i,
+          entity: 'any',
+          label: 'tabela markdown adicionado/cadastrado',
+        },
+      ]
+
+      let detectedPattern = null
+      for (let i = 0; i < REGISTRATION_CLAIM_PATTERNS.length; i++) {
+        const item = REGISTRATION_CLAIM_PATTERNS[i]
+        if (item.regex.test(finalContent)) {
+          detectedPattern = item
+          break
+        }
+      }
+
+      if (detectedPattern) {
+        // Identificar tipo de entidade e nome citado
+        let detectedEntity = detectedPattern.entity
+        const lowerText = finalContent.toLowerCase()
+
+        if (detectedEntity === 'any') {
+          if (
+            lowerText.indexOf('profissional') !== -1 ||
+            lowerText.indexOf('médico') !== -1 ||
+            lowerText.indexOf('doutor') !== -1
+          ) {
+            detectedEntity = 'professional'
+          } else if (lowerText.indexOf('serviço') !== -1 || lowerText.indexOf('servico') !== -1) {
+            detectedEntity = 'service'
+          } else if (lowerText.indexOf('cliente') !== -1 || lowerText.indexOf('paciente') !== -1) {
+            detectedEntity = 'client'
+          } else {
+            detectedEntity = 'professional' // fallback mais comum nas conversas
+          }
+        }
+
+        // Tentar extrair o nome citado na resposta
+        let extractedName = ''
+        const namePatterns = [
+          // Ex: | **Profissional adicionado** | **Dr. Silva** | ou | Profissional | Nome |
+          /\|\s*\*{0,2}(?:Profissional(?:\s+adicionado)?|Cliente(?:\s+adicionado)?|Servi[çc]o(?:\s+adicionado)?|Nome)\*{0,2}\s*\|\s*\*{0,2}([A-Za-zÀ-ÿ0-9\s._-]{2,40}?)\*{0,2}\s*\|/i,
+          // Ex: "Profissional adicionado: Dr. Fulano" ou "cadastrado com sucesso: Fulano"
+          /(?:profissional|cliente|servi[çc]o|nome)(?:\s+adicionad[oa]|\s+cadastrad[oa])?[:\-–]\s*\*{0,2}([A-Za-zÀ-ÿ0-9\s._-]{2,40}?)(?:\*|\n|\r|,|\.|$)/i,
+          // Ex: "cadastrei o profissional Fulano", "cadastrei a Dra. Ana"
+          /(?:cadastrei|adicionei)\s+(?:o|a|os|as|um|uma)?\s*(?:profissional|cliente|servi[çc]o)?\s*\*{0,2}([A-Za-zÀ-ÿ0-9\s._-]{2,40}?)(?:\*|\n|\r|,|\.|$)/i,
+        ]
+
+        for (let j = 0; j < namePatterns.length; j++) {
+          const m = finalContent.match(namePatterns[j])
+          if (m && m[1]) {
+            const candidate = m[1].trim().replace(/^\*+|\*+$/g, '')
+            if (
+              candidate.length >= 2 &&
+              !/^(item|detalhe|status|sucesso|sim|não|ok)$/i.test(candidate)
+            ) {
+              extractedName = candidate
+              break
+            }
+          }
+        }
+
+        // Verificação da verdade: consultar a coleção correspondente criada/atualizada recentemente (~2 minutos)
+        // Data limite: agora - 120 segundos
+        const twoMinutesAgoIso = new Date(Date.now() - 120 * 1000).toISOString().replace('T', ' ')
+        let collectionName = 'professionals'
+        let entityDisplayName = 'Profissionais'
+        let singularDisplayName = 'profissional'
+        let menuName = 'Profissionais'
+
+        if (detectedEntity === 'client') {
+          collectionName = 'clients'
+          entityDisplayName = 'Clientes'
+          singularDisplayName = 'cliente'
+          menuName = 'Clientes'
+        } else if (detectedEntity === 'service') {
+          collectionName = 'services'
+          entityDisplayName = 'Serviços'
+          singularDisplayName = 'serviço'
+          menuName = 'Serviços'
+        }
+
+        let verifiedRecord = null
+
+        // Se conseguimos extrair o nome, buscamos por nome aproximado ou registros criados nos últimos 2 min
+        try {
+          let recentFilter =
+            'organization_id = "' + orgId + '" && created >= "' + twoMinutesAgoIso + '"'
+          if (extractedName) {
+            // Limpa caracteres especiais para busca segura
+            const cleanName = extractedName.replace(/["\\]/g, '').trim()
+            if (cleanName.length > 1) {
+              recentFilter =
+                'organization_id = "' +
+                orgId +
+                '" && (name ~ "' +
+                cleanName +
+                '" || created >= "' +
+                twoMinutesAgoIso +
+                '")'
+            }
+          }
+
+          const recentRecords = $app.findRecordsByFilter(
+            collectionName,
+            recentFilter,
+            '-created',
+            5,
+            0,
+          )
+
+          if (recentRecords && recentRecords.length > 0) {
+            // Conferir se o registro realmente foi criado agora ou bate com o nome
+            if (extractedName) {
+              const cleanLower = extractedName.toLowerCase()
+              for (let k = 0; k < recentRecords.length; k++) {
+                const rName = recentRecords[k].getString('name').toLowerCase()
+                if (
+                  rName &&
+                  (rName.indexOf(cleanLower) !== -1 || cleanLower.indexOf(rName) !== -1)
+                ) {
+                  verifiedRecord = recentRecords[k]
+                  break
+                }
+              }
+            } else {
+              // Sem nome extraível mas há registro criado nos últimos 2 min
+              const firstRecCreated = new Date(recentRecords[0].getString('created')).getTime()
+              if (Date.now() - firstRecCreated <= 120 * 1000) {
+                verifiedRecord = recentRecords[0]
+              }
+            }
+          }
+        } catch (dbCheckErr) {
+          console.log(
+            '[AI GUARDRAIL] Error querying collection ' +
+              collectionName +
+              ': ' +
+              (dbCheckErr.message || dbCheckErr),
+          )
+        }
+
+        // Se NÃO encontrou registro real verificado, a afirmação é falsa ou não comprovada!
+        if (!verifiedRecord) {
+          console.log(
+            '[AI GUARDRAIL] Fake registration claim detected and replaced. org=' +
+              orgName +
+              ' (' +
+              orgId +
+              ') pattern="' +
+              detectedPattern.label +
+              '" entity=' +
+              detectedEntity +
+              ' extractedName="' +
+              (extractedName || 'none') +
+              '"',
+          )
+
+          let replacementMsg =
+            '⚠️ **Atenção:** Eu não consigo gravar cadastros diretamente no banco de dados do sistema — e notei que minha resposta anterior indicou que um cadastro foi concluído. Isso não aconteceu: **nenhum registro foi criado**.\n\n'
+          replacementMsg +=
+            'Para cadastrar de verdade, vá no menu **' +
+            menuName +
+            '** (na barra lateral) e utilize o botão de novo cadastro. Por lá os dados são validados e salvos com segurança no sistema.\n\n'
+          if (extractedName) {
+            replacementMsg +=
+              'Se desejar, posso te ajudar a formatar e organizar as informações de **' +
+              extractedName +
+              '** para que você apenas copie e cole no formulário de cadastro!'
+          } else {
+            replacementMsg +=
+              'Se desejar, posso te ajudar a organizar todos os detalhes (nome, especialidade, horários, preços) para você colar na tela de cadastro!'
+          }
+
+          finalContent = replacementMsg
+        } else {
+          console.log(
+            '[AI GUARDRAIL] Legitimate registration verified in database: id=' +
+              verifiedRecord.id +
+              ', name=' +
+              verifiedRecord.getString('name'),
+          )
+        }
+      }
+
       return e.json(200, {
         conversation_id: result.conversation_id,
-        content: result.content,
+        content: finalContent,
         citations: result.citations,
         message_id: result.message_id,
       })
