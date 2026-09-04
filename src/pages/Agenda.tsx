@@ -482,6 +482,20 @@ export const Agenda: React.FC = () => {
           window.open(waLink, '_blank', 'noopener,noreferrer')
         }
         setWaModalOpen(false)
+
+        // Atualizar estado de selectedAppointment se estiver aberto
+        setSelectedAppointment((prev) => {
+          if (!prev || prev.id !== waTargetAppt.id) return prev
+          const prevSent = parseNotificationsSent(prev.notifications_sent)
+          return {
+            ...prev,
+            notifications_sent: {
+              ...prevSent,
+              [waMessageType]: new Date().toISOString(),
+            },
+          }
+        })
+
         await loadData()
       } else {
         console.error('Erro ao registrar envio via manual-message:', data)
@@ -506,7 +520,7 @@ export const Agenda: React.FC = () => {
     }
   }
 
-  // Filtered Appointments
+  // Filtered Appointments (para a visão do calendário/tabela conforme filtros selecionados)
   const filteredAppointments = useMemo(() => {
     return appointments.filter((a) => {
       if (selectedProfFilter !== 'all' && a.professional_id !== selectedProfFilter) {
@@ -612,14 +626,115 @@ export const Agenda: React.FC = () => {
   const monthEnd = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
-  // Pacientes com status AGENDADO que ainda não receberam mensagem de confirmação
-  const needConfirmationList = useMemo(() => {
-    return filteredAppointments.filter((a) => {
-      if (a.status !== 'AGENDADO') return false
-      const sent = (a.notifications_sent as Record<string, string>) || {}
-      return !sent['CONFIRMATION_REQUEST']
+  // Decode notifications_sent safely from record (string, object, byte array, etc.)
+  const parseNotificationsSent = (raw: unknown): Record<string, string> => {
+    if (!raw) return {}
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        return typeof parsed === 'object' && parsed !== null ? parsed : {}
+      } catch {
+        return {}
+      }
+    }
+    if (Array.isArray(raw)) {
+      if (raw.length > 0 && typeof raw[0] === 'number') {
+        try {
+          const str = String.fromCharCode(...raw)
+          const parsed = JSON.parse(str)
+          return typeof parsed === 'object' && parsed !== null ? parsed : {}
+        } catch {
+          return {}
+        }
+      }
+      return {}
+    }
+    if (typeof raw === 'object') {
+      return raw as Record<string, string>
+    }
+    return {}
+  }
+
+  // Format sent timestamp nicely in pt-BR
+  const formatSentTimestamp = (isoString?: string) => {
+    if (!isoString) return ''
+    try {
+      const parsed = parseISO(isoString)
+      if (isNaN(parsed.getTime())) {
+        const d = new Date(isoString)
+        if (isNaN(d.getTime())) return isoString
+        return format(d, "dd/MM 'às' HH:mm", { locale: ptBR })
+      }
+      return format(parsed, "dd/MM 'às' HH:mm", { locale: ptBR })
+    } catch {
+      return isoString
+    }
+  }
+
+  // Fila de notificações pendentes:
+  // 1. CONFIRMAÇÃO: apenas agendamentos com status AGENDADO que ainda NÃO têm 'CONFIRMATION_REQUEST' enviado
+  // 2. LEMBRETE NO DIA: agendamentos de HOJE com status CONFIRMADO ou AGENDADO que ainda NÃO têm 'DAY_REMINDER' enviado
+  // Agendamentos CANCELADO, FALTOU, EM ATENDIMENTO ou CONCLUÍDO NUNCA entram em nenhuma fila.
+  // IMPORTANTE: considera a base de agendamentos respeitando o filtro de profissional se houver, mas não o filtro de status da tela
+  const pendingNotificationQueue = useMemo(() => {
+    const todayYmd = format(new Date(), 'yyyy-MM-dd')
+
+    const items: Array<{
+      appointment: Appointment
+      queueType: 'CONFIRMATION_REQUEST' | 'DAY_REMINDER'
+      titleBadge: string
+      dateLabel: string
+    }> = []
+
+    const candidateAppts = appointments.filter((a) => {
+      if (selectedProfFilter !== 'all' && a.professional_id !== selectedProfFilter) {
+        return false
+      }
+      return true
     })
-  }, [filteredAppointments])
+
+    for (const appt of candidateAppts) {
+      // Regras 3 e 4: CANCELADO, FALTOU, EM ATENDIMENTO, CONCLUÍDO saem de qualquer fila
+      if (
+        appt.status === 'CANCELADO' ||
+        appt.status === 'FALTOU' ||
+        appt.status === 'EM ATENDIMENTO' ||
+        appt.status === 'CONCLUÍDO'
+      ) {
+        continue
+      }
+
+      const sentMap = parseNotificationsSent(appt.notifications_sent)
+      const apptDateYmd = appt.date ? appt.date.slice(0, 10) : ''
+      const isTodayAppt = apptDateYmd === todayYmd
+
+      // Se for AGENDADO e ainda não enviou Pedido de Confirmação
+      if (appt.status === 'AGENDADO' && !sentMap['CONFIRMATION_REQUEST']) {
+        items.push({
+          appointment: appt,
+          queueType: 'CONFIRMATION_REQUEST',
+          titleBadge: 'Confirmação',
+          dateLabel: `${formatShortDate(appt.date)} às ${appt.start_time}`,
+        })
+      }
+      // Se for de HOJE (AGENDADO ou CONFIRMADO) e ainda não enviou Lembrete do Dia
+      else if (isTodayAppt && !sentMap['DAY_REMINDER']) {
+        items.push({
+          appointment: appt,
+          queueType: 'DAY_REMINDER',
+          titleBadge: 'Lembrete D-0',
+          dateLabel: `Hoje às ${appt.start_time}`,
+        })
+      }
+    }
+
+    // Ordenar por data e horário de início
+    return items.sort((a, b) => {
+      const dateA = `${a.appointment.date?.slice(0, 10) || ''} ${a.appointment.start_time}`
+      const dateB = `${b.appointment.date?.slice(0, 10) || ''} ${b.appointment.start_time}`
+      return dateA.localeCompare(dateB)
+    })
+  }, [appointments, selectedProfFilter])
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto w-full min-w-0">
@@ -987,63 +1102,71 @@ export const Agenda: React.FC = () => {
           )}
         </div>
 
-        {/* SIDEBAR LATERAL NO DESKTOP / CARD ABAIXO NO MOBILE: CONFIRMAÇÃO RÁPIDA */}
-        {needConfirmationList.length > 0 && (
+        {/* SIDEBAR LATERAL NO DESKTOP / CARD ABAIXO NO MOBILE: CONFIRMAÇÃO RÁPIDA & LEMBRETES PENDENTES */}
+        {pendingNotificationQueue.length > 0 && (
           <div className="w-full lg:w-80 shrink-0 bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
                 <BellRing className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>Confirmação — Rápido</span>
+                <span>Confirmação & Lembretes</span>
               </div>
               <Badge
                 variant="outline"
                 className="text-[10px] bg-white text-amber-800 border-amber-300 shrink-0"
               >
-                {needConfirmationList.length} pendente(s)
+                {pendingNotificationQueue.length} pendente(s)
               </Badge>
             </div>
 
             <p className="text-[11px] text-amber-800 leading-snug">
-              Pacientes com status "Agendado" que ainda não receberam mensagem de confirmação. Você
-              pode disparar via WhatsApp com um clique:
+              Envios pendentes (pedidos de confirmação e lembretes de hoje não disparados). Dispare
+              via WhatsApp com um clique:
             </p>
 
             <div className="space-y-2 max-h-[380px] overflow-y-auto pr-0.5">
-              {needConfirmationList.slice(0, 6).map((item) => {
+              {pendingNotificationQueue.slice(0, 6).map((item) => {
+                const appt = item.appointment
                 const cName =
-                  item.expand?.client_id?.name || item.client_name_snapshot || 'Paciente'
-                const formattedDate = formatShortDate(item.date)
+                  appt.expand?.client_id?.name || appt.client_name_snapshot || 'Paciente'
 
                 return (
                   <div
-                    key={item.id}
+                    key={`${appt.id}-${item.queueType}`}
                     className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-amber-200 shadow-xs hover:border-amber-300 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-xs text-slate-800 truncate leading-tight">
-                        {cName}
-                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-semibold text-xs text-slate-800 truncate leading-tight">
+                          {cName}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] px-1 py-0 h-4 bg-amber-100 text-amber-900 font-semibold"
+                        >
+                          {item.titleBadge}
+                        </Badge>
+                      </div>
                       <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5 whitespace-nowrap">
-                        {formattedDate} às {item.start_time}
+                        {item.dateLabel}
                       </p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => openManualWaModal(item, 'CONFIRMATION_REQUEST')}
+                      onClick={() => openManualWaModal(appt, item.queueType)}
                       className="h-7 px-2.5 text-[11px] text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold shrink-0"
                     >
                       <Send className="w-3 h-3 mr-1" />
-                      <span>Enviar WA</span>
+                      <span>Enviar</span>
                     </Button>
                   </div>
                 )
               })}
             </div>
 
-            {needConfirmationList.length > 6 && (
+            {pendingNotificationQueue.length > 6 && (
               <p className="text-[11px] text-amber-800 font-medium text-center pt-1">
-                +{needConfirmationList.length - 6} outros pacientes na lista
+                +{pendingNotificationQueue.length - 6} outros envios na fila
               </p>
             )}
           </div>
@@ -1129,43 +1252,121 @@ export const Agenda: React.FC = () => {
               </div>
 
               {/* WHATSAPP MANUAL DISPATCH BUTTON */}
-              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
-                    <MessageSquare className="w-4 h-4 text-emerald-600" />
-                    Comunicação WhatsApp
+              {(() => {
+                const apptSentMap = parseNotificationsSent(selectedAppointment.notifications_sent)
+                const reqSentAt = apptSentMap['CONFIRMATION_REQUEST']
+                const remSentAt = apptSentMap['DAY_REMINDER']
+                const thanksSentAt = apptSentMap['CONFIRMATION_THANKS']
+
+                return (
+                  <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                        <MessageSquare className="w-4 h-4 text-emerald-600" />
+                        Comunicação WhatsApp
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] bg-white border-emerald-300 text-emerald-800"
+                      >
+                        Modo Manual / Imediato
+                      </Badge>
+                    </div>
+
+                    <p className="text-[11px] text-emerald-800 leading-relaxed">
+                      Envie confirmação ou lembrete via WhatsApp com templates dinâmicos.
+                      Notificações já registradas exibem status e data de envio.
+                    </p>
+
+                    {/* STATUS DE DISPAROS JÁ REALIZADOS */}
+                    <div className="space-y-1.5 bg-white/80 p-2.5 rounded-lg border border-emerald-200/80 text-xs">
+                      {/* D-1 Pedido de Confirmação */}
+                      <div className="flex items-center justify-between gap-2 py-0.5">
+                        <span className="text-[11px] font-medium text-slate-700">
+                          1. Confirmação (D-1):
+                        </span>
+                        {reqSentAt ? (
+                          <div className="flex items-center gap-1.5">
+                            <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-[10px] font-medium flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>Enviado em {formatSentTimestamp(reqSentAt)}</span>
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                openManualWaModal(selectedAppointment, 'CONFIRMATION_REQUEST')
+                              }
+                              className="h-6 px-1.5 text-[10px] text-emerald-800 hover:text-emerald-950 hover:bg-emerald-100/60 font-semibold"
+                              title="Reenviar Confirmação"
+                            >
+                              Reenviar
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              openManualWaModal(selectedAppointment, 'CONFIRMATION_REQUEST')
+                            }
+                            className="h-6 px-2.5 text-[11px] bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
+                          >
+                            <Send className="w-3 h-3 mr-1" />
+                            Pedir Confirmação
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* D-0 Lembrete no Dia */}
+                      <div className="flex items-center justify-between gap-2 py-0.5 border-t border-emerald-100 pt-1">
+                        <span className="text-[11px] font-medium text-slate-700">
+                          2. Lembrete no Dia (D-0):
+                        </span>
+                        {remSentAt ? (
+                          <div className="flex items-center gap-1.5">
+                            <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-[10px] font-medium flex items-center gap-1">
+                              <Check className="w-3 h-3 text-emerald-600" />
+                              <span>Enviado em {formatSentTimestamp(remSentAt)}</span>
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => openManualWaModal(selectedAppointment, 'DAY_REMINDER')}
+                              className="h-6 px-1.5 text-[10px] text-emerald-800 hover:text-emerald-950 hover:bg-emerald-100/60 font-semibold"
+                              title="Reenviar Lembrete"
+                            >
+                              Reenviar
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openManualWaModal(selectedAppointment, 'DAY_REMINDER')}
+                            className="h-6 px-2.5 text-[11px] border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-semibold"
+                          >
+                            <BellRing className="w-3 h-3 mr-1" />
+                            Enviar Lembrete
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Agradecimento pós-confirmação (se aplicável) */}
+                      {thanksSentAt && (
+                        <div className="flex items-center justify-between gap-2 py-0.5 border-t border-emerald-100 pt-1">
+                          <span className="text-[11px] font-medium text-slate-700">
+                            3. Agradecimento:
+                          </span>
+                          <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-[10px] font-medium flex items-center gap-1">
+                            <Check className="w-3 h-3 text-emerald-600" />
+                            <span>Enviado em {formatSentTimestamp(thanksSentAt)}</span>
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] bg-white border-emerald-300 text-emerald-800"
-                  >
-                    Modo Manual / Imediato
-                  </Badge>
-                </div>
-                <p className="text-[11px] text-emerald-800 leading-relaxed">
-                  Envie a mensagem de confirmação ou lembrete via link oficial wa.me com template
-                  preenchido.
-                </p>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    onClick={() => openManualWaModal(selectedAppointment, 'CONFIRMATION_REQUEST')}
-                    className="text-xs bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
-                  >
-                    <Send className="w-3.5 h-3.5 mr-1.5" />
-                    Pedir Confirmação
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openManualWaModal(selectedAppointment, 'DAY_REMINDER')}
-                    className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100"
-                  >
-                    <BellRing className="w-3.5 h-3.5 mr-1.5" />
-                    Enviar Lembrete
-                  </Button>
-                </div>
-              </div>
+                )
+              })()}
 
               {/* ACTION BUTTONS (MUDANÇA DE STATUS) */}
               <div className="space-y-2 pt-2">

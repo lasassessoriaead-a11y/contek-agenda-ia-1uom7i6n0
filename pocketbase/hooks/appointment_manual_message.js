@@ -129,18 +129,26 @@ routerAdd(
         let sentMap = {}
         try {
           const raw = appt.get('notifications_sent')
-          if (raw && typeof raw === 'object') {
-            if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'number') {
+          if (raw) {
+            if (typeof raw === 'string') {
+              try {
+                sentMap = JSON.parse(raw)
+              } catch (_) {
+                sentMap = {}
+              }
+            } else if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'number') {
               try {
                 sentMap = JSON.parse(String.fromCharCode(...raw))
               } catch (_) {
                 sentMap = {}
               }
-            } else if (!Array.isArray(raw)) {
-              sentMap = raw
+            } else if (typeof raw === 'object' && !Array.isArray(raw)) {
+              sentMap = Object.assign({}, raw)
             }
           }
-        } catch (_) {}
+        } catch (_) {
+          sentMap = {}
+        }
 
         sentMap[messageType] = new Date().toISOString()
         appt.set('notifications_sent', sentMap)
