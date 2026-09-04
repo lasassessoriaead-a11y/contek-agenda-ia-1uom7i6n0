@@ -97,24 +97,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   )
 
   const refreshOrganization = useCallback(async () => {
-    if (!user?.organization_id) {
-      // Check user membership in organization_users before assuming anything
-      if (user?.id) {
-        try {
-          const userOrg = await pb
-            .collection('organization_users')
-            .getFirstListItem(`user_id = "${user.id}"`)
-          if (userOrg && userOrg.organization_id) {
-            await loadOrgAndSettings(userOrg.organization_id)
-            return
-          }
-        } catch {
-          /* intentionally ignored */
-        }
-      }
+    // 1. Prioriza o organization_id do usuário autenticado se presente
+    const targetOrgId =
+      user?.organization_id ||
+      (typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null)
+
+    if (targetOrgId) {
+      await loadOrgAndSettings(targetOrgId)
       return
     }
-    await loadOrgAndSettings(user.organization_id)
+
+    // 2. Fallback: verificar em organization_users
+    if (user?.id) {
+      try {
+        const userOrg = await pb
+          .collection('organization_users')
+          .getFirstListItem(`user_id = "${user.id}"`)
+        if (userOrg && userOrg.organization_id) {
+          await loadOrgAndSettings(userOrg.organization_id)
+          return
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+    }
   }, [user?.organization_id, user?.id, loadOrgAndSettings])
 
   useEffect(() => {
@@ -122,8 +128,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (model) {
         const u = model as unknown as User
         setUser(u)
-        if (u.organization_id) {
-          await loadOrgAndSettings(u.organization_id)
+        const savedOrgId =
+          typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+        const activeOrgId = u.organization_id || savedOrgId
+
+        if (activeOrgId) {
+          await loadOrgAndSettings(activeOrgId)
         } else if (u.id) {
           // Check organization_users membership
           try {
@@ -149,8 +159,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (pb.authStore.isValid && pb.authStore.record) {
       const u = pb.authStore.record as unknown as User
       setUser(u)
-      if (u.organization_id) {
-        loadOrgAndSettings(u.organization_id).finally(() => setLoading(false))
+      const savedOrgId =
+        typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+      const activeOrgId = u.organization_id || savedOrgId
+
+      if (activeOrgId) {
+        loadOrgAndSettings(activeOrgId).finally(() => setLoading(false))
       } else if (u.id) {
         pb.collection('organization_users')
           .getFirstListItem(`user_id = "${u.id}"`)
@@ -216,9 +230,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const switchOrganization = async (orgId: string) => {
-    if (user?.id) {
-      await pb.collection('users').update(user.id, { organization_id: orgId })
+    if (!orgId) return
+
+    // 1. Armazena localmente para persistência imediata
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('contek_active_org_id', orgId)
     }
+
+    // 2. Atualiza o registro do usuário se logado
+    if (user?.id) {
+      try {
+        const updatedUser = await pb
+          .collection('users')
+          .update<User>(user.id, { organization_id: orgId })
+        setUser(updatedUser)
+      } catch (err) {
+        console.warn('Could not update user organization_id on PB:', err)
+      }
+
+      // 3. Se for SuperAdmin, assegura vínculo na tabela organization_users para o tenant
+      const isSuper = Boolean(user.is_super_admin || user.role === 'SUPERADMIN')
+      if (isSuper) {
+        try {
+          const existing = await pb
+            .collection('organization_users')
+            .getFirstListItem(`organization_id = "${orgId}" && user_id = "${user.id}"`)
+            .catch(() => null)
+          if (!existing) {
+            await pb.collection('organization_users').create({
+              organization_id: orgId,
+              user_id: user.id,
+              role: 'ADMINISTRADOR',
+            })
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    // 4. Carrega a organização e suas configurações
     await loadOrgAndSettings(orgId)
   }
 

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T19:23:15.573Z",
+  "generatedAt": "2026-09-04T19:27:49.203Z",
   "collections": [
     {
       "name": "users",
@@ -164,11 +164,11 @@
       "name": "organization_users",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -215,11 +215,11 @@
       "name": "professionals",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -323,11 +323,11 @@
       "name": "clients",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
         "create": "",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -394,11 +394,11 @@
       "name": "services",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -471,11 +471,11 @@
       "name": "professional_services",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "create": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "update": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "delete": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -522,11 +522,11 @@
       "name": "appointments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "create": "",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -656,11 +656,11 @@
       "name": "payments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {
@@ -742,11 +742,11 @@
       "name": "business_settings",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "view": "@request.auth.id != '' && @collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "create": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "update": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))",
+        "delete": "@request.auth.id != '' && (@request.auth.is_super_admin = true || (@collection.organization_users.user_id ?= @request.auth.id && @collection.organization_users.organization_id ?= organization_id))"
       },
       "fields": [
         {

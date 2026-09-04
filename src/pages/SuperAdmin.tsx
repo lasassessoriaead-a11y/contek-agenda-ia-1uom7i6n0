@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/context/AuthContext'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
@@ -44,6 +44,10 @@ import {
   ArrowLeft,
   Plus,
   LogIn,
+  KeyRound,
+  Copy,
+  Check,
+  Globe,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProductType } from '@/types'
@@ -98,7 +102,17 @@ interface SuperAdminOverviewResponse {
   organizations: SuperAdminOrgItem[]
 }
 
+interface CreatedCredentialsModalData {
+  name: string
+  slug: string
+  admin_name: string
+  admin_email: string
+  admin_password: string
+  org_id: string
+}
+
 export const SuperAdmin: React.FC = () => {
+  const navigate = useNavigate()
   const { isSuperAdmin, switchOrganization, organization: currentTenantOrg } = useAuth()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<SuperAdminOverviewResponse | null>(null)
@@ -126,6 +140,15 @@ export const SuperAdmin: React.FC = () => {
   const [createProduct, setCreateProduct] = useState<ProductType>('agyli')
   const [createPlanId, setCreatePlanId] = useState('')
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
+
+  // Modal de exibição das credenciais criadas
+  const [createdCredentials, setCreatedCredentials] = useState<CreatedCredentialsModalData | null>(
+    null,
+  )
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  // Estado de loading ao entrar em uma organização
+  const [enteringOrgId, setEnteringOrgId] = useState<string | null>(null)
 
   const loadOverview = useCallback(async () => {
     setLoading(true)
@@ -271,20 +294,33 @@ export const SuperAdmin: React.FC = () => {
       return
     }
 
+    const finalOrgName = createName.trim()
+    const finalAdminEmail = createAdminEmail.trim().toLowerCase()
+    const finalAdminPass = createAdminPassword
+
     setIsSubmittingCreate(true)
     try {
       const res = await pb.send<{
         success: boolean
         message?: string
         organization?: { id: string; name: string; slug: string }
+        created_credentials?: {
+          name: string
+          slug: string
+          admin_name: string
+          admin_email: string
+          admin_password: string
+          login_url: string
+          public_url: string
+        }
       }>('/backend/v1/superadmin/org/create', {
         method: 'POST',
         body: {
-          name: createName.trim(),
+          name: finalOrgName,
           slug: createSlug.trim(),
-          admin_name: createAdminName.trim() || `Gestor ${createName.trim()}`,
-          admin_email: createAdminEmail.trim().toLowerCase(),
-          admin_password: createAdminPassword,
+          admin_name: createAdminName.trim() || `Gestor ${finalOrgName}`,
+          admin_email: finalAdminEmail,
+          admin_password: finalAdminPass,
           product: createProduct,
           plan_id: createPlanId,
         },
@@ -293,6 +329,19 @@ export const SuperAdmin: React.FC = () => {
       if (res.success) {
         toast.success(res.message || 'Empresa criada com sucesso!')
         setIsCreateOpen(false)
+
+        // Abre modal para exibir e copiar as credenciais do novo gestor
+        if (res.organization) {
+          setCreatedCredentials({
+            name: res.organization.name || finalOrgName,
+            slug: res.organization.slug,
+            admin_name: createAdminName.trim() || `Gestor ${finalOrgName}`,
+            admin_email: finalAdminEmail,
+            admin_password: finalAdminPass,
+            org_id: res.organization.id,
+          })
+        }
+
         await loadOverview()
       }
     } catch (err: unknown) {
@@ -333,14 +382,28 @@ export const SuperAdmin: React.FC = () => {
     }
   }
 
-  const handleEnterOrg = async (org: SuperAdminOrgItem) => {
+  const handleEnterOrg = async (org: { id: string; name: string }) => {
+    setEnteringOrgId(org.id)
     try {
       await switchOrganization(org.id)
-      toast.success(`Você entrou na organização "${org.name}". Tenant ativo alterado!`)
+      toast.success(`Acessando ${org.name}... Redirecionando para o painel operacional!`)
+      // Navega imediatamente para a raiz do painel administrativo interno (Dashboard operacional)
+      navigate('/')
     } catch (err) {
       console.error(err)
-      toast.error('Erro ao alternar tenant da organização.')
+      toast.error('Erro ao alternar para o painel desta empresa.')
+    } finally {
+      setEnteringOrgId(null)
     }
+  }
+
+  const handleCopy = (text: string, fieldName: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedField(fieldName)
+    toast.success(`${fieldName} copiado!`)
+    setTimeout(() => {
+      setCopiedField(null)
+    }, 2000)
   }
 
   // Filtragem de organizações na tabela
@@ -674,51 +737,60 @@ export const SuperAdmin: React.FC = () => {
                         </TableCell>
 
                         <TableCell className="py-3 text-right">
-                          <div className="inline-flex items-center gap-1">
-                            {/* Entrar na empresa / alternar tenant */}
+                          <div className="inline-flex items-center gap-1.5">
+                            {/* 1. Entrar como Administrador no Dashboard interno da empresa */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="ghost"
+                                  variant={isCurrentActiveTenant ? 'secondary' : 'default'}
                                   size="sm"
                                   onClick={() => handleEnterOrg(org)}
-                                  disabled={isCurrentActiveTenant}
-                                  className={`h-8 w-8 p-0 ${
+                                  disabled={enteringOrgId === org.id}
+                                  className={
                                     isCurrentActiveTenant
-                                      ? 'text-slate-300 cursor-default'
-                                      : 'text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50'
-                                  }`}
+                                      ? 'h-8 px-2.5 text-xs font-semibold bg-indigo-100 text-indigo-800 hover:bg-indigo-200 border border-indigo-200'
+                                      : 'h-8 px-2.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                                  }
                                 >
-                                  <LogIn className="w-3.5 h-3.5" />
+                                  <LogIn
+                                    className={`w-3.5 h-3.5 mr-1 ${enteringOrgId === org.id ? 'animate-spin' : ''}`}
+                                  />
+                                  <span>{isCurrentActiveTenant ? 'Ir ao Painel' : 'Entrar'}</span>
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>
+                              <TooltipContent side="top">
+                                <p className="font-medium">
                                   {isCurrentActiveTenant
-                                    ? 'Esta já é a sua empresa ativa no painel'
-                                    : `Entrar como administrador de ${org.name}`}
+                                    ? `Ir para o painel operacional de ${org.name}`
+                                    : `Entrar como administrador de ${org.name} e abrir o painel interno`}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
 
-                            {/* Abrir Link Público */}
+                            {/* 2. Seta verde / Link Público de agendamento (abre em nova aba /agendar/:slug) */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
                                   onClick={() => window.open(`/agendar/${org.slug}`, '_blank')}
-                                  className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+                                  className="h-8 px-2 text-xs font-medium border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 bg-emerald-50/40"
                                 >
-                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <Globe className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                                  <ExternalLink className="w-3 h-3 text-emerald-600" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Abrir página pública de agendamento (/agendar/{org.slug})</p>
+                              <TooltipContent side="top">
+                                <p className="font-semibold text-emerald-900">
+                                  Abrir Página Pública de Agendamento
+                                </p>
+                                <p className="text-[11px] text-slate-500 font-mono">
+                                  /agendar/{org.slug} (abre em nova aba)
+                                </p>
                               </TooltipContent>
                             </Tooltip>
 
-                            {/* Editar Empresa */}
+                            {/* 3. Editar Empresa (Produto, Plano, Status) */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -730,12 +802,12 @@ export const SuperAdmin: React.FC = () => {
                                   <Edit className="w-3.5 h-3.5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
+                              <TooltipContent side="top">
                                 <p>Editar produto, plano, assinatura e status</p>
                               </TooltipContent>
                             </Tooltip>
 
-                            {/* Suspender / Reativar */}
+                            {/* 4. Suspender / Reativar */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -751,7 +823,7 @@ export const SuperAdmin: React.FC = () => {
                                   <Power className="w-3.5 h-3.5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent>
+                              <TooltipContent side="top">
                                 <p>
                                   {org.status === 'suspended'
                                     ? 'Reativar acesso da empresa'
@@ -769,6 +841,153 @@ export const SuperAdmin: React.FC = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* DIALOG DE CONFIRMAÇÃO E EXIBIÇÃO DAS CREDENCIAIS RECÉM-CRIADAS */}
+        <Dialog
+          open={Boolean(createdCredentials)}
+          onOpenChange={(open) => !open && setCreatedCredentials(null)}
+        >
+          <DialogContent className="max-w-md bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-emerald-600" />
+                Empresa Cadastrada com Sucesso!
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600">
+                Guarde ou compartilhe os dados de acesso inicial do administrador de{' '}
+                <b>{createdCredentials?.name}</b>:
+              </DialogDescription>
+            </DialogHeader>
+
+            {createdCredentials && (
+              <div className="space-y-3 pt-1">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5 text-xs">
+                  <div>
+                    <span className="text-[11px] text-slate-500 font-medium block">Empresa</span>
+                    <span className="font-semibold text-slate-800 text-sm">
+                      {createdCredentials.name}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] text-slate-500 font-medium block">
+                      Gestor / Administrador
+                    </span>
+                    <span className="font-medium text-slate-700">
+                      {createdCredentials.admin_name}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-mono block">
+                        E-mail de Login
+                      </span>
+                      <span className="font-mono text-slate-800 font-semibold">
+                        {createdCredentials.admin_email}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(createdCredentials.admin_email, 'E-mail')}
+                      className="h-7 px-2 text-xs text-slate-600 hover:text-slate-900"
+                    >
+                      {copiedField === 'E-mail' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-mono block">
+                        Senha Inicial
+                      </span>
+                      <span className="font-mono text-slate-800 font-semibold">
+                        {createdCredentials.admin_password}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(createdCredentials.admin_password, 'Senha')}
+                      className="h-7 px-2 text-xs text-slate-600 hover:text-slate-900"
+                    >
+                      {copiedField === 'Senha' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-emerald-50/50 p-2 rounded-lg border border-emerald-200">
+                    <div>
+                      <span className="text-[10px] text-emerald-700 uppercase font-mono block">
+                        Página Pública de Agendamento
+                      </span>
+                      <span className="font-mono text-emerald-900 text-xs">
+                        /agendar/{createdCredentials.slug}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        handleCopy(
+                          `${window.location.origin}/agendar/${createdCredentials.slug}`,
+                          'Link de Agendamento',
+                        )
+                      }
+                      className="h-7 px-2 text-xs text-emerald-700 hover:text-emerald-900"
+                    >
+                      {copiedField === 'Link de Agendamento' ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const text = `Acesso Contek Agenda IA\nEmpresa: ${createdCredentials.name}\nLogin: ${createdCredentials.admin_email}\nSenha: ${createdCredentials.admin_password}\nLink do App: ${window.location.origin}/login\nPágina de Agendamento: ${window.location.origin}/agendar/${createdCredentials.slug}`
+                      handleCopy(text, 'Todos os dados de acesso')
+                    }}
+                    variant="outline"
+                    className="flex-1 text-xs font-semibold"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                    Copiar Todos os Dados
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      const orgId = createdCredentials.org_id
+                      const orgName = createdCredentials.name
+                      setCreatedCredentials(null)
+                      handleEnterOrg({ id: orgId, name: orgName })
+                    }}
+                    className="flex-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md"
+                  >
+                    <LogIn className="w-3.5 h-3.5 mr-1.5" />
+                    Entrar no Painel Agora
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* DIALOG DE CRIAÇÃO MANUAL DE NOVA ORGANIZAÇÃO */}
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

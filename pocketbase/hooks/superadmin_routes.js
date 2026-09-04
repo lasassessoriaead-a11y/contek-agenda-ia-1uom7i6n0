@@ -474,6 +474,16 @@ routerAdd(
         orgUserRecord.set('role', 'ADMINISTRADOR')
         txApp.save(orgUserRecord)
 
+        // 4.5.1 Garantir que o superadmin atual também tenha vínculo em organization_users
+        // para compatibilidade absoluta com qualquer regra baseada em organization_users
+        try {
+          const superAdminOrgUser = new Record(orgUsersCol)
+          superAdminOrgUser.set('organization_id', orgId)
+          superAdminOrgUser.set('user_id', user.id)
+          superAdminOrgUser.set('role', 'ADMINISTRADOR')
+          txApp.save(superAdminOrgUser)
+        } catch (_) {}
+
         // 4.6 Criar Profissional Padrão
         const profCol = txApp.findCollectionByNameOrId('professionals')
         const profRecord = new Record(profCol)
@@ -525,6 +535,15 @@ routerAdd(
           id: createdUser.id,
           name: createdUser.getString('name'),
           email: createdUser.getString('email'),
+        },
+        created_credentials: {
+          name: cleanOrgName,
+          slug: finalSlug,
+          admin_name: finalAdminName,
+          admin_email: cleanAdminEmail,
+          admin_password: cleanAdminPassword,
+          login_url: '/login',
+          public_url: `/agendar/${finalSlug}`,
         },
       })
     } catch (err) {
