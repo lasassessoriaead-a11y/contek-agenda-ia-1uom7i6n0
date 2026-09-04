@@ -367,7 +367,14 @@ export const Layout: React.FC = () => {
         )}
 
         {/* MAIN SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-8 p-4 sm:p-6 lg:p-8 bg-slate-50">
+        <main
+          className={cn(
+            'flex-1 min-w-0 bg-slate-50',
+            location.pathname === '/assistente-ia'
+              ? 'flex flex-col h-full overflow-hidden p-3 sm:p-4 md:p-6 pb-20 md:pb-6'
+              : 'overflow-y-auto pb-20 md:pb-8 p-4 sm:p-6 lg:p-8',
+          )}
+        >
           <Outlet />
         </main>
       </div>
