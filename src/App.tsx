@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Layout from '@/components/Layout'
 import Login from '@/pages/Login'
+import RedefinirSenha from '@/pages/RedefinirSenha'
 import Dashboard from '@/pages/Dashboard'
 import Agenda from '@/pages/Agenda'
 import Clientes from '@/pages/Clientes'
@@ -53,6 +54,8 @@ export function App() {
 
           {/* Login / Signup Route */}
           <Route path="/login" element={<Login />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+          <Route path="/reset-password" element={<RedefinirSenha />} />
 
           {/* Protected Internal Routes */}
           <Route

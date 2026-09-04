@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Sparkles,
   ArrowRight,
-  ShieldCheck,
   CheckCircle2,
   Lock,
   Mail,
@@ -45,8 +44,8 @@ export const Login: React.FC = () => {
   const [activeBrand, setActiveBrand] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
 
   // Sign in state
-  const [email, setEmail] = useState('luka2510@hotmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loadingLogin, setLoadingLogin] = useState(false)
 
   // Forgot password state
@@ -578,34 +577,6 @@ export const Login: React.FC = () => {
                         Acesse sua conta para continuar
                       </p>
                     </div>
-
-                    {import.meta.env.DEV && (
-                      <div
-                        className={`p-3 rounded-xl flex items-center gap-3 text-xs ${
-                          activeBrand === 'markaly'
-                            ? 'bg-[#FEF3E2] border border-orange-200 text-[#3B0764]'
-                            : 'bg-blue-950/40 border border-blue-800/40 text-blue-200'
-                        }`}
-                      >
-                        <ShieldCheck
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
-                          }`}
-                        />
-                        <div>
-                          <p className="font-semibold">
-                            Acesso de Demonstração (Ambiente Dev/Preview):
-                          </p>
-                          <p
-                            className={
-                              activeBrand === 'markaly' ? 'text-slate-600' : 'text-blue-300'
-                            }
-                          >
-                            E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
-                          </p>
-                        </div>
-                      </div>
-                    )}
 
                     <div className="space-y-1.5">
                       <Label
