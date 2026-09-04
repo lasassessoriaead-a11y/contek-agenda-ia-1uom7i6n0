@@ -130,6 +130,20 @@ onRecordCreateRequest((e) => {
         }
       }
 
+      // Check professional date exceptions / folgas
+      const profExceptions = parseList(prof.get('date_exceptions'))
+      if (profExceptions.length > 0 && cleanDate) {
+        const hasDateException = profExceptions.some((exc) => {
+          const excStr = typeof exc === 'string' ? exc.slice(0, 10) : ''
+          return excStr === cleanDate
+        })
+        if (hasDateException) {
+          throw new BadRequestError(
+            `Data indisponível: o profissional possui registro de folga ou recesso no dia ${cleanDate}.`,
+          )
+        }
+      }
+
       // Check professional working days
       const profWorkDays = parseList(prof.get('work_days'))
       if (profWorkDays.length > 0 && cleanDate) {
@@ -146,6 +160,20 @@ onRecordCreateRequest((e) => {
       }
 
       // Check multiple work shifts or fallback to work_hours
+      // Check professional date exceptions / folgas
+      const profExceptionsUpdate = parseList(prof.get('date_exceptions'))
+      if (profExceptionsUpdate.length > 0 && cleanDate) {
+        const hasDateException = profExceptionsUpdate.some((exc) => {
+          const excStr = typeof exc === 'string' ? exc.slice(0, 10) : ''
+          return excStr === cleanDate
+        })
+        if (hasDateException) {
+          throw new BadRequestError(
+            `Data indisponível: o profissional possui registro de folga ou recesso no dia ${cleanDate}.`,
+          )
+        }
+      }
+
       const rawShifts = parseList(prof.get('work_shifts'))
       let activeShifts = []
       if (rawShifts && rawShifts.length > 0) {

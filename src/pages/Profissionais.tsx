@@ -15,6 +15,8 @@ import {
   Trash2,
   Scissors,
   Coffee,
+  CalendarOff,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +73,8 @@ export const Profissionais: React.FC = () => {
     { start: '08:00', end: '12:00' },
     { start: '14:00', end: '18:00' },
   ])
+  const [dateExceptions, setDateExceptions] = useState<string[]>([])
+  const [newExceptionDate, setNewExceptionDate] = useState('')
   const [active, setActive] = useState(true)
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -176,6 +180,8 @@ export const Profissionais: React.FC = () => {
       { start: '08:00', end: '12:00' },
       { start: '14:00', end: '18:00' },
     ])
+    setDateExceptions([])
+    setNewExceptionDate('')
     setActive(true)
     setSelectedServiceIds(services.map((s) => s.id))
     setModalOpen(true)
@@ -223,6 +229,10 @@ export const Profissionais: React.FC = () => {
       ])
     }
 
+    const parsedExceptions = parseListField<string>(prof.date_exceptions)
+    setDateExceptions(parsedExceptions || [])
+    setNewExceptionDate('')
+
     setActive(prof.active !== false)
 
     const linkedServices = profServices
@@ -259,6 +269,22 @@ export const Profissionais: React.FC = () => {
       updated[index] = { ...updated[index], [field]: value }
       return updated
     })
+  }
+
+  const handleAddExceptionDate = () => {
+    if (!newExceptionDate) return
+    const clean = newExceptionDate.slice(0, 10)
+    if (dateExceptions.includes(clean)) {
+      toast.error('Esta data já foi incluída nas exceções.')
+      return
+    }
+    setDateExceptions((prev) => [...prev, clean].sort())
+    setNewExceptionDate('')
+    toast.success('Data de folga/exceção adicionada!')
+  }
+
+  const handleRemoveExceptionDate = (dateToRemove: string) => {
+    setDateExceptions((prev) => prev.filter((d) => d !== dateToRemove))
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -322,6 +348,7 @@ export const Profissionais: React.FC = () => {
         work_days: workDays,
         work_shifts: sortedShifts,
         work_hours: workHoursData,
+        date_exceptions: dateExceptions,
         active: active,
       }
 
@@ -520,7 +547,7 @@ export const Profissionais: React.FC = () => {
                   {/* Work Days Badges */}
                   <div>
                     <span className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Dias de Atendimento:
+                      Dias de Atendimento e Folgas:
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {prof.work_days?.map((d) => (
@@ -532,6 +559,36 @@ export const Profissionais: React.FC = () => {
                         </span>
                       ))}
                     </div>
+
+                    {/* Exceções / Folgas cadastradas */}
+                    {(() => {
+                      const exceptions = parseListField<string>(prof.date_exceptions)
+                      if (!exceptions || exceptions.length === 0) return null
+                      return (
+                        <div className="mt-2 pt-1.5 border-t border-slate-100">
+                          <span className="text-[10px] font-semibold text-rose-700 flex items-center gap-1 mb-1">
+                            <CalendarOff className="w-3 h-3 text-rose-500" />
+                            Folgas / Exceções ({exceptions.length}):
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {exceptions.map((dt) => {
+                              const clean = typeof dt === 'string' ? dt.slice(0, 10) : ''
+                              const parts = clean.split('-')
+                              const formatted =
+                                parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : clean
+                              return (
+                                <span
+                                  key={clean}
+                                  className="px-1.5 py-0.5 rounded bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-medium"
+                                >
+                                  {formatted}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* Services Provided */}
@@ -799,6 +856,79 @@ export const Profissionais: React.FC = () => {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* Datas de Exceção / Folgas pontuais */}
+              <div className="bg-rose-50/60 p-3 rounded-lg border border-rose-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <CalendarOff className="w-4 h-4 text-rose-600" />
+                    <div>
+                      <Label className="text-xs font-semibold text-rose-950">
+                        Datas de Exceção / Folgas Pontuais
+                      </Label>
+                      <p className="text-[11px] text-rose-700">
+                        Marque dias específicos em que o profissional NÃO atenderá (folgas, feriados
+                        ou férias).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={newExceptionDate}
+                    onChange={(e) => setNewExceptionDate(e.target.value)}
+                    className="text-xs h-8 bg-white border-rose-200 focus-visible:ring-rose-400"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddExceptionDate}
+                    disabled={!newExceptionDate}
+                    className="h-8 text-xs bg-rose-600 hover:bg-rose-700 text-white shrink-0 font-medium"
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1" />
+                    Bloquear Data
+                  </Button>
+                </div>
+
+                {dateExceptions.length > 0 ? (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[11px] font-medium text-rose-900 block">
+                      Datas bloqueadas para este profissional ({dateExceptions.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1">
+                      {dateExceptions.map((dt) => {
+                        const parts = dt.split('-')
+                        const formatted =
+                          parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dt
+                        return (
+                          <span
+                            key={dt}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-rose-300 text-rose-800 text-xs shadow-2xs"
+                          >
+                            <span>{formatted}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveExceptionDate(dt)}
+                              className="text-rose-400 hover:text-rose-700 rounded-full p-0.5"
+                              title="Remover exceção"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-rose-600/80 italic">
+                    Nenhuma data de folga pontual adicionada. O profissional seguirá os dias
+                    regulares da semana.
+                  </p>
+                )}
               </div>
             </div>
 

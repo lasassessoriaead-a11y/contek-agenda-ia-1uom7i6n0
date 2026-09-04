@@ -14,7 +14,6 @@ routerAdd(
       // 1. Resolve organization_id strictly server-side from authenticated user record
       let orgId = userRecord.getString('organization_id')
       if (!orgId) {
-        // Fallback: check organization_users junction table for this user
         try {
           const orgUser = $app.findFirstRecordByData('organization_users', 'user_id', userId)
           if (orgUser) {
@@ -37,7 +36,6 @@ routerAdd(
       } catch (_) {}
 
       // 3. Query tenant data with STRICT filter organization_id = orgId
-      // Clientes
       const clients = $app.findRecordsByFilter(
         'clients',
         'organization_id = "' + orgId + '"',
@@ -46,7 +44,6 @@ routerAdd(
         0,
       )
 
-      // Agendamentos
       const appointments = $app.findRecordsByFilter(
         'appointments',
         'organization_id = "' + orgId + '"',
@@ -55,7 +52,6 @@ routerAdd(
         0,
       )
 
-      // Serviços
       const services = $app.findRecordsByFilter(
         'services',
         'organization_id = "' + orgId + '"',
@@ -64,7 +60,6 @@ routerAdd(
         0,
       )
 
-      // Pagamentos
       const payments = $app.findRecordsByFilter(
         'payments',
         'organization_id = "' + orgId + '"',
@@ -73,7 +68,6 @@ routerAdd(
         0,
       )
 
-      // Profissionais
       const professionals = $app.findRecordsByFilter(
         'professionals',
         'organization_id = "' + orgId + '"',
@@ -89,7 +83,6 @@ routerAdd(
         clientMap[c.id] = c.getString('name')
       }
 
-      // Frequency map of clients from appointments
       const clientApptCounts = {}
       let totalAppointments = appointments.length
       let confirmedCount = 0
@@ -110,14 +103,12 @@ routerAdd(
         else if (st === 'FALTOU') missedCount++
       }
 
-      // Top frequent clients sorted
       const frequentClients = Object.keys(clientApptCounts)
         .map((name) => {
           return { name: name, count: clientApptCounts[name] }
         })
         .sort((a, b) => b.count - a.count)
 
-      // Map cancelled/missed appointment ids to exclude any stale payment records
       const invalidApptIds = {}
       for (const a of appointments) {
         const st = a.getString('status')
@@ -126,7 +117,6 @@ routerAdd(
         }
       }
 
-      // Financial totals
       let totalRevenue = 0
       let paidPaymentsCount = 0
       for (const p of payments) {
@@ -140,15 +130,16 @@ routerAdd(
         }
       }
 
-      // Services list
       const serviceNames = services.map((s) => {
         return s.getString('name') + ' (R$ ' + s.getInt('price') + ')'
       })
 
-      // Professionals list
-      const profNames = professionals.map((pr) => pr.getString('name'))
+      const profNames = professionals.map((pr) => {
+        const pName = pr.getString('name')
+        const spec = pr.getString('specialty')
+        return spec ? `${pName} (${spec})` : pName
+      })
 
-      // Sample of clients for context (up to 15)
       const clientListSample = clients.slice(0, 15).map((c) => {
         const p = c.getString('phone') || c.getString('whatsapp') || ''
         return c.getString('name') + (p ? ' (' + p + ')' : '')
@@ -198,7 +189,11 @@ routerAdd(
       tenantContext +=
         'Serviços cadastrados: ' + (serviceNames.length ? serviceNames.join(', ') : 'Nenhum') + '\n'
       tenantContext +=
-        'Profissionais: ' + (profNames.length ? profNames.join(', ') : 'Nenhum') + '\n'
+        'Profissionais cadastrados no sistema: ' +
+        (profNames.length ? profNames.join(', ') : 'Nenhum') +
+        '\n'
+      tenantContext +=
+        'AVISO DO SISTEMA: Para adicionar novos profissionais, serviços ou clientes no banco de dados, o usuário deve utilizar os respectivos menus na plataforma. Você não deve simular ou prometer que executou cadastros diretamente.\n'
       tenantContext += '[FIM DOS DADOS DA ORGANIZAÇÃO]\n\n'
       tenantContext += 'Pergunta do usuário: ' + body.message.trim()
 

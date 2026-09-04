@@ -361,72 +361,11 @@ export const Agenda: React.FC = () => {
 
       if (isEditing && editApptId) {
         await pb.collection('appointments').update(editApptId, apptData)
-
-        // Sincronização financeira em caso de edição de status
-        try {
-          const relatedPayments = await pb
-            .collection('payments')
-            .getFullList<Payment>({ filter: `appointment_id = "${editApptId}"` })
-
-          if (formStatus === 'CANCELADO' || formStatus === 'FALTOU') {
-            for (const p of relatedPayments) {
-              await pb.collection('payments').delete(p.id)
-            }
-          } else if (formStatus === 'CONCLUÍDO') {
-            if (relatedPayments.length > 0) {
-              for (const p of relatedPayments) {
-                if (!p.is_paid) {
-                  await pb.collection('payments').update(p.id, {
-                    is_paid: true,
-                    payment_date: p.payment_date || new Date().toISOString(),
-                    payment_method:
-                      p.payment_method && p.payment_method !== 'Outro' ? p.payment_method : 'PIX',
-                  })
-                }
-              }
-            } else {
-              // Se foi editado diretamente para CONCLUÍDO e não tinha pagamento, cria como quitado
-              const serv = services.find((s) => s.id === formServiceId)
-              await pb.collection('payments').create({
-                organization_id: orgId,
-                appointment_id: editApptId,
-                client_id: targetClientId,
-                amount: formPrice,
-                is_paid: true,
-                payment_date: new Date().toISOString(),
-                payment_method: 'PIX',
-                description: `${serv?.name || 'Serviço'} - ${cName}`,
-              })
-            }
-          }
-        } catch (paySyncErr) {
-          console.error('Erro ao sincronizar pagamento no update do agendamento:', paySyncErr)
-        }
-
+        // A sincronização financeira é realizada centralizada e transacionalmente pelo hook backend (appointment_payment_sync.js)
         toast.success('Agendamento atualizado com sucesso!')
       } else {
-        const createdAppt = await pb.collection('appointments').create<Appointment>(apptData)
-
-        // Create accompanying payment record APENAS se status não for CANCELADO ou FALTOU
-        if (formStatus !== 'CANCELADO' && formStatus !== 'FALTOU') {
-          try {
-            const serv = services.find((s) => s.id === formServiceId)
-            const isCompleted = formStatus === 'CONCLUÍDO'
-            await pb.collection('payments').create({
-              organization_id: orgId,
-              appointment_id: createdAppt.id,
-              client_id: targetClientId,
-              amount: formPrice,
-              is_paid: isCompleted,
-              payment_date: isCompleted ? new Date().toISOString() : null,
-              payment_method: isCompleted ? 'PIX' : 'Outro',
-              description: `${serv?.name || 'Serviço'} - ${cName}`,
-            })
-          } catch {
-            /* intentionally ignored */
-          }
-        }
-
+        await pb.collection('appointments').create<Appointment>(apptData)
+        // A criação do lançamento financeiro correspondente é tratada exclusivamente no backend pelo hook appointment_payment_sync.js
         toast.success('Agendamento cadastrado com sucesso!')
       }
 
@@ -446,62 +385,7 @@ export const Agenda: React.FC = () => {
     try {
       await pb.collection('appointments').update(apptId, { status: newStatus })
       toast.success(`Status atualizado para ${newStatus}`)
-
-      // Regra Financeira:
-      // - CANCELADO ou FALTOU: remove lançamentos vinculados imediatamente
-      // - CONCLUÍDO: marca pagamento vinculado como quitado
-      if (newStatus === 'CANCELADO' || newStatus === 'FALTOU') {
-        try {
-          const relatedPays = await pb
-            .collection('payments')
-            .getFullList<Payment>({ filter: `appointment_id = "${apptId}"` })
-          for (const p of relatedPays) {
-            await pb.collection('payments').delete(p.id)
-          }
-        } catch {
-          /* intentionally ignored */
-        }
-      } else if (newStatus === 'CONCLUÍDO') {
-        try {
-          const relatedPays = await pb
-            .collection('payments')
-            .getFullList<Payment>({ filter: `appointment_id = "${apptId}"` })
-          if (relatedPays.length > 0) {
-            for (const p of relatedPays) {
-              if (!p.is_paid) {
-                await pb.collection('payments').update(p.id, {
-                  is_paid: true,
-                  payment_date: p.payment_date || new Date().toISOString(),
-                  payment_method:
-                    p.payment_method && p.payment_method !== 'Outro' ? p.payment_method : 'PIX',
-                })
-              }
-            }
-            toast.success('Faturamento registrado automaticamente!')
-          } else {
-            // Se não tinha pagamento vinculado, cria um quitado para a consulta concluída
-            const appt = appointments.find((a) => a.id === apptId)
-            if (appt && orgId) {
-              const serv = services.find((s) => s.id === appt.service_id)
-              const cName = appt.client_name_snapshot || appt.expand?.client_id?.name || 'Cliente'
-              await pb.collection('payments').create({
-                organization_id: orgId,
-                appointment_id: appt.id,
-                client_id: appt.client_id || null,
-                amount: appt.price || 0,
-                is_paid: true,
-                payment_date: new Date().toISOString(),
-                payment_method: 'PIX',
-                description: `${serv?.name || 'Serviço'} - ${cName}`,
-              })
-              toast.success('Faturamento registrado automaticamente!')
-            }
-          }
-        } catch {
-          /* intentionally ignored */
-        }
-      }
-
+      // Sincronização financeira (quitação, cancelamento ou estorno) executada exclusivamente pelo hook backend
       setDetailsSheetOpen(false)
       await loadData()
     } catch (err) {
@@ -1127,30 +1011,51 @@ export const Agenda: React.FC = () => {
                     Horários de Atendimento
                   </span>
                   {singleFilteredProf && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-wrap">
                       {(() => {
                         const shifts = parseListField<{ start: string; end: string }>(
                           singleFilteredProf.work_shifts,
                         )
-                        if (shifts && shifts.length > 0) {
-                          return shifts.map((s, idx) => (
+                        const shiftsBadges =
+                          shifts && shifts.length > 0 ? (
+                            shifts.map((s, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-300 font-mono"
+                              >
+                                {s.start} - {s.end}
+                              </Badge>
+                            ))
+                          ) : (
                             <Badge
-                              key={idx}
                               variant="outline"
-                              className="text-[10px] bg-emerald-50 text-emerald-800 border-emerald-300 font-mono"
+                              className="text-[10px] bg-slate-100 text-slate-700 border-slate-300 font-mono"
                             >
-                              {s.start} - {s.end}
+                              {singleFilteredProf.work_hours?.start || '08:00'} -{' '}
+                              {singleFilteredProf.work_hours?.end || '18:00'}
                             </Badge>
-                          ))
-                        }
+                          )
+
+                        const dayStr = format(currentDate, 'yyyy-MM-dd')
+                        const exceptions = parseListField<string>(
+                          singleFilteredProf.date_exceptions,
+                        )
+                        const isDayException =
+                          exceptions &&
+                          exceptions.some(
+                            (d) => (typeof d === 'string' ? d.slice(0, 10) : '') === dayStr,
+                          )
+
                         return (
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] bg-slate-100 text-slate-700 border-slate-300 font-mono"
-                          >
-                            {singleFilteredProf.work_hours?.start || '08:00'} -{' '}
-                            {singleFilteredProf.work_hours?.end || '18:00'}
-                          </Badge>
+                          <>
+                            {shiftsBadges}
+                            {isDayException && (
+                              <Badge className="text-[10px] bg-rose-100 text-rose-800 border border-rose-300">
+                                🚫 Folga / Bloqueado nesta data
+                              </Badge>
+                            )}
+                          </>
                         )
                       })()}
                     </div>

@@ -228,15 +228,19 @@ export const Login: React.FC = () => {
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4 pt-2">
-                  <div className="p-3 bg-emerald-950/40 border border-emerald-800/40 rounded-lg flex items-center gap-3 text-xs text-emerald-300">
-                    <ShieldCheck className="w-5 h-5 flex-shrink-0 text-emerald-400" />
-                    <div>
-                      <p className="font-semibold">Acesso de Demonstração Contek:</p>
-                      <p className="text-emerald-400/80">
-                        E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
-                      </p>
+                  {import.meta.env.DEV && (
+                    <div className="p-3 bg-emerald-950/40 border border-emerald-800/40 rounded-lg flex items-center gap-3 text-xs text-emerald-300">
+                      <ShieldCheck className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+                      <div>
+                        <p className="font-semibold">
+                          Acesso de Demonstração (Ambiente Dev/Preview):
+                        </p>
+                        <p className="text-emerald-400/80">
+                          E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-1.5">
                     <Label

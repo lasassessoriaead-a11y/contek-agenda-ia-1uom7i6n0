@@ -1,19 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import {
-  Bot,
-  Sparkles,
-  Send,
-  HelpCircle,
-  TrendingUp,
-  Calendar,
-  Users,
-  ShieldCheck,
-  Zap,
-  Info,
-} from 'lucide-react'
+import { Bot, Sparkles, Send, Trash2, ShieldCheck, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -29,18 +17,119 @@ interface Message {
 export const AssistenteIa: React.FC = () => {
   const { organization, user } = useAuth()
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      sender: 'assistant',
-      text: `Olá, ${user?.name || 'Doutor(a)'}! Eu sou o Contek Assistant IA da Contek Tecnologia e Consultoria. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
-      time: 'Agora',
-    },
-  ])
+  const defaultWelcomeMessage: Message = {
+    id: '1',
+    sender: 'assistant',
+    text: `Olá, ${user?.name || 'Doutor(a)'}! Eu sou o Contek Assistant IA da Contek Tecnologia e Consultoria. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
+    time: 'Agora',
+  }
+
+  // Storage key isolated per user and organization
+  const storageKeyPrefix = `contek_ai_${user?.id || 'guest'}_${organization?.id || 'default'}`
+  const conversationKey = `${storageKeyPrefix}_conversation_id`
+  const historyKey = `${storageKeyPrefix}_history`
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const saved = localStorage.getItem(historyKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+    } catch {
+      /* intentionally ignored */
+    }
+    return [defaultWelcomeMessage]
+  })
 
   const [inputMessage, setInputMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(conversationKey) || null
+    } catch (_) {
+      return null
+    }
+  })
+
+  // Whenever user or organization changes, re-sync from localStorage
+  useEffect(() => {
+    if (!user?.id || !organization?.id) return
+    const currentPrefix = `contek_ai_${user.id}_${organization.id}`
+    const savedConv = localStorage.getItem(`${currentPrefix}_conversation_id`)
+    const savedHistory = localStorage.getItem(`${currentPrefix}_history`)
+
+    if (savedConv) {
+      setConversationId(savedConv)
+    } else {
+      setConversationId(null)
+    }
+
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed)
+          return
+        }
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+    setMessages([
+      {
+        id: '1',
+        sender: 'assistant',
+        text: `Olá, ${user?.name || 'Doutor(a)'}! Eu sou o Contek Assistant IA da Contek Tecnologia e Consultoria. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
+        time: 'Agora',
+      },
+    ])
+  }, [user?.id, organization?.id])
+
+  // Persist messages and conversationId
+  useEffect(() => {
+    if (!user?.id || !organization?.id) return
+    try {
+      localStorage.setItem(historyKey, JSON.stringify(messages))
+    } catch {
+      /* intentionally ignored */
+    }
+  }, [messages, historyKey, user?.id, organization?.id])
+
+  useEffect(() => {
+    if (!user?.id || !organization?.id) return
+    try {
+      if (conversationId) {
+        localStorage.setItem(conversationKey, conversationId)
+      } else {
+        localStorage.removeItem(conversationKey)
+      }
+    } catch {
+      /* intentionally ignored */
+    }
+  }, [conversationId, conversationKey, user?.id, organization?.id])
+
+  const handleClearChat = () => {
+    setConversationId(null)
+    const resetList = [
+      {
+        id: Date.now().toString(),
+        sender: 'assistant' as const,
+        text: `Conversa reiniciada. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]
+    setMessages(resetList)
+    if (user?.id && organization?.id) {
+      try {
+        localStorage.removeItem(conversationKey)
+        localStorage.setItem(historyKey, JSON.stringify(resetList))
+      } catch {
+        /* intentionally ignored */
+      }
+    }
+    toast.success('Histórico da conversa reiniciado.')
+  }
 
   const quickPrompts = [
     'Qual é o meu resumo de agendamentos para hoje?',
@@ -136,6 +225,16 @@ export const AssistenteIa: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-600" />
             Contek AI Engine V1
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearChat}
+            className="text-xs h-8 text-slate-600 hover:text-red-600 hover:border-red-300"
+            title="Limpar histórico desta conversa"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1" />
+            Nova conversa
+          </Button>
         </div>
       </div>
 

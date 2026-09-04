@@ -1,10 +1,74 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Sincroniza pagamentos vinculados a agendamentos quando o status do agendamento muda
-// Regra financeira:
-// - CANCELADO ou FALTOU: remove qualquer pagamento vinculado ao agendamento
-// - CONCLUÍDO: marca o pagamento vinculado como pago (is_paid = true)
-// - Se o agendamento for excluído: remove pagamentos vinculados
+// Sincroniza pagamentos vinculados a agendamentos exclusivamente no backend
+// Regras financeiras centralizadas:
+// 1. onRecordAfterCreateSuccess:
+//    - Se criado como CANCELADO ou FALTOU: não gera pagamento
+//    - Se criado como CONCLUÍDO: gera pagamento quitado (is_paid = true)
+//    - Demais status (AGENDADO, CONFIRMADO, EM ATENDIMENTO): gera lançamento financeiro pendente (is_paid = false)
+// 2. onRecordAfterUpdateSuccess:
+//    - Se mudou para CANCELADO ou FALTOU: remove qualquer pagamento vinculado ao agendamento
+//    - Se mudou para CONCLUÍDO: marca o pagamento vinculado como quitado (is_paid = true) ou cria se não existir
+// 3. onRecordAfterDeleteSuccess:
+//    - Remove pagamentos vinculados ao agendamento excluído
+
+onRecordAfterCreateSuccess((e) => {
+  const appt = e.record
+  const apptId = appt.id
+  const status = appt.getString('status')
+  const orgId = appt.getString('organization_id')
+  const price = appt.getFloat('price') || 0
+  const clientId = appt.getString('client_id')
+  const clientName = appt.getString('client_name_snapshot') || 'Cliente'
+
+  // Se agendamento já nasce cancelado ou falta, não cria lançamento
+  if (status === 'CANCELADO' || status === 'FALTOU') {
+    e.next()
+    return
+  }
+
+  try {
+    // Evita duplicidade se já houver pagamento vinculado (ex: criado em transação de booking)
+    const existing = $app.findRecordsByFilter(
+      'payments',
+      `appointment_id = "${apptId}"`,
+      '-created',
+      1,
+      0,
+    )
+    if (existing.length === 0) {
+      let servName = 'Serviço'
+      try {
+        const sId = appt.getString('service_id')
+        if (sId) {
+          const s = $app.findRecordById('services', sId)
+          if (s) servName = s.getString('name') || 'Serviço'
+        }
+      } catch (_) {}
+
+      const isCompleted = status === 'CONCLUÍDO'
+      const paymentsCol = $app.findCollectionByNameOrId('payments')
+      const pay = new Record(paymentsCol)
+      pay.set('organization_id', orgId)
+      pay.set('appointment_id', apptId)
+      pay.set('client_id', clientId)
+      pay.set('amount', price)
+      pay.set('is_paid', isCompleted)
+      pay.set(
+        'payment_date',
+        isCompleted ? appt.getString('date') || new Date().toISOString() : null,
+      )
+      pay.set('payment_method', isCompleted ? 'PIX' : 'Outro')
+      pay.set('description', `${servName} - ${clientName}`)
+      $app.save(pay)
+    }
+  } catch (err) {
+    console.error('[payment_sync] Erro ao criar pagamento automático no create:', err)
+  }
+
+  e.next()
+}, 'appointments')
+
 onRecordAfterUpdateSuccess((e) => {
   const appt = e.record
   const apptId = appt.id

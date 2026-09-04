@@ -76,6 +76,7 @@ export interface Professional {
     lunch_end?: string
   }
   work_shifts?: WorkShift[]
+  date_exceptions?: string[]
   active: boolean
   created: string
   updated: string

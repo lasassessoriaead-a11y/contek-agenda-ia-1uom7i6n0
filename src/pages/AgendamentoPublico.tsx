@@ -91,37 +91,20 @@ export const AgendamentoPublico: React.FC = () => {
       if (!slug) return
       setLoading(true)
       try {
-        const orgRecord = await pb
-          .collection('organizations')
-          .getFirstListItem<Organization>(`slug = "${slug}"`)
-        setOrg(orgRecord)
-
-        const [settRes, servsRes, profsRes, psRes, apptsRes] = await Promise.all([
-          pb
-            .collection('business_settings')
-            .getFirstListItem<BusinessSettings>(`organization_id = "${orgRecord.id}"`)
-            .catch(() => null),
-          pb.collection('services').getFullList<Service>({
-            filter: `organization_id = "${orgRecord.id}" && active = true`,
-            sort: 'name',
-          }),
-          pb.collection('professionals').getFullList<Professional>({
-            filter: `organization_id = "${orgRecord.id}" && active = true`,
-            sort: 'name',
-          }),
-          pb.collection('professional_services').getFullList<ProfessionalService>({
-            filter: `organization_id = "${orgRecord.id}"`,
-          }),
-          pb.collection('appointments').getFullList<Appointment>({
-            filter: `organization_id = "${orgRecord.id}" && status != "CANCELADO"`,
-          }),
-        ])
-
-        setSettings(settRes)
-        setServices(servsRes)
-        setProfessionals(profsRes)
-        setProfServices(psRes)
-        setExistingAppointments(apptsRes)
+        const response = await fetch(
+          `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/public-booking-data?slug=${encodeURIComponent(slug)}`,
+        )
+        if (!response.ok) {
+          setErrorNotFound(true)
+          return
+        }
+        const data = await response.json()
+        setOrg(data.organization as Organization)
+        setSettings(data.settings as BusinessSettings | null)
+        setServices((data.services || []) as Service[])
+        setProfessionals((data.professionals || []) as Professional[])
+        setProfServices((data.professional_services || []) as ProfessionalService[])
+        setExistingAppointments((data.occupied_slots || []) as Appointment[])
       } catch (err) {
         console.error('Error loading public booking page:', err)
         setErrorNotFound(true)
@@ -213,7 +196,7 @@ export const AgendamentoPublico: React.FC = () => {
     return dayMap[dayOfWeekIdx]
   }
 
-  // Check if a specific date is a working day for selected professional and org
+  // Check if a specific date is a working day for selected professional and org (and not an exception date)
   const isDateWorkingDay = (dateStr: string) => {
     const currentDayKey = getDayKeyFromDateStr(dateStr)
     if (!currentDayKey) return false
@@ -228,6 +211,15 @@ export const AgendamentoPublico: React.FC = () => {
     const profWorkingDays = parseListField(selectedProf?.work_days)
     if (profWorkingDays.length > 0) {
       if (!profWorkingDays.includes(currentDayKey)) {
+        return false
+      }
+    }
+
+    // Check date exceptions / folgas of the professional
+    const profExceptions = parseListField<string>(selectedProf?.date_exceptions)
+    if (profExceptions.length > 0) {
+      const cleanDate = dateStr.slice(0, 10)
+      if (profExceptions.some((d) => (typeof d === 'string' ? d.slice(0, 10) : '') === cleanDate)) {
         return false
       }
     }
@@ -253,6 +245,15 @@ export const AgendamentoPublico: React.FC = () => {
     const profWorkingDays = parseListField(selectedProf.work_days)
     if (profWorkingDays.length > 0) {
       if (!profWorkingDays.includes(currentDayKey)) {
+        return []
+      }
+    }
+
+    // Check date exceptions / folgas of the professional
+    const profExceptions = parseListField<string>(selectedProf.date_exceptions)
+    if (profExceptions.length > 0) {
+      const cleanDate = selectedDate.slice(0, 10)
+      if (profExceptions.some((d) => (typeof d === 'string' ? d.slice(0, 10) : '') === cleanDate)) {
         return []
       }
     }
