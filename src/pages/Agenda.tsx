@@ -475,6 +475,7 @@ export const Agenda: React.FC = () => {
           }),
         },
       )
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
         toast.success('Mensagem registrada como enviada!')
         if (openTab && waLink) {
@@ -483,9 +484,11 @@ export const Agenda: React.FC = () => {
         setWaModalOpen(false)
         await loadData()
       } else {
-        toast.error('Erro ao registrar envio.')
+        console.error('Erro ao registrar envio via manual-message:', data)
+        toast.error(data.error || 'Erro ao registrar envio.')
       }
     } catch (err) {
+      console.error('Erro de conexão ao comunicar com backend:', err)
       toast.error('Erro ao comunicar com backend.')
     }
   }

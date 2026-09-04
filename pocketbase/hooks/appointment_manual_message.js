@@ -12,6 +12,11 @@ routerAdd(
       const messageType = body.type || 'CONFIRMATION_REQUEST' // CONFIRMATION_REQUEST | CONFIRMATION_THANKS | DAY_REMINDER
       const markAsSent = Boolean(body.mark_as_sent)
 
+      console.log(
+        '[Manual Message] Request received:',
+        JSON.stringify({ appointmentId, messageType, markAsSent }),
+      )
+
       if (!appointmentId) {
         return e.json(400, { error: 'appointment_id é obrigatório.' })
       }
@@ -19,7 +24,8 @@ routerAdd(
       let appt = null
       try {
         appt = $app.findRecordById('appointments', appointmentId)
-      } catch (_) {
+      } catch (errFind) {
+        console.error('[Manual Message] Appointment find failed:', errFind)
         return e.json(404, { error: 'Agendamento não encontrado.' })
       }
 
@@ -123,12 +129,29 @@ routerAdd(
         let sentMap = {}
         try {
           const raw = appt.get('notifications_sent')
-          if (raw && typeof raw === 'object') sentMap = raw
+          if (raw && typeof raw === 'object') {
+            if (Array.isArray(raw) && raw.length > 0 && typeof raw[0] === 'number') {
+              try {
+                sentMap = JSON.parse(String.fromCharCode(...raw))
+              } catch (_) {
+                sentMap = {}
+              }
+            } else if (!Array.isArray(raw)) {
+              sentMap = raw
+            }
+          }
         } catch (_) {}
 
         sentMap[messageType] = new Date().toISOString()
         appt.set('notifications_sent', sentMap)
-        $app.save(appt)
+
+        try {
+          $app.save(appt)
+          console.log('[Manual Message] appt save succeeded')
+        } catch (errApptSave) {
+          console.error('[Manual Message] Error saving appt notifications_sent:', errApptSave)
+          throw errApptSave
+        }
 
         try {
           const nlCol = $app.findCollectionByNameOrId('notification_logs')
@@ -138,12 +161,14 @@ routerAdd(
           logRecord.set('type', messageType)
           logRecord.set('channel', 'WHATSAPP_MANUAL')
           logRecord.set('status', 'SENT')
-          logRecord.set('recipient_phone', clientPhone)
-          logRecord.set('recipient_name', clientName)
-          logRecord.set('message_text', renderedText)
+          logRecord.set('recipient_phone', clientPhone || '')
+          logRecord.set('recipient_name', clientName || '')
+          logRecord.set('message_text', renderedText || '')
           $app.save(logRecord)
+          console.log('[Manual Message] notification_logs save succeeded, logId:', logRecord.id)
         } catch (errLog) {
           console.error('[Manual Message] Error writing notification_log:', errLog)
+          throw errLog
         }
       }
 
@@ -158,7 +183,12 @@ routerAdd(
         notifications_sent: appt.get('notifications_sent') || {},
       })
     } catch (err) {
-      return e.json(500, { error: err.message || 'Erro ao gerar mensagem manual' })
+      console.error('[Manual Message Endpoint Error]', err ? err.message || String(err) : 'unknown')
+      return e.json(500, {
+        error:
+          err && err.message ? err.message : String(err) || 'Erro ao processar mensagem manual',
+        details: err && typeof err === 'object' ? JSON.stringify(err) : undefined,
+      })
     }
   },
   $apis.requireAuth(),

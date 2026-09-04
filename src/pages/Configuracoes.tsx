@@ -112,6 +112,21 @@ export const Configuracoes: React.FC = () => {
   >([])
   const [loadingUpcoming, setLoadingUpcoming] = useState(false)
 
+  // Notification logs history
+  const [notificationLogs, setNotificationLogs] = useState<
+    Array<{
+      id: string
+      created: string
+      type: string
+      channel: string
+      status: string
+      recipient_name: string
+      recipient_phone: string
+      message_text: string
+    }>
+  >([])
+  const [loadingLogs, setLoadingLogs] = useState(false)
+
   // Meta Integration Status (secrets & webhook)
   const [metaStatus, setMetaStatus] = useState<{
     is_configured: boolean
@@ -234,7 +249,35 @@ export const Configuracoes: React.FC = () => {
       }
     }
 
+    const fetchNotificationLogs = async () => {
+      setLoadingLogs(true)
+      try {
+        const pbClient = (await import('@/lib/pocketbase/client')).default
+        const logs = await pbClient.collection('notification_logs').getList(1, 15, {
+          filter: `organization_id = "${organization.id}"`,
+          sort: '-created',
+        })
+        setNotificationLogs(
+          logs.items.map((item) => ({
+            id: item.id,
+            created: item.created,
+            type: item.type,
+            channel: item.channel,
+            status: item.status,
+            recipient_name: item.recipient_name || '',
+            recipient_phone: item.recipient_phone || '',
+            message_text: item.message_text || '',
+          })),
+        )
+      } catch (err) {
+        console.error('Error fetching notification logs:', err)
+      } finally {
+        setLoadingLogs(false)
+      }
+    }
+
     fetchUpcomingQueue()
+    fetchNotificationLogs()
   }, [organization?.id])
 
   const handleSaveOrg = async (e: React.FormEvent) => {
@@ -1051,6 +1094,105 @@ export const Configuracoes: React.FC = () => {
                                     Fila (Aguardando Meta)
                                   </Badge>
                                 )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* HISTÓRICO DE DISPAROS & NOTIFICAÇÕES REALIZADAS */}
+                  <div className="space-y-3 pt-4 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-900 block">
+                          Histórico de Disparos & Notificações (notification_logs)
+                        </Label>
+                        <p className="text-[11px] text-slate-500">
+                          Registros de envios manuais via WhatsApp e automações registradas na
+                          plataforma.
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[11px] font-mono">
+                        {notificationLogs.length} registro(s) recente(s)
+                      </Badge>
+                    </div>
+
+                    {loadingLogs ? (
+                      <div className="p-6 text-center text-slate-400">
+                        <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-emerald-600" />
+                        <span className="text-xs">Carregando histórico de notificações...</span>
+                      </div>
+                    ) : notificationLogs.length === 0 ? (
+                      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-center text-xs">
+                        Nenhum envio de notificação registrado até o momento.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                        {notificationLogs.map((log) => {
+                          const dateObj = new Date(log.created)
+                          const timeStr = !isNaN(dateObj.getTime())
+                            ? dateObj.toLocaleString('pt-BR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : log.created
+
+                          return (
+                            <div
+                              key={log.id}
+                              className="p-3 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs"
+                            >
+                              <div className="space-y-1 min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-semibold text-slate-900">
+                                    {log.recipient_name || 'Paciente'}
+                                  </span>
+                                  {log.recipient_phone && (
+                                    <span className="text-slate-500 font-mono text-[11px]">
+                                      ({log.recipient_phone})
+                                    </span>
+                                  )}
+                                  <Badge
+                                    variant="outline"
+                                    className="text-[10px] bg-slate-50 text-slate-700 border-slate-200 font-mono"
+                                  >
+                                    {log.channel === 'WHATSAPP_MANUAL'
+                                      ? 'WhatsApp Manual'
+                                      : log.channel === 'WHATSAPP_AUTO'
+                                        ? 'WhatsApp Automático'
+                                        : log.channel}
+                                  </Badge>
+                                </div>
+                                {log.message_text && (
+                                  <p className="text-[11px] text-slate-600 line-clamp-1 italic font-sans">
+                                    "{log.message_text}"
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-[10px] font-mono text-slate-400">
+                                  {timeStr}
+                                </span>
+                                <Badge
+                                  className={
+                                    log.status === 'SENT'
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]'
+                                      : log.status === 'PENDING_NO_CREDENTIALS'
+                                        ? 'bg-amber-100 text-amber-800 border-amber-200 text-[10px]'
+                                        : 'bg-rose-100 text-rose-800 border-rose-200 text-[10px]'
+                                  }
+                                >
+                                  {log.status === 'SENT'
+                                    ? '✓ Enviado'
+                                    : log.status === 'PENDING_NO_CREDENTIALS'
+                                      ? 'Pendente'
+                                      : 'Falhou'}
+                                </Badge>
                               </div>
                             </div>
                           )
