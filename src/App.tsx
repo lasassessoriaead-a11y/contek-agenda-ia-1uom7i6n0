@@ -23,10 +23,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#0F172A] text-slate-100 flex items-center justify-center p-4 font-['Poppins',sans-serif]">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Carregando Contek Agenda IA...</p>
+          <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-400 font-medium">Carregando AGYLI...</p>
         </div>
       </div>
     )

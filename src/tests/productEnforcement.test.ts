@@ -157,5 +157,16 @@ describe('Multi-product and Feature Isolation Logic (AGYLI vs MARKALY)', () => {
   it('branding has correct metadata for AGYLI and MARKALY', () => {
     expect(PRODUCTS_CONFIG.agyli.name).toBe('AGYLI')
     expect(PRODUCTS_CONFIG.markaly.name).toBe('MARKALY')
+    expect(PRODUCTS_CONFIG.agyli.colors.primary).toBe('#3B82F6')
+    expect(PRODUCTS_CONFIG.agyli.colors.accent).toBe('#8B5CF6')
+    expect(PRODUCTS_CONFIG.agyli.tagline).toBe('Agendar ficou simples.')
+  })
+
+  it('resolves product correctly by domain for agyli and markaly', () => {
+    expect(resolveProductByDomain('agyli.com.br')).toBe('agyli')
+    expect(resolveProductByDomain('app.agyli.com.br')).toBe('agyli')
+    expect(resolveProductByDomain('www.agyli.com.br')).toBe('agyli')
+    expect(resolveProductByDomain('markaly.com.br')).toBe('markaly')
+    expect(resolveProductByDomain('app.markaly.com.br')).toBe('markaly')
   })
 })

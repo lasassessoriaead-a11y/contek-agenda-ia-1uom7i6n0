@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { AgyliEmblem } from '@/components/AgyliBranding'
 
 interface ConfirmationResult {
   success: boolean
@@ -77,24 +78,24 @@ export const ConfirmacaoPublica: React.FC = () => {
   }, [token])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-[#3B82F6] selection:text-white font-['Poppins',sans-serif]">
       <div className="w-full max-w-md">
         {/* BRAND HEADER */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mb-3 shadow-inner">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] mb-3 shadow-inner">
+            <CheckCircle2 className="w-6 h-6 text-[#3B82F6]" />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">
-            {result?.appointment?.organization_name || 'Contek Agenda'}
+            {result?.appointment?.organization_name || 'AGYLI Agenda'}
           </h1>
           <p className="text-xs text-slate-400">Confirmação de Presença Online</p>
         </div>
 
         {/* LOADING STATE */}
         {loading && (
-          <Card className="border-slate-800 bg-slate-900/90 text-slate-100 shadow-xl backdrop-blur-md">
+          <Card className="border-slate-800 bg-[#1E293B] text-slate-100 shadow-xl rounded-2xl">
             <CardContent className="py-12 text-center space-y-4">
-              <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-sm text-slate-300 font-medium">
                 Validando e confirmando seu atendimento...
               </p>
@@ -104,7 +105,7 @@ export const ConfirmacaoPublica: React.FC = () => {
 
         {/* ERROR STATE */}
         {!loading && errorMsg && (
-          <Card className="border-rose-900/40 bg-slate-900/90 text-slate-100 shadow-xl backdrop-blur-md">
+          <Card className="border-rose-900/40 bg-[#1E293B] text-slate-100 shadow-xl rounded-2xl">
             <CardHeader className="text-center pb-2">
               <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 mx-auto flex items-center justify-center mb-2">
                 <AlertCircle className="w-6 h-6" />
@@ -129,10 +130,10 @@ export const ConfirmacaoPublica: React.FC = () => {
 
         {/* SUCCESS CONFIRMED STATE */}
         {!loading && result && (
-          <Card className="border-emerald-500/30 bg-slate-900/90 text-slate-100 shadow-2xl backdrop-blur-md overflow-hidden">
-            <div className="h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
+          <Card className="border-blue-500/30 bg-[#1E293B] text-slate-100 shadow-2xl overflow-hidden rounded-2xl">
+            <div className="h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]" />
             <CardHeader className="text-center pb-3">
-              <Badge className="w-fit mx-auto bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[11px] mb-1">
+              <Badge className="w-fit mx-auto bg-blue-500/20 text-blue-300 border-blue-500/30 text-[11px] mb-1">
                 {result.already_confirmed
                   ? 'Já Estava Confirmado'
                   : 'Presença Confirmada com Sucesso!'}
@@ -147,17 +148,17 @@ export const ConfirmacaoPublica: React.FC = () => {
 
             <CardContent className="space-y-4 text-xs">
               {/* DETAILS SUMMARY */}
-              <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/50 space-y-2.5">
-                <div className="flex items-center justify-between py-1 border-b border-slate-700/40">
+              <div className="bg-[#0F172A] rounded-xl p-4 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between py-1 border-b border-slate-800">
                   <span className="text-slate-400 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-emerald-400" /> Data:
+                    <Calendar className="w-3.5 h-3.5 text-[#3B82F6]" /> Data:
                   </span>
                   <span className="font-semibold text-slate-100">{result.appointment?.date}</span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-slate-700/40">
+                <div className="flex items-center justify-between py-1 border-b border-slate-800">
                   <span className="text-slate-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-emerald-400" /> Horário:
+                    <Clock className="w-3.5 h-3.5 text-[#3B82F6]" /> Horário:
                   </span>
                   <span className="font-semibold text-slate-100">
                     {result.appointment?.start_time}
@@ -165,9 +166,9 @@ export const ConfirmacaoPublica: React.FC = () => {
                 </div>
 
                 {result.appointment?.service_name && (
-                  <div className="flex items-center justify-between py-1 border-b border-slate-700/40">
+                  <div className="flex items-center justify-between py-1 border-b border-slate-800">
                     <span className="text-slate-400 flex items-center gap-1.5">
-                      <Scissors className="w-3.5 h-3.5 text-emerald-400" /> Procedimento:
+                      <Scissors className="w-3.5 h-3.5 text-[#3B82F6]" /> Procedimento:
                     </span>
                     <span className="font-semibold text-slate-100">
                       {result.appointment.service_name}
@@ -178,7 +179,7 @@ export const ConfirmacaoPublica: React.FC = () => {
                 {result.appointment?.professional_name && (
                   <div className="flex items-center justify-between py-1">
                     <span className="text-slate-400 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-emerald-400" /> Profissional:
+                      <User className="w-3.5 h-3.5 text-[#3B82F6]" /> Profissional:
                     </span>
                     <span className="font-semibold text-slate-100">
                       {result.appointment.professional_name}
@@ -189,21 +190,21 @@ export const ConfirmacaoPublica: React.FC = () => {
 
               {/* THANKS MESSAGE CARD */}
               {result.thanks_message && (
-                <div className="p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-xl text-emerald-200 text-xs leading-relaxed">
+                <div className="p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl text-blue-200 text-xs leading-relaxed">
                   <p className="italic">"{result.thanks_message}"</p>
                 </div>
               )}
 
               <p className="text-[11px] text-slate-400 text-center">
                 Te enviaremos um lembrete no dia do seu atendimento. Caso precise remarcar, entre em
-                contato diretamente com a clínica.
+                contato diretamente com a empresa.
               </p>
             </CardContent>
 
             <CardFooter className="pt-2 pb-4 flex justify-center border-t border-slate-800">
-              <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                <Building className="w-3.5 h-3.5 text-slate-500" />
-                <span>Gerenciado por Contek Agenda IA</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <AgyliEmblem size={14} />
+                <span>AGYLI • Agendar ficou simples. Uma solução Contek</span>
               </div>
             </CardFooter>
           </Card>

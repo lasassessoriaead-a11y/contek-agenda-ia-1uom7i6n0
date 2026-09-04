@@ -35,6 +35,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
+import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 
 export const Layout: React.FC = () => {
   const { user, organization, logout, isSuperAdmin, hasFeature, branding, currentProduct } =
@@ -116,48 +117,70 @@ export const Layout: React.FC = () => {
           </button>
 
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div
-              className={cn(
-                'w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform',
-                currentProduct === 'markaly'
-                  ? 'bg-sky-600 shadow-sky-600/20'
-                  : 'bg-emerald-600 shadow-emerald-600/20',
-              )}
-            >
-              <Calendar className="w-5 h-5 stroke-[2.5]" />
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-base tracking-tight text-slate-900">
-                  {branding.name}
-                </span>
-                <span
-                  className={cn(
-                    'font-semibold text-xs px-1.5 py-0.5 rounded font-mono uppercase tracking-wider',
-                    currentProduct === 'markaly'
-                      ? 'bg-sky-100 text-sky-800'
-                      : 'bg-emerald-100 text-emerald-800',
-                  )}
-                >
-                  {currentProduct === 'markaly' ? 'MARKALY' : 'AGENDA IA'}
-                </span>
+            {currentProduct === 'agyli' ? (
+              <div className="flex items-center gap-2">
+                <AgyliEmblem
+                  size={36}
+                  className="shadow-md group-hover:scale-105 transition-transform"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-lg tracking-tight text-slate-900 font-['Poppins',sans-serif]">
+                      agyli
+                    </span>
+                    <span className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700">
+                      PRO
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[140px]">
+                      {organization?.name || 'Carregando empresa...'}
+                    </p>
+                    {organization?.slug === 'contek-demo' && (
+                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
+                        DEMO
+                      </span>
+                    )}
+                    {isSuperAdmin && (
+                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
+                        SUPERADMIN
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[130px]">
-                  {organization?.name || 'Carregando empresa...'}
-                </p>
-                {organization?.slug === 'contek-demo' && (
-                  <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
-                    DEMO
-                  </span>
-                )}
-                {isSuperAdmin && (
-                  <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
-                    SUPERADMIN
-                  </span>
-                )}
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md bg-sky-600 shadow-sky-600/20 group-hover:scale-105 transition-transform">
+                  <Calendar className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-base tracking-tight text-slate-900">
+                      MARKALY
+                    </span>
+                    <span className="font-semibold text-xs px-1.5 py-0.5 rounded font-mono uppercase tracking-wider bg-sky-100 text-sky-800">
+                      MARKALY
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[130px]">
+                      {organization?.name || 'Carregando empresa...'}
+                    </p>
+                    {organization?.slug === 'contek-demo' && (
+                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
+                        DEMO
+                      </span>
+                    )}
+                    {isSuperAdmin && (
+                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
+                        SUPERADMIN
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </Link>
         </div>
 
@@ -188,14 +211,14 @@ export const Layout: React.FC = () => {
                 'hidden lg:inline-flex text-xs font-medium',
                 currentProduct === 'markaly'
                   ? 'border-sky-300 text-sky-800 hover:bg-sky-50'
-                  : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50',
+                  : 'border-blue-300 text-blue-800 hover:bg-blue-50',
               )}
             >
               <Link to={publicUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink
                   className={cn(
                     'w-3.5 h-3.5 mr-1.5',
-                    currentProduct === 'markaly' ? 'text-sky-600' : 'text-emerald-600',
+                    currentProduct === 'markaly' ? 'text-sky-600' : 'text-[#3B82F6]',
                   )}
                 />
                 Link Público
@@ -210,7 +233,7 @@ export const Layout: React.FC = () => {
               'text-white text-xs font-semibold shadow-sm',
               currentProduct === 'markaly'
                 ? 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'
-                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20',
+                : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/20',
             )}
           >
             <PlusCircle className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
@@ -222,8 +245,20 @@ export const Layout: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                <Avatar className="h-9 w-9 border border-emerald-200">
-                  <AvatarFallback className="bg-emerald-100 text-emerald-800 font-semibold text-xs">
+                <Avatar
+                  className={cn(
+                    'h-9 w-9 border',
+                    currentProduct === 'markaly' ? 'border-sky-200' : 'border-blue-200',
+                  )}
+                >
+                  <AvatarFallback
+                    className={cn(
+                      'font-semibold text-xs',
+                      currentProduct === 'markaly'
+                        ? 'bg-sky-100 text-sky-800'
+                        : 'bg-blue-100 text-blue-800',
+                    )}
+                  >
                     {getInitials(user?.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -245,7 +280,7 @@ export const Layout: React.FC = () => {
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="text-[10px] px-1.5 py-0 border-emerald-200 text-emerald-700"
+                      className="text-[10px] px-1.5 py-0 border-blue-200 text-blue-700"
                     >
                       Multi-tenant OK
                     </Badge>
@@ -259,13 +294,13 @@ export const Layout: React.FC = () => {
               </DropdownMenuItem>
               {hasFeature('financeiro') && (
                 <DropdownMenuItem onClick={() => navigate('/financeiro')}>
-                  <DollarSign className="w-4 h-4 mr-2 text-emerald-600" />
+                  <DollarSign className="w-4 h-4 mr-2 text-[#3B82F6]" />
                   Financeiro
                 </DropdownMenuItem>
               )}
               {hasFeature('assistente_ia') && (
                 <DropdownMenuItem onClick={() => navigate('/assistente-ia')}>
-                  <Bot className="w-4 h-4 mr-2 text-indigo-500" />
+                  <Bot className="w-4 h-4 mr-2 text-[#8B5CF6]" />
                   Assistente IA
                 </DropdownMenuItem>
               )}
@@ -280,7 +315,7 @@ export const Layout: React.FC = () => {
               )}
               {publicUrl && (
                 <DropdownMenuItem onClick={() => window.open(publicUrl, '_blank')}>
-                  <ExternalLink className="w-4 h-4 mr-2 text-emerald-600" />
+                  <ExternalLink className="w-4 h-4 mr-2 text-[#3B82F6]" />
                   Abrir Link Público
                 </DropdownMenuItem>
               )}
@@ -300,18 +335,34 @@ export const Layout: React.FC = () => {
       {/* BODY WITH SIDEBAR + MAIN CONTENT */}
       <div className="flex-1 flex overflow-hidden">
         {/* DESKTOP SIDEBAR */}
-        <aside className="hidden md:flex md:w-64 flex-col bg-slate-900 text-slate-300 border-r border-slate-800 flex-shrink-0">
-          {/* Org Header / Badge */}
-          <div className="p-4 border-b border-slate-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400 flex-shrink-0">
-                <Building className="w-4 h-4" />
+        <aside className="hidden md:flex md:w-64 flex-col bg-[#0F172A] text-slate-300 border-r border-slate-800 flex-shrink-0">
+          {/* Top Brand & Org Header */}
+          <div className="p-4 border-b border-slate-800/80 space-y-3">
+            {currentProduct === 'agyli' ? (
+              <div className="pt-1">
+                <AgyliLogo height={34} theme="dark" showSlogan={true} showSignature={false} />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
+                  M
+                </div>
+                <div>
+                  <p className="font-bold text-sm text-white">MARKALY</p>
+                  <p className="text-[10px] text-sky-400">Agendamento Simples</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2.5 overflow-hidden pt-1">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-[#3B82F6] flex-shrink-0">
+                <Building className="w-3.5 h-3.5" />
               </div>
               <div className="truncate">
                 <p className="text-xs font-semibold text-white truncate">
                   {organization?.name || 'Sua Empresa'}
                 </p>
-                <p className="text-[10px] text-emerald-400 font-mono">Tenant Ativo</p>
+                <p className="text-[10px] text-blue-400 font-mono">Tenant Ativo</p>
               </div>
             </div>
           </div>
@@ -331,23 +382,23 @@ export const Layout: React.FC = () => {
                       active
                         ? currentProduct === 'markaly'
                           ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
-                          : 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                          : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white shadow-md shadow-blue-500/20'
+                        : 'text-slate-300 hover:bg-slate-800/80 hover:text-white',
                       item.isAi &&
                         !active &&
-                        'text-indigo-300 hover:text-indigo-200 hover:bg-indigo-950/40',
+                        'text-violet-300 hover:text-violet-200 hover:bg-violet-950/40',
                     )
                   }
                 >
                   <Icon
                     className={cn(
                       'w-4 h-4 transition-transform group-hover:scale-110',
-                      isActive ? 'text-white' : item.isAi ? 'text-indigo-400' : 'text-slate-400',
+                      isActive ? 'text-white' : item.isAi ? 'text-[#8B5CF6]' : 'text-slate-400',
                     )}
                   />
                   <span>{item.name}</span>
                   {item.isAi && (
-                    <span className="ml-auto text-[10px] bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 px-1.5 py-0.2 rounded font-mono">
+                    <span className="ml-auto text-[10px] bg-violet-500/20 border border-violet-500/30 text-violet-300 px-1.5 py-0.2 rounded font-mono">
                       IA
                     </span>
                   )}
@@ -381,19 +432,23 @@ export const Layout: React.FC = () => {
           {/* Sidebar Footer Info */}
           <div className="p-3 border-t border-slate-800 text-xs text-slate-400 space-y-2">
             <div className="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-start gap-2">
-              <Sparkles
-                className={cn(
-                  'w-4 h-4 mt-0.5 flex-shrink-0',
-                  currentProduct === 'markaly' ? 'text-sky-400' : 'text-emerald-400',
-                )}
-              />
+              {currentProduct === 'agyli' ? (
+                <AgyliEmblem size={20} className="mt-0.5 flex-shrink-0" />
+              ) : (
+                <Sparkles className="w-4 h-4 mt-0.5 flex-shrink-0 text-sky-400" />
+              )}
               <div>
                 <p className="text-[11px] font-semibold text-slate-200">{branding.fullName}</p>
                 <p className="text-[10px] text-slate-400">
                   {currentProduct === 'markaly'
                     ? 'Versão MARKALY Simplificada'
-                    : 'Versão AGYLI Completa'}
+                    : 'Agendar ficou simples.'}
                 </p>
+                {currentProduct === 'agyli' && (
+                  <p className="text-[9px] text-slate-400 mt-0.5">
+                    Uma solução <span className="text-[#3B82F6] font-medium">Contek</span>
+                  </p>
+                )}
               </div>
             </div>
             {/* Install Button inside desktop sidebar */}
@@ -403,7 +458,7 @@ export const Layout: React.FC = () => {
                 'w-full justify-center',
                 currentProduct === 'markaly'
                   ? 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-700/50'
-                  : 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-700/50',
+                  : 'bg-blue-950/40 hover:bg-blue-900/60 border-blue-700/50 text-blue-300',
               )}
             />
           </div>
@@ -412,18 +467,30 @@ export const Layout: React.FC = () => {
         {/* MOBILE SLIDE-OVER MENU */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 md:hidden bg-slate-950/80 backdrop-blur-sm flex">
-            <div className="w-4/5 max-w-xs bg-slate-900 text-slate-200 h-full p-4 flex flex-col justify-between shadow-2xl">
+            <div className="w-4/5 max-w-xs bg-[#0F172A] text-slate-200 h-full p-4 flex flex-col justify-between shadow-2xl">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
-                      C
+                  {currentProduct === 'agyli' ? (
+                    <div className="flex items-center gap-2">
+                      <AgyliEmblem size={32} />
+                      <div>
+                        <p className="font-bold text-sm text-white">
+                          {organization?.name || 'AGYLI'}
+                        </p>
+                        <p className="text-[10px] text-blue-400">Uma solução Contek</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-white">{organization?.name}</p>
-                      <p className="text-[10px] text-emerald-400">Contek Agenda IA</p>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-sky-600 text-white flex items-center justify-center font-bold">
+                        M
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-white">{organization?.name}</p>
+                        <p className="text-[10px] text-sky-400">MARKALY</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <button
                     onClick={() => setMobileMenuOpen(false)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
@@ -446,14 +513,14 @@ export const Layout: React.FC = () => {
                           isActive
                             ? currentProduct === 'markaly'
                               ? 'bg-sky-600 text-white'
-                              : 'bg-emerald-600 text-white'
+                              : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white'
                             : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                         )}
                       >
                         <Icon className="w-4 h-4" />
                         <span>{item.name}</span>
                         {item.isAi && (
-                          <span className="ml-auto text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-mono">
+                          <span className="ml-auto text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.2 rounded font-mono">
                             IA
                           </span>
                         )}
@@ -491,7 +558,7 @@ export const Layout: React.FC = () => {
                     <ExternalLink
                       className={cn(
                         'w-3.5 h-3.5 mr-2',
-                        currentProduct === 'markaly' ? 'text-sky-400' : 'text-emerald-400',
+                        currentProduct === 'markaly' ? 'text-sky-400' : 'text-blue-400',
                       )}
                     />
                     Página de Agendamento
@@ -540,7 +607,10 @@ export const Layout: React.FC = () => {
                 key={idx}
                 type="button"
                 onClick={item.onClick}
-                className="flex flex-col items-center justify-center flex-1 py-1 text-slate-500 hover:text-emerald-600 transition-colors"
+                className={cn(
+                  'flex flex-col items-center justify-center flex-1 py-1 text-slate-500 transition-colors',
+                  currentProduct === 'markaly' ? 'hover:text-sky-600' : 'hover:text-[#3B82F6]',
+                )}
               >
                 <Icon className="w-5 h-5" />
                 <span className="text-[10px] font-medium mt-0.5">{item.name}</span>
@@ -548,13 +618,18 @@ export const Layout: React.FC = () => {
             )
           }
 
+          const activeColor =
+            currentProduct === 'markaly'
+              ? 'text-sky-600 font-semibold'
+              : 'text-[#3B82F6] font-semibold'
+
           return (
             <Link
               key={item.path}
               to={item.path!}
               className={cn(
                 'flex flex-col items-center justify-center flex-1 py-1 transition-colors',
-                isActive ? 'text-emerald-600 font-semibold' : 'text-slate-500 hover:text-slate-800',
+                isActive ? activeColor : 'text-slate-500 hover:text-slate-800',
               )}
             >
               <Icon className={cn('w-5 h-5', isActive && 'stroke-[2.5]')} />

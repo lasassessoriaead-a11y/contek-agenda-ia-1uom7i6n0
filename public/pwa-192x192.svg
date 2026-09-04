@@ -1,28 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
   <defs>
-    <linearGradient id="contekGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="50%" stop-color="#10b981" />
-      <stop offset="100%" stop-color="#34d399" />
+    <linearGradient id="agyliTileBg192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" />
+      <stop offset="30%" stop-color="#2563EB" />
+      <stop offset="70%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#7C3AED" />
     </linearGradient>
-    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#020617" />
+    <linearGradient id="agyliMainArch192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="35%" stop-color="#3B82F6" />
+      <stop offset="70%" stop-color="#8B5CF6" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+    <linearGradient id="agyliInnerCurve192" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" />
+      <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
   </defs>
 
-  <rect width="192" height="192" rx="44" fill="url(#bgGrad192)" />
-  <rect x="3" y="3" width="186" height="186" rx="41" fill="none" stroke="#10b981" stroke-width="2.5" stroke-opacity="0.3" />
+  <rect width="192" height="192" rx="44" fill="url(#agyliTileBg192)" />
+  <rect x="2" y="2" width="188" height="188" rx="42" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.2" />
 
-  <rect x="38" y="48" width="116" height="100" rx="14" fill="#1e293b" stroke="#334155" stroke-width="3" />
-  <path d="M 38 62 C 38 54 44 48 52 48 L 140 48 C 148 48 154 54 154 62 L 154 80 L 38 80 Z" fill="url(#contekGrad192)" />
-
-  <rect x="63" y="36" width="10" height="24" rx="5" fill="#f8fafc" />
-  <rect x="119" y="36" width="10" height="24" rx="5" fill="#f8fafc" />
-
-  <!-- Sparkle -->
-  <path d="M 138 60 L 141 66 L 147 69 L 141 72 L 138 78 L 135 72 L 129 69 L 135 66 Z" fill="#ffffff" />
-
-  <!-- Checkmark -->
-  <path d="M 68 112 L 87 130 L 128 92" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+  <g transform="scale(0.375)">
+    <path
+      d="M 270 195 C 205 195 155 245 155 310 C 155 375 205 410 270 410 C 300 410 325 398 345 380 L 345 330 C 330 355 295 365 270 365 C 230 365 205 340 205 310 C 205 280 230 255 270 255 C 305 255 345 275 345 305"
+      fill="none"
+      stroke="url(#agyliInnerCurve192)"
+      stroke-width="50"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M 205 285 C 205 190 270 125 360 125 C 410 125 435 155 435 200 L 435 370 C 435 405 405 425 375 425 C 345 425 325 400 325 370 L 325 290 C 325 210 290 170 240 170 C 200 170 175 195 165 225"
+      fill="none"
+      stroke="url(#agyliMainArch192)"
+      stroke-width="52"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
 </svg>

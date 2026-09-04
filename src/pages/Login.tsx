@@ -15,7 +15,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Sparkles,
-  Calendar,
   ArrowRight,
   ShieldCheck,
   CheckCircle2,
@@ -26,6 +25,7 @@ import {
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
+import { AgyliLogo } from '@/components/AgyliBranding'
 
 export const Login: React.FC = () => {
   const { login } = useAuth()
@@ -180,50 +180,52 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background glow effects */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#0F172A] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-['Poppins',sans-serif]">
+      {/* Background glow effects com cores oficiais AGYLI (#3B82F6 e #8B5CF6) */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#3B82F6]/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#8B5CF6]/15 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center px-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/80 border border-emerald-800/60 text-emerald-400 text-xs font-semibold mb-4 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5" />
-          Contek Tecnologia e Consultoria
+      {/* Cabeçalho Oficial AGYLI */}
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex flex-col items-center text-center px-4">
+        {/* Badge Institucional */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E293B]/90 border border-blue-500/30 text-blue-300 text-xs font-medium mb-5 shadow-sm">
+          <Sparkles className="w-3.5 h-3.5 text-[#3B82F6]" />
+          <span>Plataforma Inteligente de Gestão</span>
         </div>
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 shadow-lg shadow-emerald-500/20">
-            <Calendar className="w-6 h-6 stroke-[2.5]" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Contek Agenda IA</h1>
+
+        {/* Logo Oficial Completa AGYLI */}
+        <div className="flex items-center justify-center p-3 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl mb-3">
+          <AgyliLogo height={48} theme="dark" showSlogan={true} showSignature={true} />
         </div>
-        <p className="text-sm text-slate-400">
-          SaaS multi-tenant profissional de gestão e agendamento inteligente para pequenos
-          prestadores
+
+        <p className="text-xs text-slate-300 max-w-sm mt-1">
+          Mais tempo para o que realmente importa. Gestão simplificada para clínicas, consultórios,
+          salões e profissionais.
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-xl px-4 relative z-10">
-        <Card className="border-slate-800 bg-slate-900/90 backdrop-blur-xl shadow-2xl text-slate-100">
+      <div className="mt-7 sm:mx-auto sm:w-full sm:max-w-xl px-4 relative z-10">
+        <Card className="border-slate-800 bg-[#1E293B]/95 backdrop-blur-xl shadow-2xl text-slate-100 rounded-2xl">
           <Tabs defaultValue="login" className="w-full">
-            <CardHeader className="pb-4">
-              <TabsList className="grid w-full grid-cols-3 bg-slate-800/80 p-1 border border-slate-700/50">
+            <CardHeader className="pb-3 pt-5">
+              <TabsList className="grid w-full grid-cols-3 bg-[#0F172A]/80 p-1 border border-slate-700/60 rounded-xl">
                 <TabsTrigger
                   value="login"
-                  className="text-xs sm:text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
                 >
                   Entrar
                 </TabsTrigger>
                 <TabsTrigger
                   value="signup"
-                  className="text-xs sm:text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
                 >
-                  Criar Empresa (Self)
+                  Criar Empresa
                 </TabsTrigger>
                 <TabsTrigger
                   value="manual"
-                  className="text-xs sm:text-sm data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                  className="text-xs sm:text-sm font-medium rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md"
                 >
-                  Cadastro Contek (Admin)
+                  Cadastro Contek
                 </TabsTrigger>
               </TabsList>
             </CardHeader>
@@ -231,15 +233,20 @@ export const Login: React.FC = () => {
             {/* TAB 1: LOGIN */}
             <TabsContent value="login">
               <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4 pt-2">
+                <CardContent className="space-y-4 pt-1">
+                  <div className="text-center pb-1">
+                    <h2 className="text-lg font-bold text-white tracking-tight">Bem-vindo(a)</h2>
+                    <p className="text-xs text-slate-400">Acesse sua conta para continuar</p>
+                  </div>
+
                   {import.meta.env.DEV && (
-                    <div className="p-3 bg-emerald-950/40 border border-emerald-800/40 rounded-lg flex items-center gap-3 text-xs text-emerald-300">
-                      <ShieldCheck className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+                    <div className="p-3 bg-blue-950/40 border border-blue-800/40 rounded-xl flex items-center gap-3 text-xs text-blue-200">
+                      <ShieldCheck className="w-5 h-5 flex-shrink-0 text-[#3B82F6]" />
                       <div>
-                        <p className="font-semibold">
+                        <p className="font-semibold text-white">
                           Acesso de Demonstração (Ambiente Dev/Preview):
                         </p>
-                        <p className="text-emerald-400/80">
+                        <p className="text-blue-300">
                           E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
                         </p>
                       </div>
@@ -251,7 +258,7 @@ export const Login: React.FC = () => {
                       htmlFor="login-email"
                       className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
                     >
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <Mail className="w-3.5 h-3.5 text-blue-400" />
                       E-mail
                     </Label>
                     <Input
@@ -261,7 +268,7 @@ export const Login: React.FC = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu@email.com"
                       required
-                      className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6] rounded-xl h-11"
                     />
                   </div>
 
@@ -270,7 +277,7 @@ export const Login: React.FC = () => {
                       htmlFor="login-password"
                       className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
                     >
-                      <Lock className="w-3.5 h-3.5 text-slate-400" />
+                      <Lock className="w-3.5 h-3.5 text-blue-400" />
                       Senha
                     </Label>
                     <Input
@@ -280,7 +287,7 @@ export const Login: React.FC = () => {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6] rounded-xl h-11"
                     />
                   </div>
                 </CardContent>
@@ -289,17 +296,17 @@ export const Login: React.FC = () => {
                   <Button
                     type="submit"
                     disabled={loadingLogin}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold shadow-lg shadow-emerald-600/25 h-11"
+                    className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold shadow-lg shadow-blue-500/25 h-11 rounded-xl transition-all"
                   >
-                    {loadingLogin ? 'Entrando no sistema...' : 'Acessar Painel da Empresa'}
+                    {loadingLogin ? 'Entrando no sistema...' : 'Entrar no AGYLI'}
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
 
-                  <div className="text-center text-xs text-slate-400">
+                  <div className="text-center text-xs text-slate-400 pt-1">
                     Quer ver a página pública de agendamento?{' '}
                     <Link
                       to="/agendar/contek-demo"
-                      className="text-emerald-400 hover:underline font-medium"
+                      className="text-[#3B82F6] hover:underline font-medium"
                     >
                       Ver /agendar/contek-demo
                     </Link>
@@ -319,7 +326,7 @@ export const Login: React.FC = () => {
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <Building2 className="w-3.5 h-3.5 text-blue-400" />
                       Nome do Estabelecimento / Empresa *
                     </Label>
                     <Input
@@ -327,26 +334,26 @@ export const Login: React.FC = () => {
                       onChange={(e) => setSignupOrgName(e.target.value)}
                       placeholder="Ex: Clínica Bella Estética, Barbearia Silva..."
                       required
-                      className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                       Escolha a Solução / Produto Desejado *
                     </Label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setSignupProduct('agyli')}
-                        className={`p-2.5 rounded-lg border text-left transition-all ${
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
                           signupProduct === 'agyli'
-                            ? 'border-emerald-500 bg-emerald-950/50 text-white shadow-sm'
-                            : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                            ? 'border-[#3B82F6] bg-blue-950/60 text-white shadow-sm'
+                            : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
                         }`}
                       >
-                        <p className="text-xs font-bold text-emerald-400">AGYLI (Completo)</p>
+                        <p className="text-xs font-bold text-[#3B82F6]">AGYLI (Completo)</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">
                           Agenda + Financeiro + Assistente IA
                         </p>
@@ -355,10 +362,10 @@ export const Login: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSignupProduct('markaly')}
-                        className={`p-2.5 rounded-lg border text-left transition-all ${
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
                           signupProduct === 'markaly'
                             ? 'border-sky-500 bg-sky-950/50 text-white shadow-sm'
-                            : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                            : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
                         }`}
                       >
                         <p className="text-xs font-bold text-sky-400">MARKALY (Essencial)</p>
@@ -380,7 +387,7 @@ export const Login: React.FC = () => {
                         onChange={(e) => setSignupName(e.target.value)}
                         placeholder="Dra. Ana Paula"
                         required
-                        className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
                     </div>
 
@@ -392,7 +399,7 @@ export const Login: React.FC = () => {
                         value={signupPhone}
                         onChange={(e) => setSignupPhone(e.target.value)}
                         placeholder="(11) 99999-8888"
-                        className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
                     </div>
                   </div>
@@ -409,7 +416,7 @@ export const Login: React.FC = () => {
                         onChange={(e) => setSignupEmail(e.target.value)}
                         placeholder="contato@empresa.com"
                         required
-                        className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
                     </div>
 
@@ -424,7 +431,7 @@ export const Login: React.FC = () => {
                         onChange={(e) => setSignupPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="bg-slate-950 border-slate-700 text-white focus-visible:ring-emerald-500"
+                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
                     </div>
                   </div>
@@ -434,7 +441,7 @@ export const Login: React.FC = () => {
                   <Button
                     type="submit"
                     disabled={loadingSignup}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-semibold shadow-lg shadow-emerald-600/25 h-11"
+                    className="w-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold shadow-lg shadow-blue-500/25 h-11 rounded-xl"
                   >
                     {loadingSignup ? 'Criando sua conta SaaS...' : 'Cadastrar Empresa e Começar'}
                     <CheckCircle2 className="w-4 h-4 ml-2" />
@@ -447,13 +454,13 @@ export const Login: React.FC = () => {
             <TabsContent value="manual">
               <form onSubmit={handleManualAdminCreation}>
                 <CardContent className="space-y-3.5 pt-2">
-                  <div className="p-3 bg-slate-800/80 border border-slate-700 rounded-lg text-xs text-slate-300 space-y-1">
-                    <p className="font-semibold text-emerald-400">
+                  <div className="p-3 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-slate-300 space-y-1">
+                    <p className="font-semibold text-blue-400">
                       Fluxo Interno de Onboarding Contek:
                     </p>
                     <p className="text-slate-400">
                       Cadastre uma empresa e seu administrador diretamente quando o fechamento
-                      comercial for realizado por consultores da Contek fora da plataforma.
+                      comercial for realizado pelos consultores da Contek.
                     </p>
                   </div>
 
@@ -572,10 +579,14 @@ export const Login: React.FC = () => {
           </Tabs>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} Contek Tecnologia e Consultoria. Todos os direitos
-          reservados.
-        </p>
+        <div className="mt-6 text-center space-y-1">
+          <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
+          <p className="text-[11px] text-slate-500">
+            Uma solução{' '}
+            <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>.
+            Todos os direitos reservados.
+          </p>
+        </div>
       </div>
     </div>
   )

@@ -24,19 +24,19 @@ export const PRODUCTS_CONFIG: Record<ProductType, ProductBranding> = {
     id: 'agyli',
     name: 'AGYLI',
     fullName: 'AGYLI Agenda & IA',
-    tagline: 'Plataforma Completa com IA e Gestão Financeira',
+    tagline: 'Agendar ficou simples.',
     badgeText: 'AGYLI PRO',
     description:
-      'Gestão integral com inteligência artificial, financeiro, agendamentos e automações.',
+      'Mais tempo para o que realmente importa. Gestão com inteligência artificial, financeiro e agendamento inteligente.',
     colors: {
-      primary: '#059669', // emerald-600
-      primaryHover: '#10b981', // emerald-500
-      primaryLight: '#d1fae5', // emerald-100
-      primaryBg: '#064e3b', // emerald-900
-      accent: '#6366f1', // indigo-500
-      border: '#a7f3d0', // emerald-200
-      badgeBg: '#ecfdf5',
-      badgeText: '#065f46',
+      primary: '#3B82F6', // Azul principal
+      primaryHover: '#2563EB', // Azul escuro / hover ativo
+      primaryLight: '#E0F2FE', // Azul claro (#E0F2FE)
+      primaryBg: '#0F172A', // Azul-marinho (#0F172A)
+      accent: '#8B5CF6', // Violeta (#8B5CF6)
+      border: '#BFDBFE', // Azul suave borda
+      badgeBg: '#EFF6FF',
+      badgeText: '#1E40AF',
     },
   },
   markaly: {
@@ -69,8 +69,10 @@ export const PRODUCTS_CONFIG: Record<ProductType, ProductBranding> = {
 export const DOMAIN_PRODUCT_MAP: Record<string, ProductType> = {
   'agyli.com.br': 'agyli',
   'app.agyli.com.br': 'agyli',
+  'www.agyli.com.br': 'agyli',
   'markaly.com.br': 'markaly',
   'app.markaly.com.br': 'markaly',
+  'www.markaly.com.br': 'markaly',
 }
 
 /**
