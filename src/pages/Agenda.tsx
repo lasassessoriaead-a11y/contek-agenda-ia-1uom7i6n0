@@ -271,31 +271,65 @@ export const Agenda: React.FC = () => {
 
       // 1. Resolve or Create Client
       let targetClientId = formClientId
+      const trimmedInputName = formClientName.trim()
+      const trimmedInputPhone = formClientPhone.trim()
+
       if (!targetClientId) {
-        if (!formClientName.trim() || !formClientPhone.trim()) {
+        if (!trimmedInputName || !trimmedInputPhone) {
           toast.error('Informe o nome e telefone do cliente.')
           setSavingAppt(false)
           return
         }
 
-        // Check if client exists with same phone
-        const existing = clients.find((c) => c.phone.trim() === formClientPhone.trim())
+        // Check if client exists with same phone (matching raw or digits only)
+        const digitsInput = trimmedInputPhone.replace(/\D/g, '')
+        const existing = clients.find((c) => {
+          const cPhoneDigits = (c.phone || '').replace(/\D/g, '')
+          const cWaDigits = (c.whatsapp || '').replace(/\D/g, '')
+          return (
+            c.phone?.trim() === trimmedInputPhone ||
+            c.whatsapp?.trim() === trimmedInputPhone ||
+            (digitsInput && (cPhoneDigits === digitsInput || cWaDigits === digitsInput))
+          )
+        })
+
         if (existing) {
           targetClientId = existing.id
+          // Se o nome informado for diferente, atualiza o cadastro do cliente para refletir o nome digitado
+          if (trimmedInputName && existing.name !== trimmedInputName) {
+            try {
+              await pb.collection('clients').update(existing.id, {
+                name: trimmedInputName,
+              })
+            } catch {
+              /* ignore update error */
+            }
+          }
         } else {
           const newClient = await pb.collection('clients').create<Client>({
             organization_id: orgId,
-            name: formClientName.trim(),
-            phone: formClientPhone.trim(),
-            whatsapp: formClientPhone.trim(),
+            name: trimmedInputName,
+            phone: trimmedInputPhone,
+            whatsapp: trimmedInputPhone,
           })
           targetClientId = newClient.id
         }
+      } else {
+        // Se selecionou um cliente existente mas alterou o nome no formulário
+        const selected = clients.find((c) => c.id === targetClientId)
+        if (selected && trimmedInputName && selected.name !== trimmedInputName) {
+          try {
+            await pb.collection('clients').update(selected.id, {
+              name: trimmedInputName,
+            })
+          } catch {
+            /* ignore update error */
+          }
+        }
       }
 
-      const clientRec = clients.find((c) => c.id === targetClientId)
-      const cName = clientRec ? clientRec.name : formClientName.trim()
-      const cPhone = clientRec ? clientRec.phone : formClientPhone.trim()
+      const cName = trimmedInputName || clients.find((c) => c.id === targetClientId)?.name || ''
+      const cPhone = trimmedInputPhone || clients.find((c) => c.id === targetClientId)?.phone || ''
 
       const apptData = {
         organization_id: orgId,

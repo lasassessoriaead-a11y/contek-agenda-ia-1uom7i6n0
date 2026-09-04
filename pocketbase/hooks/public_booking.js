@@ -188,11 +188,23 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     // 6. Find or Create Client within this organization
     let clientId = ''
     const cleanPhone = client_phone.trim()
+    const trimmedName = client_name.trim()
     try {
-      const clientFilter = `organization_id = "${orgId}" && phone = "${cleanPhone}"`
-      const foundClients = $app.findRecordsByFilter('clients', clientFilter, '', 1, 0)
+      // Search matching phone (formatted, raw digits or whatsapp)
+      const digitsOnly = cleanPhone.replace(/\D/g, '')
+      let clientFilter = `organization_id = "${orgId}" && (phone = "${cleanPhone}" || phone = "${digitsOnly}" || whatsapp = "${cleanPhone}" || whatsapp = "${digitsOnly}")`
+      let foundClients = $app.findRecordsByFilter('clients', clientFilter, '', 1, 0)
       if (foundClients.length > 0) {
-        clientId = foundClients[0].id
+        const existingClient = foundClients[0]
+        clientId = existingClient.id
+        // Atualiza com o nome mais recente informado pelo paciente
+        if (trimmedName && existingClient.getString('name') !== trimmedName) {
+          existingClient.set('name', trimmedName)
+          if (client_email && !existingClient.getString('email')) {
+            existingClient.set('email', client_email.trim())
+          }
+          $app.save(existingClient)
+        }
       }
     } catch (_) {}
 
@@ -200,8 +212,9 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
       const clientsCol = $app.findCollectionByNameOrId('clients')
       const clientRecord = new Record(clientsCol)
       clientRecord.set('organization_id', orgId)
-      clientRecord.set('name', client_name.trim())
+      clientRecord.set('name', trimmedName)
       clientRecord.set('phone', cleanPhone)
+      clientRecord.set('whatsapp', cleanPhone)
       if (client_email) clientRecord.set('email', client_email.trim())
       clientRecord.set('notes', 'Cadastrado automaticamente via agendamento online')
       $app.save(clientRecord)
@@ -221,7 +234,7 @@ routerAdd('POST', '/backend/v1/public-booking', (e) => {
     apptRecord.set('duration', duration)
     apptRecord.set('price', price)
     apptRecord.set('status', 'AGENDADO')
-    apptRecord.set('client_name_snapshot', client_name.trim())
+    apptRecord.set('client_name_snapshot', trimmedName)
     apptRecord.set('client_phone_snapshot', cleanPhone)
     apptRecord.set('notes', notes ? notes.trim() : 'Agendado pelo cliente via página pública')
 
