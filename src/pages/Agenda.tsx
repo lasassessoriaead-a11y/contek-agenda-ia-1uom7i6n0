@@ -23,6 +23,11 @@ import {
   Trash2,
   Search,
   Check,
+  Send,
+  MessageSquare,
+  Copy,
+  ExternalLink,
+  BellRing,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -90,6 +95,16 @@ export const Agenda: React.FC = () => {
   // Selected Appointment for Details Slide-over
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [detailsSheetOpen, setDetailsSheetOpen] = useState(false)
+
+  // Manual WhatsApp Modal state
+  const [waModalOpen, setWaModalOpen] = useState(false)
+  const [waTargetAppt, setWaTargetAppt] = useState<Appointment | null>(null)
+  const [waMessageType, setWaMessageType] = useState<
+    'CONFIRMATION_REQUEST' | 'CONFIRMATION_THANKS' | 'DAY_REMINDER'
+  >('CONFIRMATION_REQUEST')
+  const [waGeneratedText, setWaGeneratedText] = useState('')
+  const [waLink, setWaLink] = useState('')
+  const [generatingWa, setGeneratingWa] = useState(false)
 
   // Create / Edit Modal state
   const [modalOpen, setModalOpen] = useState(false)
@@ -366,6 +381,81 @@ export const Agenda: React.FC = () => {
     }
   }
 
+  // Open Manual WhatsApp Dispatch Modal
+  const openManualWaModal = async (
+    appt: Appointment,
+    type: 'CONFIRMATION_REQUEST' | 'CONFIRMATION_THANKS' | 'DAY_REMINDER' = 'CONFIRMATION_REQUEST',
+  ) => {
+    setWaTargetAppt(appt)
+    setWaMessageType(type)
+    setWaModalOpen(true)
+    setGeneratingWa(true)
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/appointments/manual-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: pb.authStore.token,
+          },
+          body: JSON.stringify({
+            appointment_id: appt.id,
+            type: type,
+            mark_as_sent: false,
+          }),
+        },
+      )
+      const data = await res.json()
+      if (res.ok) {
+        setWaGeneratedText(data.message_text || '')
+        setWaLink(data.wa_link || '')
+      } else {
+        toast.error(data.error || 'Erro ao carregar template da mensagem.')
+      }
+    } catch (err) {
+      console.error('Error generating manual WhatsApp text:', err)
+      toast.error('Erro de conexão ao gerar mensagem.')
+    } finally {
+      setGeneratingWa(false)
+    }
+  }
+
+  // Handle Mark as Sent & Open WhatsApp Web
+  const handleConfirmManualSend = async (openTab: boolean = true) => {
+    if (!waTargetAppt) return
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/appointments/manual-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: pb.authStore.token,
+          },
+          body: JSON.stringify({
+            appointment_id: waTargetAppt.id,
+            type: waMessageType,
+            mark_as_sent: true,
+          }),
+        },
+      )
+      if (res.ok) {
+        toast.success('Mensagem registrada como enviada!')
+        if (openTab && waLink) {
+          window.open(waLink, '_blank', 'noopener,noreferrer')
+        }
+        setWaModalOpen(false)
+        await loadData()
+      } else {
+        toast.error('Erro ao registrar envio.')
+      }
+    } catch (err) {
+      toast.error('Erro ao comunicar com backend.')
+    }
+  }
+
   // Delete Appointment
   const handleDeleteAppointment = async (apptId: string) => {
     if (!confirm('Tem certeza que deseja excluir permanentemente este agendamento?')) return
@@ -508,8 +598,76 @@ export const Agenda: React.FC = () => {
           </div>
         </div>
 
+        {/* CARD DE AGENDAMENTOS QUE PRECISAM DE CONFIRMAÇÃO (VÉSPERA / PENDENTES) */}
+        {(() => {
+          const needConfirmation = filteredAppointments.filter((a) => {
+            if (a.status !== 'AGENDADO') return false
+            const sent = (a.notifications_sent as Record<string, string>) || {}
+            return !sent['CONFIRMATION_REQUEST']
+          })
+
+          if (needConfirmation.length === 0) return null
+
+          return (
+            <div className="p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BellRing className="w-4 h-4 text-amber-700" />
+                  <span className="text-xs font-bold text-amber-900">
+                    {needConfirmation.length} Agendamento(s) Aguardando Confirmação
+                  </span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] bg-white text-amber-800 border-amber-300"
+                >
+                  Disparo Manual Rápido
+                </Badge>
+              </div>
+              <p className="text-[11px] text-amber-800">
+                Pacientes com status "Agendado" que ainda não receberam mensagem de confirmação.
+                Você pode disparar via WhatsApp com um clique:
+              </p>
+
+              <div className="flex flex-wrap gap-2 pt-1">
+                {needConfirmation.slice(0, 4).map((item) => {
+                  const cName =
+                    item.expand?.client_id?.name || item.client_name_snapshot || 'Paciente'
+                  const rawD = item.date ? item.date.slice(0, 10) : ''
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-amber-200 text-xs shadow-xs"
+                    >
+                      <span className="font-semibold text-slate-800">{cName}</span>
+                      <span className="font-mono text-[10px] text-slate-500">
+                        {rawD} às {item.start_time}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => openManualWaModal(item, 'CONFIRMATION_REQUEST')}
+                        className="h-6 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold"
+                      >
+                        <Send className="w-3 h-3 mr-1" />
+                        Enviar WA
+                      </Button>
+                    </div>
+                  )
+                })}
+                {needConfirmation.length > 4 && (
+                  <div className="text-[11px] text-amber-700 font-medium self-center">
+                    +{needConfirmation.length - 4} outros pacientes na lista
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* View Switcher & Action */}
         <div className="flex flex-wrap items-center gap-2">
+          {' '}
           {/* Professional filter */}
           <Select value={selectedProfFilter} onValueChange={setSelectedProfFilter}>
             <SelectTrigger className="w-[160px] h-9 text-xs bg-white">
@@ -524,7 +682,6 @@ export const Agenda: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-
           {/* Status filter */}
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[140px] h-9 text-xs bg-white">
@@ -540,7 +697,6 @@ export const Agenda: React.FC = () => {
               <SelectItem value="FALTOU">Faltou</SelectItem>
             </SelectContent>
           </Select>
-
           {/* View Mode Tabs */}
           <Tabs
             value={viewMode}
@@ -559,7 +715,6 @@ export const Agenda: React.FC = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-
           <Button
             size="sm"
             onClick={() => openCreateModal()}
@@ -872,6 +1027,45 @@ export const Agenda: React.FC = () => {
                 )}
               </div>
 
+              {/* WHATSAPP MANUAL DISPATCH BUTTON */}
+              <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                    <MessageSquare className="w-4 h-4 text-emerald-600" />
+                    Comunicação WhatsApp
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-white border-emerald-300 text-emerald-800"
+                  >
+                    Modo Manual / Imediato
+                  </Badge>
+                </div>
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
+                  Envie a mensagem de confirmação ou lembrete via link oficial wa.me com template
+                  preenchido.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={() => openManualWaModal(selectedAppointment, 'CONFIRMATION_REQUEST')}
+                    className="text-xs bg-emerald-700 hover:bg-emerald-600 text-white font-semibold"
+                  >
+                    <Send className="w-3.5 h-3.5 mr-1.5" />
+                    Pedir Confirmação
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openManualWaModal(selectedAppointment, 'DAY_REMINDER')}
+                    className="text-xs border-emerald-300 text-emerald-800 hover:bg-emerald-100"
+                  >
+                    <BellRing className="w-3.5 h-3.5 mr-1.5" />
+                    Enviar Lembrete
+                  </Button>
+                </div>
+              </div>
+
               {/* ACTION BUTTONS (MUDANÇA DE STATUS) */}
               <div className="space-y-2 pt-2">
                 <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -1167,6 +1361,122 @@ export const Agenda: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE ENVIO MANUAL DE WHATSAPP (MODO DE EMERGÊNCIA / SEM CREDENCIAIS) */}
+      <Dialog open={waModalOpen} onOpenChange={setWaModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-emerald-600" />
+              Enviar Mensagem WhatsApp para o Paciente
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Dispare com um clique no WhatsApp Web ou aplicativo oficial, usando os templates
+              dinâmicos cadastrados.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3 text-xs">
+            {/* Escolha do tipo de mensagem */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-slate-700">Tipo de Notificação</Label>
+              <Select
+                value={waMessageType}
+                onValueChange={(val) => {
+                  const t = val as 'CONFIRMATION_REQUEST' | 'CONFIRMATION_THANKS' | 'DAY_REMINDER'
+                  setWaMessageType(t)
+                  if (waTargetAppt) openManualWaModal(waTargetAppt, t)
+                }}
+              >
+                <SelectTrigger className="text-xs bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CONFIRMATION_REQUEST">
+                    1. Pedido de Confirmação (1 dia antes - D-1)
+                  </SelectItem>
+                  <SelectItem value="CONFIRMATION_THANKS">
+                    2. Agradecimento (Pós-Confirmação)
+                  </SelectItem>
+                  <SelectItem value="DAY_REMINDER">3. Lembrete no Dia (Hoje - D-0)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Preview do texto gerado */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-slate-700">
+                  Texto Gerado (com dados reais):
+                </Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(waGeneratedText)
+                    toast.success('Texto copiado para a área de transferência!')
+                  }}
+                  className="h-7 text-[11px] text-emerald-700 hover:text-emerald-800"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copiar Texto
+                </Button>
+              </div>
+              <Textarea
+                value={waGeneratedText}
+                onChange={(e) => {
+                  setWaGeneratedText(e.target.value)
+                  const rawPhone = (
+                    waTargetAppt?.expand?.client_id?.phone ||
+                    waTargetAppt?.client_phone_snapshot ||
+                    ''
+                  ).replace(/\D/g, '')
+                  const clean = rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`
+                  setWaLink(`https://wa.me/${clean}?text=${encodeURIComponent(e.target.value)}`)
+                }}
+                disabled={generatingWa}
+                className="text-xs font-mono h-32 resize-none leading-relaxed"
+              />
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-1 text-slate-600 text-[11px]">
+              <p>
+                <b>Paciente:</b>{' '}
+                {waTargetAppt?.expand?.client_id?.name || waTargetAppt?.client_name_snapshot}
+              </p>
+              <p>
+                <b>Telefone:</b>{' '}
+                {waTargetAppt?.expand?.client_id?.phone ||
+                  waTargetAppt?.client_phone_snapshot ||
+                  'Não informado'}
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleConfirmManualSend(false)}
+              className="text-xs border-slate-300 text-slate-700"
+            >
+              Apenas Marcar como Enviado
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => handleConfirmManualSend(true)}
+              disabled={generatingWa}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+            >
+              <Send className="w-3.5 h-3.5 mr-1.5" />
+              Abrir WhatsApp e Registrar Envio
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

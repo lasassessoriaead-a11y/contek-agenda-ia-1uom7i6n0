@@ -35,6 +35,14 @@ routerAdd(
 
       const isConfigured = missingSecrets.length === 0
 
+      // Count notification stats
+      let totalSent = 0
+      let pendingNoCreds = 0
+      try {
+        totalSent = $app.countRecords('notification_logs', 'status = "SENT"')
+        pendingNoCreds = $app.countRecords('notification_logs', 'status = "PENDING_NO_CREDENTIALS"')
+      } catch (_) {}
+
       return e.json(200, {
         is_configured: isConfigured,
         webhook_callback_url: webhookCallbackUrl,
@@ -45,6 +53,10 @@ routerAdd(
         has_app_secret: Boolean(appSecret),
         missing_secrets: missingSecrets,
         central_phone: centralNumber,
+        stats: {
+          total_sent: totalSent,
+          pending_no_credentials: pendingNoCreds,
+        },
       })
     } catch (err) {
       return e.json(500, { error: err.message || 'Error checking WhatsApp status' })

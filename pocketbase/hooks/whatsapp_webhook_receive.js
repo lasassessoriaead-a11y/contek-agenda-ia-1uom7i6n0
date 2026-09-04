@@ -184,36 +184,170 @@ routerAdd('POST', '/backend/v1/whatsapp/webhook', (e) => {
             orgContext = `\n[CONTEXTO] Nenhuma empresa específica foi identificada ainda na mensagem. Peça educadamente ao cliente para informar o nome ou link da clínica/profissional com quem deseja agendar.`
           }
 
-          // Build prompt for Skip Cloud Native Agent
-          const agentPrompt = `Mensagem recebida de cliente no WhatsApp (${fromNumber}):\n"${userText}"\n${orgContext}`
+          // Check if message is a confirmation response (e.g. "1", "sim", "confirmar", "confirmado", "confirmo", "ok")
+          const normalizedInput = userText
+            .toLowerCase()
+            .replace(/[^a-z0-9áéíóúãõç]/g, ' ')
+            .trim()
+          const isConfirmIntent =
+            normalizedInput === '1' ||
+            normalizedInput === 'sim' ||
+            normalizedInput === 'confirmar' ||
+            normalizedInput === 'confirmado' ||
+            normalizedInput === 'confirmo' ||
+            normalizedInput === 'ok' ||
+            normalizedInput.startsWith('1 ') ||
+            normalizedInput.includes('confirmar agendamento') ||
+            normalizedInput.includes('confirmo minha presenca')
 
+          let handledConfirmation = false
           let botReplyText = ''
-          if (botUserId) {
+
+          if (isConfirmIntent) {
+            // Find upcoming appointment for this phone number
             try {
-              const agentResult = $ai.agent('contek-whatsapp-bot').chat({
-                user_id: botUserId,
-                message: agentPrompt,
-              })
-              botReplyText = agentResult.content || ''
-            } catch (errAgent) {
-              console.error('[WhatsApp Hook] Agent execution failed:', errAgent)
-              // Graceful fallback
-              if (matchedOrg) {
-                botReplyText =
-                  `Olá! Seja bem-vindo(a) à *${matchedOrg.getString('name')}*!\n\n` +
-                  (orgWelcome ? `${orgWelcome}\n\n` : '') +
-                  `Você pode consultar todos os nossos horários livres e agendar diretamente no nosso link oficial:\n🔗 ${bookingUrl}\n\n` +
-                  `Se preferir, pode me dizer qual serviço você deseja e seu nome completo!`
-              } else {
-                botReplyText =
-                  `Olá! Bem-vindo(a) ao atendimento inteligente Contek Agenda IA.\n\n` +
-                  `Com qual clínica ou profissional você gostaria de agendar? Envie o nome ou o link de agendamento!`
+              const cleanSender = fromNumber.replace(/\D/g, '')
+              const last8or9 = cleanSender.slice(-8)
+
+              // Search appointments in AGENDADO status for today or future
+              const candidateAppts = $app.findRecordsByFilter(
+                'appointments',
+                `status = "AGENDADO" && (client_phone_snapshot ~ "${last8or9}" || client_id.phone ~ "${last8or9}" || client_id.whatsapp ~ "${last8or9}")`,
+                'date,start_time',
+                5,
+                0,
+              )
+
+              if (candidateAppts.length > 0) {
+                const targetAppt = candidateAppts[0]
+                targetAppt.set('status', 'CONFIRMADO')
+
+                let sentMap = {}
+                try {
+                  const raw = targetAppt.get('notifications_sent')
+                  if (raw && typeof raw === 'object') sentMap = raw
+                } catch (_) {}
+
+                const apptOrgId = targetAppt.getString('organization_id')
+                let apptOrgName = matchedOrg ? matchedOrg.getString('name') : 'Contek Agenda'
+
+                let thanksTpl =
+                  'Muito obrigado por confirmar, {{nome_paciente}}! Seu agendamento na {{empresa}} para dia {{data}} às {{hora}} está confirmado. Estamos te esperando com carinho!'
+                try {
+                  const bs = $app.findFirstRecordByData(
+                    'business_settings',
+                    'organization_id',
+                    apptOrgId,
+                  )
+                  if (bs && bs.getString('template_confirmation_thanks')) {
+                    thanksTpl = bs.getString('template_confirmation_thanks')
+                  }
+                } catch (_) {}
+
+                const rawD = targetAppt.getString('date')
+                let dFormatted = rawD
+                if (rawD && rawD.length >= 10) {
+                  const p = rawD.slice(0, 10).split('-')
+                  if (p.length === 3) dFormatted = `${p[2]}/${p[1]}/${p[0]}`
+                }
+
+                let cName = targetAppt.getString('client_name_snapshot')
+                if (!cName && targetAppt.getString('client_id')) {
+                  try {
+                    const c = $app.findRecordById('clients', targetAppt.getString('client_id'))
+                    cName = c.getString('name')
+                  } catch (_) {}
+                }
+
+                let profName = ''
+                if (targetAppt.getString('professional_id')) {
+                  try {
+                    const p = $app.findRecordById(
+                      'professionals',
+                      targetAppt.getString('professional_id'),
+                    )
+                    profName = p.getString('name')
+                  } catch (_) {}
+                }
+
+                let sName = ''
+                if (targetAppt.getString('service_id')) {
+                  try {
+                    const s = $app.findRecordById('services', targetAppt.getString('service_id'))
+                    sName = s.getString('name')
+                  } catch (_) {}
+                }
+
+                botReplyText = thanksTpl
+                  .replace(/{{nome_paciente}}/g, cName || 'Cliente')
+                  .replace(/{{nome_profissional}}/g, profName || 'Profissional')
+                  .replace(/{{servico}}/g, sName || 'Atendimento')
+                  .replace(/{{data}}/g, dFormatted)
+                  .replace(/{{hora}}/g, targetAppt.getString('start_time'))
+                  .replace(/{{empresa}}/g, apptOrgName)
+
+                sentMap['CONFIRMATION_THANKS'] = new Date().toISOString()
+                targetAppt.set('notifications_sent', sentMap)
+                $app.save(targetAppt)
+
+                // Log in notification_logs
+                try {
+                  const nlCol = $app.findCollectionByNameOrId('notification_logs')
+                  const logR = new Record(nlCol)
+                  logR.set('organization_id', apptOrgId)
+                  logR.set('appointment_id', targetAppt.id)
+                  logR.set('type', 'CONFIRMATION_THANKS')
+                  logR.set('channel', 'WHATSAPP_AUTO')
+                  logR.set(
+                    'status',
+                    defaultAccessToken && customPhoneId ? 'SENT' : 'PENDING_NO_CREDENTIALS',
+                  )
+                  logR.set('recipient_phone', fromNumber)
+                  logR.set('recipient_name', cName || 'Cliente')
+                  logR.set('message_text', botReplyText)
+                  $app.save(logR)
+                } catch (_) {}
+
+                handledConfirmation = true
               }
+            } catch (errSearchAppt) {
+              console.error(
+                '[WhatsApp Hook] Error matching confirmation appointment:',
+                errSearchAppt,
+              )
             }
           }
 
-          if (!botReplyText) {
-            botReplyText = `Olá! Recebemos sua mensagem. Acesse nosso link de agendamento online para escolher seu melhor dia e horário!`
+          if (!handledConfirmation) {
+            // Build prompt for Skip Cloud Native Agent
+            const agentPrompt = `Mensagem recebida de cliente no WhatsApp (${fromNumber}):\n"${userText}"\n${orgContext}`
+            if (botUserId) {
+              try {
+                const agentResult = $ai.agent('contek-whatsapp-bot').chat({
+                  user_id: botUserId,
+                  message: agentPrompt,
+                })
+                botReplyText = agentResult.content || ''
+              } catch (errAgent) {
+                console.error('[WhatsApp Hook] Agent execution failed:', errAgent)
+                // Graceful fallback
+                if (matchedOrg) {
+                  botReplyText =
+                    `Olá! Seja bem-vindo(a) à *${matchedOrg.getString('name')}*!\n\n` +
+                    (orgWelcome ? `${orgWelcome}\n\n` : '') +
+                    `Você pode consultar todos os nossos horários livres e agendar diretamente no nosso link oficial:\n🔗 ${bookingUrl}\n\n` +
+                    `Se preferir, pode me dizer qual serviço você deseja e seu nome completo!`
+                } else {
+                  botReplyText =
+                    `Olá! Bem-vindo(a) ao atendimento inteligente Contek Agenda IA.\n\n` +
+                    `Com qual clínica ou profissional você gostaria de agendar? Envie o nome ou o link de agendamento!`
+                }
+              }
+            }
+
+            if (!botReplyText) {
+              botReplyText = `Olá! Recebemos sua mensagem. Acesse nosso link de agendamento online para escolher seu melhor dia e horário!`
+            }
           }
 
           // Dispatch message back to Meta WhatsApp Cloud API if credentials exist

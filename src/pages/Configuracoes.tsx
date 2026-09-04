@@ -15,6 +15,11 @@ import {
   CheckCircle2,
   ExternalLink,
   Layers,
+  Send,
+  BellRing,
+  CheckCircle,
+  HelpCircle,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -75,7 +80,37 @@ export const Configuracoes: React.FC = () => {
   const [whatsappPhoneNumber, setWhatsappPhoneNumber] = useState('')
   const [whatsappWelcomeMessage, setWhatsappWelcomeMessage] = useState('')
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('')
+
+  // Message Automation templates state
+  const [autoRemindersEnabled, setAutoRemindersEnabled] = useState(true)
+  const [templateConfirm, setTemplateConfirm] = useState(
+    'Olá, {{nome_paciente}}! Aqui é da {{empresa}}. Lembramos que você tem um agendamento de {{servico}} com {{nome_profissional}} amanhã, dia {{data}} às {{hora}}.\n\nPor favor, confirme sua presença clicando no link: {{link_confirmacao}} ou responda 1 para confirmar.',
+  )
+  const [templateThanks, setTemplateThanks] = useState(
+    'Muito obrigado por confirmar, {{nome_paciente}}! Seu agendamento na {{empresa}} para dia {{data}} às {{hora}} está confirmado. Estamos te esperando com carinho!',
+  )
+  const [templateReminder, setTemplateReminder] = useState(
+    'Olá, {{nome_paciente}}! Passando para lembrar do seu atendimento de {{servico}} HOJE, às {{hora}}, na {{empresa}} com {{nome_profissional}}. Qualquer dúvida, estamos à disposição!',
+  )
+
   const [savingSettings, setSavingSettings] = useState(false)
+
+  // Upcoming scheduled messages queue (live preview)
+  const [upcomingMessages, setUpcomingMessages] = useState<
+    Array<{
+      id: string
+      date: string
+      start_time: string
+      client_name: string
+      client_phone: string
+      service_name: string
+      professional_name: string
+      type: string
+      status: string
+      notifications_sent: Record<string, string>
+    }>
+  >([])
+  const [loadingUpcoming, setLoadingUpcoming] = useState(false)
 
   // Meta Integration Status (secrets & webhook)
   const [metaStatus, setMetaStatus] = useState<{
@@ -88,6 +123,10 @@ export const Configuracoes: React.FC = () => {
     has_app_secret: boolean
     missing_secrets: string[]
     central_phone: string
+    stats?: {
+      total_sent: number
+      pending_no_credentials: number
+    }
   } | null>(null)
   const [loadingMetaStatus, setLoadingMetaStatus] = useState(false)
 
@@ -137,8 +176,66 @@ export const Configuracoes: React.FC = () => {
       setWhatsappPhoneNumber(settings.whatsapp_phone_number || '')
       setWhatsappWelcomeMessage(settings.whatsapp_welcome_message || '')
       setWhatsappPhoneNumberId(settings.whatsapp_phone_number_id || '')
+      setAutoRemindersEnabled(settings.auto_reminders_enabled !== false)
+      if (settings.template_confirmation_request) {
+        setTemplateConfirm(settings.template_confirmation_request)
+      }
+      if (settings.template_confirmation_thanks) {
+        setTemplateThanks(settings.template_confirmation_thanks)
+      }
+      if (settings.template_day_reminder) {
+        setTemplateReminder(settings.template_day_reminder)
+      }
     }
   }, [organization, settings])
+
+  // Load upcoming scheduled messages for the next 48 hours
+  useEffect(() => {
+    if (!organization?.id) return
+    const fetchUpcomingQueue = async () => {
+      setLoadingUpcoming(true)
+      try {
+        const pbClient = (await import('@/lib/pocketbase/client')).default
+        const now = new Date()
+        const todayStr = now.toISOString().slice(0, 10)
+        const inTwoDays = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString().slice(0, 10)
+
+        const appts = await pbClient.collection('appointments').getList(1, 20, {
+          filter: `organization_id = "${organization.id}" && (status = "AGENDADO" || status = "CONFIRMADO") && date >= "${todayStr} 00:00:00.000Z" && date <= "${inTwoDays} 23:59:59.999Z"`,
+          sort: 'date,start_time',
+          expand: 'client_id,service_id,professional_id',
+        })
+
+        const mapped = appts.items.map((item) => {
+          const rawDate = item.date ? item.date.slice(0, 10) : ''
+          let isToday = rawDate === todayStr
+          let typeTarget = isToday ? 'Lembrete no Dia (D-0)' : 'Pedido de Confirmação (D-1)'
+          const sent = (item.notifications_sent as Record<string, string>) || {}
+
+          return {
+            id: item.id,
+            date: rawDate,
+            start_time: item.start_time,
+            client_name: item.expand?.client_id?.name || item.client_name_snapshot || 'Cliente',
+            client_phone: item.expand?.client_id?.phone || item.client_phone_snapshot || '',
+            service_name: item.expand?.service_id?.name || 'Atendimento',
+            professional_name: item.expand?.professional_id?.name || 'Profissional',
+            type: typeTarget,
+            status: item.status,
+            notifications_sent: sent,
+          }
+        })
+
+        setUpcomingMessages(mapped)
+      } catch (err) {
+        console.error('Error fetching upcoming messages queue:', err)
+      } finally {
+        setLoadingUpcoming(false)
+      }
+    }
+
+    fetchUpcomingQueue()
+  }, [organization?.id])
 
   const handleSaveOrg = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -176,6 +273,10 @@ export const Configuracoes: React.FC = () => {
         whatsapp_phone_number: whatsappPhoneNumber.trim(),
         whatsapp_welcome_message: whatsappWelcomeMessage.trim(),
         whatsapp_phone_number_id: whatsappPhoneNumberId.trim(),
+        auto_reminders_enabled: autoRemindersEnabled,
+        template_confirmation_request: templateConfirm.trim(),
+        template_confirmation_thanks: templateThanks.trim(),
+        template_day_reminder: templateReminder.trim(),
       })
       toast.success('Configurações salvas com sucesso!')
     } catch (err: unknown) {
@@ -718,6 +819,256 @@ export const Configuracoes: React.FC = () => {
                   >
                     <Save className="w-3.5 h-3.5 mr-1.5" />
                     {savingSettings ? 'Salvando...' : 'Salvar Configurações de WhatsApp'}
+                  </Button>
+                </CardFooter>
+              </form>
+            </Card>
+
+            {/* SEÇÃO NOBRE: AUTOMAÇÃO DE MENSAGENS (3 TEMPLATES + CRON + FILA) */}
+            <Card className="border-slate-200 bg-white shadow-sm overflow-hidden">
+              <form onSubmit={handleSaveSettings}>
+                <CardHeader className="bg-slate-50 border-b border-slate-200 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base text-slate-900 flex items-center gap-2">
+                        <BellRing className="w-4 h-4 text-emerald-600" />
+                        Automação de Mensagens de Agendamento
+                      </CardTitle>
+                      <CardDescription className="text-xs text-slate-500">
+                        Disparo programado de confirmação 1 dia antes, agradecimento imediato e
+                        lembrete no dia.
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="toggle-auto" className="text-xs font-semibold text-slate-700">
+                        Automação Geral
+                      </Label>
+                      <Switch
+                        id="toggle-auto"
+                        checked={autoRemindersEnabled}
+                        onCheckedChange={setAutoRemindersEnabled}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-6 pt-5 text-xs">
+                  {/* Explanatory badge & variables guide */}
+                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                    <p className="font-semibold text-emerald-900 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      Variáveis Dinâmicas Disponíveis nos Templates:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[
+                        '{{nome_paciente}}',
+                        '{{nome_profissional}}',
+                        '{{servico}}',
+                        '{{data}}',
+                        '{{hora}}',
+                        '{{empresa}}',
+                        '{{link_confirmacao}}',
+                      ].map((v) => (
+                        <code
+                          key={v}
+                          className="px-2 py-0.5 rounded text-[11px] bg-white text-emerald-800 border border-emerald-200 font-mono"
+                        >
+                          {v}
+                        </code>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-emerald-800 leading-relaxed">
+                      O sistema substitui essas variáveis pelos dados reais de cada paciente e
+                      atendimento automaticamente.
+                    </p>
+                  </div>
+
+                  {/* 3 TEMPLATES GRID */}
+                  <div className="space-y-4">
+                    {/* TEMPLATE 1: UM DIA ANTES */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-[10px] font-mono">
+                            1
+                          </span>
+                          Mensagem de Confirmação (1 dia antes do atendimento - D-1)
+                        </Label>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                        >
+                          Disparo D-1
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Enviada automaticamente na véspera para pedir a confirmação da presença do
+                        paciente.
+                      </p>
+                      <Textarea
+                        value={templateConfirm}
+                        onChange={(e) => setTemplateConfirm(e.target.value)}
+                        placeholder="Template de confirmação..."
+                        className="text-xs font-mono h-24 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    {/* TEMPLATE 2: AGRADECIMENTO PÓS-CONFIRMAÇÃO */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-[10px] font-mono">
+                            2
+                          </span>
+                          Mensagem de Agradecimento (Após o paciente confirmar)
+                        </Label>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200"
+                        >
+                          Resposta Imediata
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Disparada assim que o paciente clica no link ou responde "1 / Sim" no
+                        WhatsApp.
+                      </p>
+                      <Textarea
+                        value={templateThanks}
+                        onChange={(e) => setTemplateThanks(e.target.value)}
+                        placeholder="Template de agradecimento..."
+                        className="text-xs font-mono h-24 resize-none leading-relaxed"
+                      />
+                    </div>
+
+                    {/* TEMPLATE 3: LEMBRETE NO MESMO DIA */}
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center text-[10px] font-mono">
+                            3
+                          </span>
+                          Mensagem de Lembrete (No mesmo dia do atendimento - D-0)
+                        </Label>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] bg-amber-50 text-amber-700 border-amber-200"
+                        >
+                          Disparo D-0
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Disparada no dia agendado para reforçar o horário e orientações de chegada.
+                      </p>
+                      <Textarea
+                        value={templateReminder}
+                        onChange={(e) => setTemplateReminder(e.target.value)}
+                        placeholder="Template de lembrete no dia..."
+                        className="text-xs font-mono h-24 resize-none leading-relaxed"
+                      />
+                    </div>
+                  </div>
+
+                  {/* EXECUÇÃO & FILA DE PRÓXIMAS MENSAGENS PROGRAMADAS */}
+                  <div className="space-y-3 pt-3 border-t border-slate-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-xs font-bold text-slate-900 block">
+                          Fila de Próximas Mensagens Programadas (Próximas 48 horas)
+                        </Label>
+                        <p className="text-[11px] text-slate-500">
+                          Varredura automática por cron job do Skip Cloud rodando a cada 15 minutos.
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="text-[11px] font-mono">
+                        {upcomingMessages.length} agendamento(s) no radar
+                      </Badge>
+                    </div>
+
+                    {loadingUpcoming ? (
+                      <div className="p-6 text-center text-slate-400">
+                        <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-emerald-600" />
+                        <span className="text-xs">Carregando fila de disparos...</span>
+                      </div>
+                    ) : upcomingMessages.length === 0 ? (
+                      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-center text-xs">
+                        Nenhum agendamento agendado ou confirmado para as próximas 48 horas nesta
+                        empresa.
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                        {upcomingMessages.map((m) => {
+                          const hasSentReq = Boolean(m.notifications_sent['CONFIRMATION_REQUEST'])
+                          const hasSentThanks = Boolean(m.notifications_sent['CONFIRMATION_THANKS'])
+                          const hasSentRem = Boolean(m.notifications_sent['DAY_REMINDER'])
+
+                          return (
+                            <div
+                              key={m.id}
+                              className="p-3 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs"
+                            >
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-slate-900">
+                                    {m.client_name}
+                                  </span>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] ${
+                                      m.status === 'CONFIRMADO'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    {m.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-[11px] text-slate-500">
+                                  {m.service_name} com {m.professional_name} •{' '}
+                                  <span className="font-mono text-slate-700 font-semibold">
+                                    {m.date} às {m.start_time}
+                                  </span>
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-500 font-medium">
+                                  {m.type}:
+                                </span>
+                                {hasSentReq || hasSentRem ? (
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                                    ✓ Disparado
+                                  </Badge>
+                                ) : metaStatus?.is_configured ? (
+                                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[10px]">
+                                    Programado
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-amber-50 text-amber-800 border-amber-300 text-[10px]"
+                                  >
+                                    Fila (Aguardando Meta)
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-3 border-t border-slate-200 flex justify-end bg-slate-50">
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={savingSettings}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+                  >
+                    <Save className="w-3.5 h-3.5 mr-1.5" />
+                    {savingSettings ? 'Salvando...' : 'Salvar Templates e Regras de Mensagem'}
                   </Button>
                 </CardFooter>
               </form>

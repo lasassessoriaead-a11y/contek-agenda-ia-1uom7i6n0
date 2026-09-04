@@ -44,6 +44,10 @@ export interface BusinessSettings {
   whatsapp_phone_number?: string
   whatsapp_welcome_message?: string
   whatsapp_phone_number_id?: string
+  auto_reminders_enabled?: boolean
+  template_confirmation_request?: string
+  template_confirmation_thanks?: string
+  template_day_reminder?: string
   created: string
   updated: string
 }
@@ -131,6 +135,8 @@ export interface Appointment {
   notes?: string
   client_name_snapshot?: string
   client_phone_snapshot?: string
+  confirmation_token?: string
+  notifications_sent?: Record<string, string>
   created: string
   updated: string
   expand?: {
@@ -138,6 +144,24 @@ export interface Appointment {
     professional_id?: Professional
     service_id?: Service
     organization_id?: Organization
+  }
+}
+
+export interface NotificationLog {
+  id: string
+  organization_id: string
+  appointment_id?: string
+  type: 'CONFIRMATION_REQUEST' | 'CONFIRMATION_THANKS' | 'DAY_REMINDER' | 'MANUAL_WA'
+  channel: 'WHATSAPP_AUTO' | 'WHATSAPP_MANUAL' | 'WEB'
+  status: 'SENT' | 'PENDING_NO_CREDENTIALS' | 'FAILED'
+  recipient_phone?: string
+  recipient_name?: string
+  message_text?: string
+  payload?: Record<string, unknown>
+  created: string
+  updated: string
+  expand?: {
+    appointment_id?: Appointment
   }
 }
 

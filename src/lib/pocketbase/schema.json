@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-03T15:11:55.707Z",
+  "generatedAt": "2026-09-04T13:49:40.295Z",
   "collections": [
     {
       "name": "users",
@@ -607,11 +607,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "confirmation_token",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notifications_sent",
+          "type": "json",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_appointments_org_date ON appointments (organization_id, date)",
-        "CREATE INDEX idx_appointments_prof_date ON appointments (professional_id, date)"
+        "CREATE INDEX idx_appointments_prof_date ON appointments (professional_id, date)",
+        "CREATE INDEX `idx_appointments_confirmation_token` ON `appointments` (confirmation_token)"
       ]
     },
     {
@@ -815,10 +828,129 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "auto_reminders_enabled",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "template_confirmation_request",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "template_confirmation_thanks",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "template_day_reminder",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX idx_business_settings_org ON business_settings (organization_id)"
+      ]
+    },
+    {
+      "name": "notification_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "organization_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "appointment_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "appointments"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "CONFIRMATION_REQUEST",
+            "CONFIRMATION_THANKS",
+            "DAY_REMINDER",
+            "MANUAL_WA"
+          ]
+        },
+        {
+          "name": "channel",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["WHATSAPP_AUTO", "WHATSAPP_MANUAL", "WEB"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["SENT", "PENDING_NO_CREDENTIALS", "FAILED"]
+        },
+        {
+          "name": "recipient_phone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recipient_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "message_text",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payload",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_notif_logs_org ON notification_logs (organization_id, created DESC)",
+        "CREATE INDEX idx_notif_logs_appt ON notification_logs (appointment_id, type)"
       ]
     }
   ]

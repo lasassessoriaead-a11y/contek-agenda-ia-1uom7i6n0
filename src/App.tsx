@@ -12,6 +12,7 @@ import Financeiro from '@/pages/Financeiro'
 import AssistenteIa from '@/pages/AssistenteIa'
 import Configuracoes from '@/pages/Configuracoes'
 import AgendamentoPublico from '@/pages/AgendamentoPublico'
+import ConfirmacaoPublica from '@/pages/ConfirmacaoPublica'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -44,6 +45,9 @@ export function App() {
           {/* Public Booking Route (/agendar/:slug) */}
           <Route path="/agendar/:slug" element={<AgendamentoPublico />} />
           <Route path="/book/:slug" element={<AgendamentoPublico />} />
+
+          {/* Public Appointment Confirmation Route (/confirmar/:token) */}
+          <Route path="/confirmar/:token" element={<ConfirmacaoPublica />} />
 
           {/* Login / Signup Route */}
           <Route path="/login" element={<Login />} />
