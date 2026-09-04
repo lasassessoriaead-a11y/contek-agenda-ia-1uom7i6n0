@@ -65,7 +65,7 @@ export const AssistenteIa: React.FC = () => {
     setLoading(true)
 
     try {
-      // Call native Skip Cloud AI hook or fallback to smart assistant response
+      // Call native Skip Cloud AI hook (strictly isolated per user's organization)
       const token = pb.authStore.token
       const response = await fetch(`${import.meta.env.VITE_POCKETBASE_URL}/backend/v1/ai-chat`, {
         method: 'POST',
@@ -92,31 +92,18 @@ export const AssistenteIa: React.FC = () => {
           },
         ])
       } else {
-        // Fallback intelligent business consultant response
-        setTimeout(() => {
-          let reply = `Com base nos dados de ${organization?.name || 'seu estabelecimento'}, sua agenda está organizada com horários sincronizados e link público ativo. Para otimizar o faturamento, recomendo confirmar os agendamentos matinais via WhatsApp para garantir presença e preencher eventuais lacunas.`
-          if (
-            textToSend.toLowerCase().includes('hoje') ||
-            textToSend.toLowerCase().includes('agenda')
-          ) {
-            reply = `Para hoje, recomendo verificar os agendamentos marcados como CONFIRMADO e EM ATENDIMENTO no painel da Agenda para registrar o faturamento logo após a conclusão.`
-          } else if (
-            textToSend.toLowerCase().includes('faturamento') ||
-            textToSend.toLowerCase().includes('mês')
-          ) {
-            reply = `Você pode acompanhar o faturamento diário, semanal e mensal detalhadamente no menu Financeiro, visualizando pagamentos em PIX, Cartão e Dinheiro.`
-          }
-
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 1).toString(),
-              sender: 'assistant',
-              text: reply,
-              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            },
-          ])
-        }, 600)
+        const errData = await response.json().catch(() => null)
+        const errMsg = errData?.error || 'Erro ao consultar o assistente IA.'
+        toast.error(errMsg)
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'assistant',
+            text: `Não consegui processar a consulta no momento: ${errMsg}`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          },
+        ])
       }
     } catch (err) {
       console.error(err)

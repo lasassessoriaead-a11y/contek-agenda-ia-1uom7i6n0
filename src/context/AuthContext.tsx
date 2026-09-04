@@ -61,30 +61,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Error loading organization:', err)
-      // Fallback: try to fetch first available organization
-      try {
-        const fallback = await pb.collection('organizations').getFirstListItem<Organization>('')
-        setOrganization(fallback)
-      } catch {
-        /* intentionally ignored */
-      }
+      setOrganization(null)
     }
   }, [])
 
   const refreshOrganization = useCallback(async () => {
     if (!user?.organization_id) {
-      try {
-        const firstOrg = await pb.collection('organizations').getFirstListItem<Organization>('')
-        if (firstOrg) {
-          await loadOrgAndSettings(firstOrg.id)
+      // Check user membership in organization_users before assuming anything
+      if (user?.id) {
+        try {
+          const userOrg = await pb
+            .collection('organization_users')
+            .getFirstListItem(`user_id = "${user.id}"`)
+          if (userOrg && userOrg.organization_id) {
+            await loadOrgAndSettings(userOrg.organization_id)
+            return
+          }
+        } catch {
+          /* intentionally ignored */
         }
-      } catch {
-        /* intentionally ignored */
       }
       return
     }
     await loadOrgAndSettings(user.organization_id)
-  }, [user?.organization_id, loadOrgAndSettings])
+  }, [user?.organization_id, user?.id, loadOrgAndSettings])
 
   useEffect(() => {
     const unsub = pb.authStore.onChange(async (_, model) => {
@@ -93,11 +93,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(u)
         if (u.organization_id) {
           await loadOrgAndSettings(u.organization_id)
-        } else {
-          // If user has no org yet, try to find one
+        } else if (u.id) {
+          // Check organization_users membership
           try {
-            const org = await pb.collection('organizations').getFirstListItem<Organization>('')
-            await loadOrgAndSettings(org.id)
+            const userOrg = await pb
+              .collection('organization_users')
+              .getFirstListItem(`user_id = "${u.id}"`)
+            if (userOrg && userOrg.organization_id) {
+              await loadOrgAndSettings(userOrg.organization_id)
+            }
           } catch {
             /* intentionally ignored */
           }
@@ -116,11 +120,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(u)
       if (u.organization_id) {
         loadOrgAndSettings(u.organization_id).finally(() => setLoading(false))
-      } else {
-        pb.collection('organizations')
-          .getFirstListItem<Organization>('')
-          .then((org) => loadOrgAndSettings(org.id))
+      } else if (u.id) {
+        pb.collection('organization_users')
+          .getFirstListItem(`user_id = "${u.id}"`)
+          .then((orgUser) => {
+            if (orgUser && orgUser.organization_id) {
+              return loadOrgAndSettings(orgUser.organization_id)
+            }
+          })
+          .catch(() => {})
           .finally(() => setLoading(false))
+      } else {
+        setLoading(false)
       }
     } else {
       setLoading(false)
@@ -135,11 +146,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(u)
     if (u.organization_id) {
       await loadOrgAndSettings(u.organization_id)
-    } else {
-      const org = await pb.collection('organizations').getFirstListItem<Organization>('')
-      if (org) {
-        await pb.collection('users').update(u.id, { organization_id: org.id })
-        await loadOrgAndSettings(org.id)
+    } else if (u.id) {
+      try {
+        const orgUser = await pb
+          .collection('organization_users')
+          .getFirstListItem(`user_id = "${u.id}"`)
+        if (orgUser && orgUser.organization_id) {
+          await pb.collection('users').update(u.id, { organization_id: orgUser.organization_id })
+          await loadOrgAndSettings(orgUser.organization_id)
+        }
+      } catch {
+        /* intentionally ignored */
       }
     }
   }

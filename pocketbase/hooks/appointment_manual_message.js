@@ -12,9 +12,10 @@ routerAdd(
       const messageType = body.type || 'CONFIRMATION_REQUEST' // CONFIRMATION_REQUEST | CONFIRMATION_THANKS | DAY_REMINDER
       const markAsSent = Boolean(body.mark_as_sent)
 
+      const authUser = e.auth
       console.log(
         '[Manual Message] Request received:',
-        JSON.stringify({ appointmentId, messageType, markAsSent }),
+        JSON.stringify({ appointmentId, messageType, markAsSent, authUserId: authUser?.id }),
       )
 
       if (!appointmentId) {
@@ -30,6 +31,13 @@ routerAdd(
       }
 
       const orgId = appt.getString('organization_id')
+      if (
+        authUser &&
+        authUser.getString('organization_id') &&
+        authUser.getString('organization_id') !== orgId
+      ) {
+        return e.json(403, { error: 'Acesso negado: agendamento pertence a outra organização.' })
+      }
       const siteUrl = $os.getenv('SITE_URL') || 'https://contekagenda.com.br'
 
       // Check confirmation token
