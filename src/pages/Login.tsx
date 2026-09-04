@@ -22,6 +22,9 @@ import {
   Mail,
   Building2,
   User,
+  KeyRound,
+  ArrowLeft,
+  AlertCircle,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
@@ -46,6 +49,13 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('Skip@Pass')
   const [loadingLogin, setLoadingLogin] = useState(false)
 
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [loadingForgot, setLoadingForgot] = useState(false)
+  const [forgotSuccessEmail, setForgotSuccessEmail] = useState<string | null>(null)
+  const [forgotErrorMessage, setForgotErrorMessage] = useState<string | null>(null)
+
   // Self-service signup state
   const [signupOrgName, setSignupOrgName] = useState('')
   const [signupName, setSignupName] = useState('')
@@ -66,6 +76,49 @@ export const Login: React.FC = () => {
     initialDetectedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
   )
   const [loadingManual, setLoadingManual] = useState(false)
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const targetEmail = forgotEmail.trim()
+    if (!targetEmail) {
+      toast.error('Informe o e-mail da sua conta.')
+      return
+    }
+
+    setLoadingForgot(true)
+    setForgotErrorMessage(null)
+
+    try {
+      await pb.collection('users').requestPasswordReset(targetEmail)
+      setForgotSuccessEmail(targetEmail)
+      toast.success('Solicitação de redefinição de senha enviada!')
+    } catch (err: unknown) {
+      console.error('Password reset error:', err)
+      // Tratamento amigável e defensivo
+      // PocketBase retorna status 400 ou 404 para e-mail inexistente/inválido ou 500 se o servidor de e-mail falhar
+      const status = (err as { status?: number; response?: { message?: string } })?.status
+      const msg = (err as { message?: string })?.message || ''
+
+      if (
+        status === 404 ||
+        status === 400 ||
+        msg.toLowerCase().includes('not found') ||
+        msg.toLowerCase().includes('user')
+      ) {
+        setForgotErrorMessage(
+          'Não encontramos nenhuma conta com este e-mail. Verifique o endereço digitado.',
+        )
+        toast.error('E-mail não encontrado.')
+      } else {
+        setForgotErrorMessage(
+          'Não foi possível enviar o e-mail de redefinição no momento (servidor de e-mails em manutenção ou não configurado). Por favor, entre em contato com o suporte da Contek para redefinir sua senha.',
+        )
+        toast.error('Falha no envio do e-mail de redefinição.')
+      }
+    } finally {
+      setLoadingForgot(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -347,145 +400,320 @@ export const Login: React.FC = () => {
 
             {/* TAB 1: LOGIN */}
             <TabsContent value="login">
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4 pt-1">
-                  <div className="text-center pb-1">
-                    <h2
-                      className={`text-lg font-bold tracking-tight ${
-                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-white'
+              {showForgotPassword ? (
+                /* Sub-fluxo: Recuperação de Senha */
+                <form onSubmit={handleForgotPassword}>
+                  <CardContent className="space-y-4 pt-1">
+                    <div className="text-center pb-1">
+                      <div
+                        className={`inline-flex items-center justify-center w-10 h-10 rounded-full mb-2 ${
+                          activeBrand === 'markaly'
+                            ? 'bg-[#FEF3E2] text-[#F97316]'
+                            : 'bg-blue-950/60 text-blue-400 border border-blue-800/40'
+                        }`}
+                      >
+                        <KeyRound className="w-5 h-5" />
+                      </div>
+                      <h2
+                        className={`text-lg font-bold tracking-tight ${
+                          activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-white'
+                        }`}
+                      >
+                        Recuperar Senha
+                      </h2>
+                      <p
+                        className={`text-xs mt-1 ${
+                          activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
+                        }`}
+                      >
+                        Informe seu e-mail cadastrado para enviarmos as instruções de redefinição
+                      </p>
+                    </div>
+
+                    {forgotSuccessEmail ? (
+                      <div
+                        className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+                          activeBrand === 'markaly'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                            : 'bg-emerald-950/40 border-emerald-800/50 text-emerald-200'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-semibold text-sm">E-mail enviado com sucesso!</p>
+                            <p className="mt-1 text-xs">
+                              Enviamos um link de redefinição para o seu e-mail{' '}
+                              <b className="underline font-semibold">{forgotSuccessEmail}</b>.
+                            </p>
+                            <p className="mt-1 text-[11px] opacity-90">
+                              Verifique sua caixa de entrada e a pasta de spam. Siga as instruções
+                              do link recebido para cadastrar sua nova senha.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {forgotErrorMessage && (
+                          <div
+                            className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                              activeBrand === 'markaly'
+                                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                                : 'bg-amber-950/40 border-amber-800/50 text-amber-200'
+                            }`}
+                          >
+                            <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                            <p className="leading-relaxed">{forgotErrorMessage}</p>
+                          </div>
+                        )}
+
+                        <div className="space-y-1.5">
+                          <Label
+                            htmlFor="forgot-email"
+                            className={`text-xs font-medium flex items-center gap-1.5 ${
+                              activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
+                            }`}
+                          >
+                            <Mail
+                              className={`w-3.5 h-3.5 ${
+                                activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
+                              }`}
+                            />
+                            E-mail da sua conta
+                          </Label>
+                          <Input
+                            id="forgot-email"
+                            type="email"
+                            value={forgotEmail}
+                            onChange={(e) => setForgotEmail(e.target.value)}
+                            placeholder="seu@email.com"
+                            required
+                            autoFocus
+                            className={`rounded-xl h-11 ${
+                              activeBrand === 'markaly'
+                                ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
+                                : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
+                            }`}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+
+                  <CardFooter className="flex flex-col gap-3 pt-2">
+                    {!forgotSuccessEmail ? (
+                      <Button
+                        type="submit"
+                        disabled={loadingForgot}
+                        className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl transition-all ${
+                          activeBrand === 'markaly'
+                            ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
+                            : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                        }`}
+                      >
+                        {loadingForgot ? 'Enviando solicitação...' : 'Enviar link de redefinição'}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setForgotSuccessEmail(null)
+                          setForgotErrorMessage(null)
+                          setShowForgotPassword(false)
+                        }}
+                        className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl transition-all ${
+                          activeBrand === 'markaly'
+                            ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
+                            : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                        }`}
+                      >
+                        Voltar para o login
+                        <ArrowLeft className="w-4 h-4 ml-2" />
+                      </Button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotPassword(false)
+                        setForgotErrorMessage(null)
+                        setForgotSuccessEmail(null)
+                      }}
+                      className={`inline-flex items-center justify-center gap-1.5 text-xs font-medium py-1 transition-colors hover:underline ${
+                        activeBrand === 'markaly'
+                          ? 'text-[#3B0764] hover:text-[#F97316]'
+                          : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      Bem-vindo(a)
-                    </h2>
-                    <p
-                      className={`text-xs ${
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Voltar para tela de acesso</span>
+                    </button>
+                  </CardFooter>
+                </form>
+              ) : (
+                /* Formulário Normal de Login */
+                <form onSubmit={handleLogin}>
+                  <CardContent className="space-y-4 pt-1">
+                    <div className="text-center pb-1">
+                      <h2
+                        className={`text-lg font-bold tracking-tight ${
+                          activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-white'
+                        }`}
+                      >
+                        Bem-vindo(a)
+                      </h2>
+                      <p
+                        className={`text-xs ${
+                          activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
+                        }`}
+                      >
+                        Acesse sua conta para continuar
+                      </p>
+                    </div>
+
+                    {import.meta.env.DEV && (
+                      <div
+                        className={`p-3 rounded-xl flex items-center gap-3 text-xs ${
+                          activeBrand === 'markaly'
+                            ? 'bg-[#FEF3E2] border border-orange-200 text-[#3B0764]'
+                            : 'bg-blue-950/40 border border-blue-800/40 text-blue-200'
+                        }`}
+                      >
+                        <ShieldCheck
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
+                          }`}
+                        />
+                        <div>
+                          <p className="font-semibold">
+                            Acesso de Demonstração (Ambiente Dev/Preview):
+                          </p>
+                          <p
+                            className={
+                              activeBrand === 'markaly' ? 'text-slate-600' : 'text-blue-300'
+                            }
+                          >
+                            E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="login-email"
+                        className={`text-xs font-medium flex items-center gap-1.5 ${
+                          activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
+                        }`}
+                      >
+                        <Mail
+                          className={`w-3.5 h-3.5 ${
+                            activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
+                          }`}
+                        />
+                        E-mail
+                      </Label>
+                      <Input
+                        id="login-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="seu@email.com"
+                        required
+                        className={`rounded-xl h-11 ${
+                          activeBrand === 'markaly'
+                            ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
+                            : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
+                        }`}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label
+                          htmlFor="login-password"
+                          className={`text-xs font-medium flex items-center gap-1.5 ${
+                            activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
+                          }`}
+                        >
+                          <Lock
+                            className={`w-3.5 h-3.5 ${
+                              activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
+                            }`}
+                          />
+                          Senha
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForgotEmail(email || '')
+                            setForgotErrorMessage(null)
+                            setForgotSuccessEmail(null)
+                            setShowForgotPassword(true)
+                          }}
+                          className={`text-xs font-medium transition-colors hover:underline ${
+                            activeBrand === 'markaly'
+                              ? 'text-[#F97316] hover:text-[#EA580C]'
+                              : 'text-blue-400 hover:text-blue-300'
+                          }`}
+                        >
+                          Esqueci minha senha
+                        </button>
+                      </div>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className={`rounded-xl h-11 ${
+                          activeBrand === 'markaly'
+                            ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
+                            : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
+                        }`}
+                      />
+                    </div>
+                  </CardContent>
+
+                  <CardFooter className="flex flex-col gap-3 pt-2">
+                    <Button
+                      type="submit"
+                      disabled={loadingLogin}
+                      className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl transition-all ${
+                        activeBrand === 'markaly'
+                          ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
+                          : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                      }`}
+                    >
+                      {loadingLogin
+                        ? 'Entrando no sistema...'
+                        : activeBrand === 'markaly'
+                          ? 'Entrar no MARKALY'
+                          : 'Entrar no AGYLI'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+
+                    <div
+                      className={`text-center text-xs pt-1 ${
                         activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
                       }`}
                     >
-                      Acesse sua conta para continuar
-                    </p>
-                  </div>
-
-                  {import.meta.env.DEV && (
-                    <div
-                      className={`p-3 rounded-xl flex items-center gap-3 text-xs ${
-                        activeBrand === 'markaly'
-                          ? 'bg-[#FEF3E2] border border-orange-200 text-[#3B0764]'
-                          : 'bg-blue-950/40 border border-blue-800/40 text-blue-200'
-                      }`}
-                    >
-                      <ShieldCheck
-                        className={`w-5 h-5 flex-shrink-0 ${
+                      Quer ver a página pública de agendamento?{' '}
+                      <Link
+                        to="/agendar/contek-demo"
+                        className={`hover:underline font-medium ${
                           activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
                         }`}
-                      />
-                      <div>
-                        <p className="font-semibold">
-                          Acesso de Demonstração (Ambiente Dev/Preview):
-                        </p>
-                        <p
-                          className={activeBrand === 'markaly' ? 'text-slate-600' : 'text-blue-300'}
-                        >
-                          E-mail: <b>luka2510@hotmail.com</b> | Senha: <b>Skip@Pass</b>
-                        </p>
-                      </div>
+                      >
+                        Ver /agendar/contek-demo
+                      </Link>
                     </div>
-                  )}
-
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="login-email"
-                      className={`text-xs font-medium flex items-center gap-1.5 ${
-                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
-                      }`}
-                    >
-                      <Mail
-                        className={`w-3.5 h-3.5 ${
-                          activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
-                        }`}
-                      />
-                      E-mail
-                    </Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      required
-                      className={`rounded-xl h-11 ${
-                        activeBrand === 'markaly'
-                          ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
-                          : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
-                      }`}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="login-password"
-                      className={`text-xs font-medium flex items-center gap-1.5 ${
-                        activeBrand === 'markaly' ? 'text-[#3B0764]' : 'text-slate-300'
-                      }`}
-                    >
-                      <Lock
-                        className={`w-3.5 h-3.5 ${
-                          activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-blue-400'
-                        }`}
-                      />
-                      Senha
-                    </Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className={`rounded-xl h-11 ${
-                        activeBrand === 'markaly'
-                          ? 'bg-[#F8FAFC] border-slate-300 text-slate-900 focus-visible:ring-[#F97316]'
-                          : 'bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]'
-                      }`}
-                    />
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex flex-col gap-3 pt-2">
-                  <Button
-                    type="submit"
-                    disabled={loadingLogin}
-                    className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl transition-all ${
-                      activeBrand === 'markaly'
-                        ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/20'
-                        : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
-                    }`}
-                  >
-                    {loadingLogin
-                      ? 'Entrando no sistema...'
-                      : activeBrand === 'markaly'
-                        ? 'Entrar no MARKALY'
-                        : 'Entrar no AGYLI'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-
-                  <div
-                    className={`text-center text-xs pt-1 ${
-                      activeBrand === 'markaly' ? 'text-slate-500' : 'text-slate-400'
-                    }`}
-                  >
-                    Quer ver a página pública de agendamento?{' '}
-                    <Link
-                      to="/agendar/contek-demo"
-                      className={`hover:underline font-medium ${
-                        activeBrand === 'markaly' ? 'text-[#F97316]' : 'text-[#3B82F6]'
-                      }`}
-                    >
-                      Ver /agendar/contek-demo
-                    </Link>
-                  </div>
-                </CardFooter>
-              </form>
+                  </CardFooter>
+                </form>
+              )}
             </TabsContent>
 
             {/* TAB 2: SELF-SERVICE SIGNUP */}
