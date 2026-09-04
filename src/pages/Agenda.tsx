@@ -556,6 +556,18 @@ export const Agenda: React.FC = () => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
   }
 
+  // Format short date in pt-BR: dd/MM
+  const formatShortDate = (dateVal?: string) => {
+    if (!dateVal) return ''
+    try {
+      const clean = dateVal.slice(0, 10)
+      const parsed = parseISO(clean)
+      return format(parsed, 'dd/MM')
+    } catch {
+      return dateVal.slice(0, 10)
+    }
+  }
+
   // Generate hourly time slots for Day View (08:00 to 20:00)
   const timeSlots = [
     '08:00',
@@ -597,208 +609,272 @@ export const Agenda: React.FC = () => {
   const monthEnd = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 1 })
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd })
 
+  // Pacientes com status AGENDADO que ainda não receberam mensagem de confirmação
+  const needConfirmationList = useMemo(() => {
+    return filteredAppointments.filter((a) => {
+      if (a.status !== 'AGENDADO') return false
+      const sent = (a.notifications_sent as Record<string, string>) || {}
+      return !sent['CONFIRMATION_REQUEST']
+    })
+  }, [filteredAppointments])
+
   return (
-    <div className="space-y-5 max-w-7xl mx-auto">
+    <div className="space-y-4 max-w-7xl mx-auto w-full min-w-0">
       {/* TOP CONTROLS & HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
-            <Button variant="ghost" size="icon" onClick={handlePrev} className="h-8 w-8">
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToday}
-              className="text-xs font-semibold px-2.5 h-8"
-            >
-              Hoje
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleNext} className="h-8 w-8">
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+      <div className="flex flex-col gap-3 pb-3 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          {/* Navegação e Título */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap min-w-0">
+            <div className="inline-flex items-center bg-white border border-slate-200 rounded-lg p-1 shadow-sm shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handlePrev}
+                className="h-8 w-8 text-slate-700 hover:text-slate-900"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToday}
+                className="text-xs font-semibold px-2.5 h-8 text-slate-700 hover:text-slate-900"
+              >
+                Hoje
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleNext}
+                className="h-8 w-8 text-slate-700 hover:text-slate-900"
+                aria-label="Próximo"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {/* Título compacto e responsivo */}
+              <h1 className="text-base sm:text-lg md:text-xl font-bold tracking-tight text-slate-900 leading-tight">
+                {viewMode === 'day' && (
+                  <>
+                    <span className="sm:hidden capitalize">
+                      {format(currentDate, 'EEE, dd MMM yyyy', { locale: ptBR })}
+                    </span>
+                    <span className="hidden sm:inline capitalize">
+                      {format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </span>
+                  </>
+                )}
+                {viewMode === 'week' &&
+                  `Semana: ${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM/yyyy')}`}
+                {viewMode === 'month' && (
+                  <span className="capitalize">
+                    {format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                  </span>
+                )}
+              </h1>
+              <p className="text-[11px] sm:text-xs text-slate-500 font-medium">
+                {dayAppointments.length} agendamentos visualizados
+              </p>
+            </div>
           </div>
 
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 capitalize">
-              {viewMode === 'day' && format(currentDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
-              {viewMode === 'week' &&
-                `Semana: ${format(weekStart, 'dd/MM')} a ${format(weekEnd, 'dd/MM/yyyy')}`}
-              {viewMode === 'month' && format(currentDate, "MMMM 'de' yyyy", { locale: ptBR })}
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              {dayAppointments.length} agendamentos visualizados
-            </p>
+          {/* View Mode Tabs */}
+          <div className="shrink-0 self-start sm:self-auto">
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) => setViewMode(v as 'day' | 'week' | 'month')}
+              className="w-auto"
+            >
+              <TabsList className="bg-slate-200/80 p-0.5 h-8 sm:h-9">
+                <TabsTrigger value="day" className="text-xs px-2.5 sm:px-3">
+                  Dia
+                </TabsTrigger>
+                <TabsTrigger value="week" className="text-xs px-2.5 sm:px-3">
+                  Semana
+                </TabsTrigger>
+                <TabsTrigger value="month" className="text-xs px-2.5 sm:px-3">
+                  Mês
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
 
-        {/* CARD DE AGENDAMENTOS QUE PRECISAM DE CONFIRMAÇÃO (VÉSPERA / PENDENTES) */}
-        {(() => {
-          const needConfirmation = filteredAppointments.filter((a) => {
-            if (a.status !== 'AGENDADO') return false
-            const sent = (a.notifications_sent as Record<string, string>) || {}
-            return !sent['CONFIRMATION_REQUEST']
-          })
-
-          if (needConfirmation.length === 0) return null
-
-          return (
-            <div className="p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BellRing className="w-4 h-4 text-amber-700" />
-                  <span className="text-xs font-bold text-amber-900">
-                    {needConfirmation.length} Agendamento(s) Aguardando Confirmação
-                  </span>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] bg-white text-amber-800 border-amber-300"
-                >
-                  Disparo Manual Rápido
-                </Badge>
-              </div>
-              <p className="text-[11px] text-amber-800">
-                Pacientes com status "Agendado" que ainda não receberam mensagem de confirmação.
-                Você pode disparar via WhatsApp com um clique:
-              </p>
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                {needConfirmation.slice(0, 4).map((item) => {
-                  const cName =
-                    item.expand?.client_id?.name || item.client_name_snapshot || 'Paciente'
-                  const rawD = item.date ? item.date.slice(0, 10) : ''
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-amber-200 text-xs shadow-xs"
-                    >
-                      <span className="font-semibold text-slate-800">{cName}</span>
-                      <span className="font-mono text-[10px] text-slate-500">
-                        {rawD} às {item.start_time}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openManualWaModal(item, 'CONFIRMATION_REQUEST')}
-                        className="h-6 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold"
-                      >
-                        <Send className="w-3 h-3 mr-1" />
-                        Enviar WA
-                      </Button>
-                    </div>
-                  )
-                })}
-                {needConfirmation.length > 4 && (
-                  <div className="text-[11px] text-amber-700 font-medium self-center">
-                    +{needConfirmation.length - 4} outros pacientes na lista
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* View Switcher & Action */}
-        <div className="flex flex-wrap items-center gap-2">
-          {' '}
+        {/* Linha de Filtros e Botão Novo Agendamento */}
+        <div className="flex flex-wrap items-center gap-2 w-full">
           {/* Professional filter */}
-          <Select value={selectedProfFilter} onValueChange={setSelectedProfFilter}>
-            <SelectTrigger className="w-[160px] h-9 text-xs bg-white">
-              <SelectValue placeholder="Profissional" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Profissionais</SelectItem>
-              {professionals.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex-1 min-w-[140px] sm:max-w-[180px]">
+            <Select value={selectedProfFilter} onValueChange={setSelectedProfFilter}>
+              <SelectTrigger className="w-full h-8 sm:h-9 text-xs bg-white">
+                <SelectValue placeholder="Profissional" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Profissionais</SelectItem>
+                {professionals.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Status filter */}
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] h-9 text-xs bg-white">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos Status</SelectItem>
-              <SelectItem value="AGENDADO">Agendado</SelectItem>
-              <SelectItem value="CONFIRMADO">Confirmado</SelectItem>
-              <SelectItem value="EM ATENDIMENTO">Em Atendimento</SelectItem>
-              <SelectItem value="CONCLUÍDO">Concluído</SelectItem>
-              <SelectItem value="CANCELADO">Cancelado</SelectItem>
-              <SelectItem value="FALTOU">Faltou</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* View Mode Tabs */}
-          <Tabs
-            value={viewMode}
-            onValueChange={(v) => setViewMode(v as 'day' | 'week' | 'month')}
-            className="w-auto"
-          >
-            <TabsList className="bg-slate-200/80 p-0.5 h-9">
-              <TabsTrigger value="day" className="text-xs px-3">
-                Dia
-              </TabsTrigger>
-              <TabsTrigger value="week" className="text-xs px-3">
-                Semana
-              </TabsTrigger>
-              <TabsTrigger value="month" className="text-xs px-3">
-                Mês
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex-1 min-w-[130px] sm:max-w-[160px]">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full h-8 sm:h-9 text-xs bg-white">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                <SelectItem value="AGENDADO">Agendado</SelectItem>
+                <SelectItem value="CONFIRMADO">Confirmado</SelectItem>
+                <SelectItem value="EM ATENDIMENTO">Em Atendimento</SelectItem>
+                <SelectItem value="CONCLUÍDO">Concluído</SelectItem>
+                <SelectItem value="CANCELADO">Cancelado</SelectItem>
+                <SelectItem value="FALTOU">Faltou</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Botão Agendar */}
           <Button
             size="sm"
             onClick={() => openCreateModal()}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm h-9"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-sm h-8 sm:h-9 px-3 shrink-0 ml-auto sm:ml-0"
           >
             <Plus className="w-4 h-4 mr-1" />
-            Agendar
+            <span>Agendar</span>
           </Button>
         </div>
       </div>
 
-      {/* 1. DAY VIEW */}
-      {viewMode === 'day' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-700">Horários de Atendimento</span>
-            <span className="text-xs text-slate-500">Clique em um horário para agendar</span>
-          </div>
+      {/* CORPO PRINCIPAL: LAYOUT LADO-A-LADO NO DESKTOP (XL/LG) E EMPILHADO NO MOBILE/TABLET */}
+      <div className="flex flex-col lg:flex-row items-start gap-5 w-full min-w-0">
+        {/* COLUNA PRINCIPAL DA AGENDA (GRADE) */}
+        <div className="flex-1 min-w-0 w-full space-y-4">
+          {/* 1. DAY VIEW */}
+          {viewMode === 'day' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700">
+                  Horários de Atendimento
+                </span>
+                <span className="text-xs text-slate-500">Clique em um horário para agendar</span>
+              </div>
 
-          <div className="divide-y divide-slate-100">
-            {timeSlots.map((time) => {
-              const apptsAtSlot = dayAppointments.filter((a) => a.start_time === time)
+              <div className="divide-y divide-slate-100">
+                {timeSlots.map((time) => {
+                  const apptsAtSlot = dayAppointments.filter((a) => a.start_time === time)
 
-              return (
-                <div
-                  key={time}
-                  className="flex items-stretch min-h-[56px] hover:bg-slate-50/60 transition-colors group"
-                >
-                  {/* Time label */}
-                  <div className="w-20 p-2.5 bg-slate-50/50 border-r border-slate-100 text-xs font-mono font-semibold text-slate-600 flex items-center justify-center flex-shrink-0">
-                    {time}
-                  </div>
+                  return (
+                    <div
+                      key={time}
+                      className="flex items-stretch min-h-[56px] hover:bg-slate-50/60 transition-colors group"
+                    >
+                      {/* Time label */}
+                      <div className="w-16 sm:w-20 p-2 sm:p-2.5 bg-slate-50/50 border-r border-slate-100 text-xs font-mono font-semibold text-slate-600 flex items-center justify-center shrink-0">
+                        {time}
+                      </div>
 
-                  {/* Slot content */}
-                  <div className="flex-1 p-1.5 flex flex-wrap gap-2 items-center">
-                    {apptsAtSlot.length === 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => openCreateModal(currentDate, time)}
-                        className="w-full h-full py-2 px-3 text-left text-xs text-slate-300 group-hover:text-emerald-700 rounded transition-colors flex items-center gap-1.5 opacity-0 group-hover:opacity-100"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Disponível — Clique para agendar às {time}</span>
-                      </button>
-                    ) : (
-                      apptsAtSlot.map((appt) => {
+                      {/* Slot content */}
+                      <div className="flex-1 p-1.5 flex flex-wrap gap-2 items-center min-w-0">
+                        {apptsAtSlot.length === 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => openCreateModal(currentDate, time)}
+                            className="w-full h-full py-2 px-3 text-left text-xs text-slate-300 group-hover:text-emerald-700 rounded transition-colors flex items-center gap-1.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Disponível — Clique para agendar às {time}</span>
+                          </button>
+                        ) : (
+                          apptsAtSlot.map((appt) => {
+                            const clientName =
+                              appt.expand?.client_id?.name || appt.client_name_snapshot || 'Cliente'
+                            const profName = appt.expand?.professional_id?.name || 'Profissional'
+                            const servName = appt.expand?.service_id?.name || 'Serviço'
+                            const servColor = appt.expand?.service_id?.color || '#10b981'
+
+                            return (
+                              <div
+                                key={appt.id}
+                                onClick={() => {
+                                  setSelectedAppointment(appt)
+                                  setDetailsSheetOpen(true)
+                                }}
+                                style={{ borderLeftColor: servColor }}
+                                className="flex-1 min-w-[240px] sm:min-w-[280px] p-2.5 rounded-lg border-l-4 border bg-white shadow-xs hover:shadow transition-all cursor-pointer flex items-center justify-between gap-3"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="font-semibold text-xs text-slate-900 truncate">
+                                      {clientName}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                                      {appt.start_time} - {appt.end_time} ({appt.duration}min)
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 truncate">
+                                    {servName} •{' '}
+                                    <span className="text-slate-700 font-medium">{profName}</span>
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
+                                    {formatCurrency(appt.price)}
+                                  </span>
+                                  {getStatusBadge(appt.status)}
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 2. WEEK VIEW */}
+          {viewMode === 'week' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+              <div className="grid grid-cols-7 min-w-[700px] divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
+                {weekDays.map((day) => {
+                  const isCurr = isToday(day)
+                  return (
+                    <div
+                      key={day.toISOString()}
+                      className={`p-2.5 sm:p-3 text-center ${isCurr ? 'bg-emerald-50 text-emerald-950 font-bold' : 'text-slate-700'}`}
+                    >
+                      <p className="text-[11px] sm:text-xs font-medium uppercase tracking-wider">
+                        {format(day, 'EEE', { locale: ptBR })}
+                      </p>
+                      <p className="text-base sm:text-lg font-bold">{format(day, 'dd')}</p>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="grid grid-cols-7 min-w-[700px] divide-x divide-slate-100 min-h-[500px]">
+                {weekDays.map((day) => {
+                  const dayStr = format(day, 'yyyy-MM-dd')
+                  const appts = filteredAppointments.filter((a) => a.date?.startsWith(dayStr))
+
+                  return (
+                    <div
+                      key={dayStr}
+                      className="p-1.5 space-y-1.5 hover:bg-slate-50/40 transition-colors"
+                    >
+                      {appts.map((appt) => {
                         const clientName =
                           appt.expand?.client_id?.name || appt.client_name_snapshot || 'Cliente'
-                        const profName = appt.expand?.professional_id?.name || 'Profissional'
-                        const servName = appt.expand?.service_id?.name || 'Serviço'
                         const servColor = appt.expand?.service_id?.color || '#10b981'
 
                         return (
@@ -809,179 +885,167 @@ export const Agenda: React.FC = () => {
                               setDetailsSheetOpen(true)
                             }}
                             style={{ borderLeftColor: servColor }}
-                            className="flex-1 min-w-[280px] p-2.5 rounded-lg border-l-4 border bg-white shadow-sm hover:shadow transition-all cursor-pointer flex items-center justify-between gap-3"
+                            className="p-2 rounded border-l-4 border bg-white shadow-xs text-xs cursor-pointer hover:shadow-md transition-all"
                           >
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-xs text-slate-900">
-                                  {clientName}
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-mono">
-                                  {appt.start_time} - {appt.end_time} ({appt.duration}min)
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-slate-500">
-                                {servName} •{' '}
-                                <span className="text-slate-700 font-medium">{profName}</span>
-                              </p>
+                            <div className="font-mono text-[10px] font-bold text-slate-700">
+                              {appt.start_time} - {appt.end_time}
                             </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-semibold text-slate-800 hidden sm:inline">
-                                {formatCurrency(appt.price)}
-                              </span>
-                              {getStatusBadge(appt.status)}
+                            <div className="font-semibold text-slate-900 truncate">
+                              {clientName}
                             </div>
+                            <div className="text-[10px] text-slate-500 truncate">
+                              {appt.expand?.service_id?.name}
+                            </div>
+                            <div className="mt-1">{getStatusBadge(appt.status)}</div>
                           </div>
                         )
-                      })
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+                      })}
 
-      {/* 2. WEEK VIEW */}
-      {viewMode === 'week' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-          <div className="grid grid-cols-7 min-w-[800px] divide-x divide-slate-200 border-b border-slate-200 bg-slate-50">
-            {weekDays.map((day) => {
-              const isCurr = isToday(day)
-              return (
-                <div
-                  key={day.toISOString()}
-                  className={`p-3 text-center ${isCurr ? 'bg-emerald-50 text-emerald-950 font-bold' : 'text-slate-700'}`}
-                >
-                  <p className="text-xs font-medium uppercase tracking-wider">
-                    {format(day, 'EEE', { locale: ptBR })}
-                  </p>
-                  <p className="text-lg font-bold">{format(day, 'dd')}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="grid grid-cols-7 min-w-[800px] divide-x divide-slate-100 min-h-[500px]">
-            {weekDays.map((day) => {
-              const dayStr = format(day, 'yyyy-MM-dd')
-              const appts = filteredAppointments.filter((a) => a.date?.startsWith(dayStr))
-
-              return (
-                <div
-                  key={dayStr}
-                  className="p-1.5 space-y-1.5 hover:bg-slate-50/40 transition-colors"
-                >
-                  {appts.map((appt) => {
-                    const clientName =
-                      appt.expand?.client_id?.name || appt.client_name_snapshot || 'Cliente'
-                    const servColor = appt.expand?.service_id?.color || '#10b981'
-
-                    return (
-                      <div
-                        key={appt.id}
-                        onClick={() => {
-                          setSelectedAppointment(appt)
-                          setDetailsSheetOpen(true)
-                        }}
-                        style={{ borderLeftColor: servColor }}
-                        className="p-2 rounded border-l-4 border bg-white shadow-xs text-xs cursor-pointer hover:shadow-md transition-all"
+                      <button
+                        type="button"
+                        onClick={() => openCreateModal(day)}
+                        className="w-full py-1 text-center text-[10px] text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
                       >
-                        <div className="font-mono text-[10px] font-bold text-slate-700">
-                          {appt.start_time} - {appt.end_time}
-                        </div>
-                        <div className="font-semibold text-slate-900 truncate">{clientName}</div>
-                        <div className="text-[10px] text-slate-500 truncate">
-                          {appt.expand?.service_id?.name}
-                        </div>
-                        <div className="mt-1">{getStatusBadge(appt.status)}</div>
-                      </div>
-                    )
-                  })}
+                        + Agendar
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
-                  <button
-                    type="button"
-                    onClick={() => openCreateModal(day)}
-                    className="w-full py-1 text-center text-[10px] text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded transition-colors"
-                  >
-                    + Agendar
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+          {/* 3. MONTH VIEW */}
+          {viewMode === 'month' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="grid grid-cols-7 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50 text-center py-2 text-xs font-semibold text-slate-600">
+                <div>Seg</div>
+                <div>Ter</div>
+                <div>Qua</div>
+                <div>Qui</div>
+                <div>Sex</div>
+                <div>Sáb</div>
+                <div>Dom</div>
+              </div>
 
-      {/* 3. MONTH VIEW */}
-      {viewMode === 'month' && (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-7 divide-x divide-slate-200 border-b border-slate-200 bg-slate-50 text-center py-2 text-xs font-semibold text-slate-600">
-            <div>Seg</div>
-            <div>Ter</div>
-            <div>Qua</div>
-            <div>Qui</div>
-            <div>Sex</div>
-            <div>Sáb</div>
-            <div>Dom</div>
-          </div>
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
+                {monthDays.map((day) => {
+                  const dayStr = format(day, 'yyyy-MM-dd')
+                  const appts = filteredAppointments.filter((a) => a.date?.startsWith(dayStr))
+                  const isCurr = isToday(day)
+                  const isCurrentMonth = day.getMonth() === currentDate.getMonth()
 
-          <div className="grid grid-cols-7 divide-x divide-y divide-slate-100">
-            {monthDays.map((day) => {
-              const dayStr = format(day, 'yyyy-MM-dd')
-              const appts = filteredAppointments.filter((a) => a.date?.startsWith(dayStr))
-              const isCurr = isToday(day)
-              const isCurrentMonth = day.getMonth() === currentDate.getMonth()
-
-              return (
-                <div
-                  key={dayStr}
-                  onClick={() => {
-                    setCurrentDate(day)
-                    setViewMode('day')
-                  }}
-                  className={`min-h-[90px] p-1.5 transition-colors cursor-pointer hover:bg-slate-50 ${
-                    !isCurrentMonth ? 'bg-slate-50/50 text-slate-400' : 'text-slate-800'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span
-                      className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${
-                        isCurr ? 'bg-emerald-600 text-white' : ''
+                  return (
+                    <div
+                      key={dayStr}
+                      onClick={() => {
+                        setCurrentDate(day)
+                        setViewMode('day')
+                      }}
+                      className={`min-h-[80px] sm:min-h-[90px] p-1.5 transition-colors cursor-pointer hover:bg-slate-50 ${
+                        !isCurrentMonth ? 'bg-slate-50/50 text-slate-400' : 'text-slate-800'
                       }`}
                     >
-                      {format(day, 'd')}
-                    </span>
-                    {appts.length > 0 && (
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full">
-                        {appts.length}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1 overflow-hidden">
-                    {appts.slice(0, 2).map((a) => (
-                      <div
-                        key={a.id}
-                        className="text-[10px] bg-slate-100 text-slate-800 px-1 py-0.5 rounded truncate font-medium"
-                      >
-                        {a.start_time} {a.expand?.client_id?.name || a.client_name_snapshot}
+                      <div className="flex items-center justify-between mb-1">
+                        <span
+                          className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full ${
+                            isCurr ? 'bg-emerald-600 text-white' : ''
+                          }`}
+                        >
+                          {format(day, 'd')}
+                        </span>
+                        {appts.length > 0 && (
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded-full">
+                            {appts.length}
+                          </span>
+                        )}
                       </div>
-                    ))}
-                    {appts.length > 2 && (
-                      <p className="text-[9px] text-slate-400 font-medium">
-                        +{appts.length - 2} mais
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+
+                      <div className="space-y-1 overflow-hidden">
+                        {appts.slice(0, 2).map((a) => (
+                          <div
+                            key={a.id}
+                            className="text-[10px] bg-slate-100 text-slate-800 px-1 py-0.5 rounded truncate font-medium"
+                          >
+                            {a.start_time} {a.expand?.client_id?.name || a.client_name_snapshot}
+                          </div>
+                        ))}
+                        {appts.length > 2 && (
+                          <p className="text-[9px] text-slate-400 font-medium">
+                            +{appts.length - 2} mais
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* SIDEBAR LATERAL NO DESKTOP / CARD ABAIXO NO MOBILE: CONFIRMAÇÃO RÁPIDA */}
+        {needConfirmationList.length > 0 && (
+          <div className="w-full lg:w-80 shrink-0 bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950">
+                <BellRing className="w-4 h-4 text-amber-700 shrink-0" />
+                <span>Confirmação — Rápido</span>
+              </div>
+              <Badge
+                variant="outline"
+                className="text-[10px] bg-white text-amber-800 border-amber-300 shrink-0"
+              >
+                {needConfirmationList.length} pendente(s)
+              </Badge>
+            </div>
+
+            <p className="text-[11px] text-amber-800 leading-snug">
+              Pacientes com status "Agendado" que ainda não receberam mensagem de confirmação. Você
+              pode disparar via WhatsApp com um clique:
+            </p>
+
+            <div className="space-y-2 max-h-[380px] overflow-y-auto pr-0.5">
+              {needConfirmationList.slice(0, 6).map((item) => {
+                const cName =
+                  item.expand?.client_id?.name || item.client_name_snapshot || 'Paciente'
+                const formattedDate = formatShortDate(item.date)
+
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-amber-200 shadow-xs hover:border-amber-300 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-xs text-slate-800 truncate leading-tight">
+                        {cName}
+                      </p>
+                      <p className="text-[11px] text-slate-500 font-medium leading-tight mt-0.5 whitespace-nowrap">
+                        {formattedDate} às {item.start_time}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => openManualWaModal(item, 'CONFIRMATION_REQUEST')}
+                      className="h-7 px-2.5 text-[11px] text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 font-semibold shrink-0"
+                    >
+                      <Send className="w-3 h-3 mr-1" />
+                      <span>Enviar WA</span>
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+
+            {needConfirmationList.length > 6 && (
+              <p className="text-[11px] text-amber-800 font-medium text-center pt-1">
+                +{needConfirmationList.length - 6} outros pacientes na lista
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* APPOINTMENT DETAILS SLIDE-OVER SHEET */}
       <Sheet open={detailsSheetOpen} onOpenChange={setDetailsSheetOpen}>
