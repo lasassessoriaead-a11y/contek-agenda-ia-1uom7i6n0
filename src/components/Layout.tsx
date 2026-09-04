@@ -47,28 +47,43 @@ export const Layout: React.FC = () => {
 
   // Navigation menu com feature gating por produto
   const allNavItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard, feature: 'dashboard' },
-    { name: 'Agenda', path: '/agenda', icon: Calendar, feature: 'agenda' },
-    { name: 'Clientes', path: '/clientes', icon: Users, feature: 'clientes' },
-    { name: 'Profissionais', path: '/profissionais', icon: UserCheck, feature: 'profissionais' },
-    { name: 'Serviços', path: '/servicos', icon: CalendarDays, feature: 'servicos' },
-    { name: 'Financeiro', path: '/financeiro', icon: DollarSign, feature: 'financeiro' },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, check: () => hasFeature('dashboard') },
+    { name: 'Agenda', path: '/agenda', icon: Calendar, check: () => hasFeature('agenda') },
+    { name: 'Clientes', path: '/clientes', icon: Users, check: () => hasFeature('clientes') },
+    {
+      name: 'Profissionais',
+      path: '/profissionais',
+      icon: UserCheck,
+      check: () => hasFeature('profissionais'),
+    },
+    {
+      name: 'Serviços',
+      path: '/servicos',
+      icon: CalendarDays,
+      check: () => hasFeature('servicos'),
+    },
+    {
+      name: 'Financeiro',
+      path: '/financeiro',
+      icon: DollarSign,
+      check: () => hasFeature('financeiro'),
+    },
     {
       name: 'Assistente IA',
       path: '/assistente-ia',
       icon: Bot,
       isAi: true,
-      feature: 'assistente_ia',
+      check: () => hasFeature('assistente_ia'),
     },
     {
       name: 'Configurações',
       path: '/configuracoes',
       icon: Settings,
-      feature: 'configuracoes_basicas',
+      check: () => hasFeature('configuracoes_basicas') || hasFeature('configuracoes_avancadas'),
     },
   ]
 
-  const navItems = allNavItems.filter((item) => hasFeature(item.feature))
+  const navItems = allNavItems.filter((item) => item.check())
 
   // Mobile Bottom Bar primary items adaptados
   const bottomNavItems = [

@@ -35,10 +35,27 @@ routerAdd(
 
       try {
         const pf = $app.findFirstRecordByData('product_features', 'product', product)
-        features = pf.get('features') || []
+        let rawFeatures = pf.get('features')
+        if (typeof rawFeatures === 'string') {
+          try {
+            rawFeatures = JSON.parse(rawFeatures)
+          } catch (_) {
+            rawFeatures = null
+          }
+        }
+        if (Array.isArray(rawFeatures) && rawFeatures.length > 0) {
+          features = rawFeatures
+        } else {
+          features = []
+        }
         productName = pf.getString('name') || productName
         productDescription = pf.getString('description') || ''
       } catch (_) {
+        features = []
+      }
+
+      // Se não for array válido ou vier vazio, aplicar fallback com as features padrão do produto
+      if (!Array.isArray(features) || features.length === 0) {
         if (product === 'agyli') {
           features = [
             'dashboard',
@@ -50,6 +67,7 @@ routerAdd(
             'assistente_ia',
             'whatsapp_ai',
             'relatorios',
+            'configuracoes_basicas',
             'configuracoes_avancadas',
           ]
         } else {
@@ -62,6 +80,16 @@ routerAdd(
             'configuracoes_basicas',
             'whatsapp_notificacoes',
           ]
+        }
+      }
+
+      // Para agyli, garantir configuracoes_avancadas E configuracoes_basicas no array retornado
+      if (product === 'agyli') {
+        if (!features.includes('configuracoes_avancadas')) {
+          features.push('configuracoes_avancadas')
+        }
+        if (!features.includes('configuracoes_basicas')) {
+          features.push('configuracoes_basicas')
         }
       }
 

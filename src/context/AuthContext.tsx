@@ -361,12 +361,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Para demais features ou produtos não-markaly, SuperAdmin tem bypass
       if (isSuperAdmin) return true
 
-      // Se temos o mapa do endpoint do backend:
-      if (features?.feature_map) {
-        return Boolean(features.feature_map[featureKey])
+      // Se temos o mapa do endpoint do backend e ele não está vazio:
+      const featureMap = features?.feature_map
+      if (featureMap && Object.keys(featureMap).length > 0) {
+        // Herança automática: quem tem configuracoes_avancadas herda configuracoes_basicas
+        if (
+          featureKey === 'configuracoes_basicas' &&
+          Boolean(featureMap['configuracoes_avancadas'])
+        ) {
+          return true
+        }
+        return Boolean(featureMap[featureKey])
       }
 
-      // Fallback local se a requisição ainda estiver carregando
+      // Fallback local se feature_map vier vazio ou a requisição ainda estiver carregando
       if (effectiveProduct === 'markaly') {
         const markalyFeatures = [
           'dashboard',
@@ -380,7 +388,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return markalyFeatures.includes(featureKey)
       }
 
-      // agyli por padrão tem tudo
+      // agyli por padrão tem tudo (libera todas as features AGYLI)
       return true
     },
     [organization?.product, features?.product, features?.feature_map, isSuperAdmin, currentProduct],
