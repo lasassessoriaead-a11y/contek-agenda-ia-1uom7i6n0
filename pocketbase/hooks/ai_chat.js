@@ -26,7 +26,19 @@ routerAdd(
         return e.badRequestError('Organização não identificada para este usuário.')
       }
 
-      // 2. Fetch organization info
+      // 2. Multi-product feature check: Assistente IA não está liberado para MARKALY
+      try {
+        const orgCheck = $app.findRecordById('organizations', orgId)
+        const orgProduct = orgCheck.getString('product') || 'agyli'
+        if (orgProduct === 'markaly') {
+          return e.json(403, {
+            error:
+              'O Assistente IA não está habilitado para o produto MARKALY. Faça upgrade para o produto AGYLI para ter inteligência artificial integrada.',
+          })
+        }
+      } catch (_) {}
+
+      // 3. Fetch organization info
       let orgName = 'Minha Empresa'
       let orgSlug = ''
       try {

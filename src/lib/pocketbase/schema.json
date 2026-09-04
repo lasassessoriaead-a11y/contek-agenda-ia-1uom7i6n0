@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T18:46:29.046Z",
+  "generatedAt": "2026-09-04T19:00:04.912Z",
   "collections": [
     {
       "name": "users",
@@ -57,6 +57,12 @@
           "required": false,
           "system": false,
           "collectionRef": "organizations"
+        },
+        {
+          "name": "is_super_admin",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -143,6 +149,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "product",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["agyli", "markaly"]
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_organizations_slug ON organizations (slug)"]
@@ -970,6 +983,236 @@
       "indexes": [
         "CREATE INDEX idx_notif_logs_org ON notification_logs (organization_id, created DESC)",
         "CREATE INDEX idx_notif_logs_appt ON notification_logs (appointment_id, type)"
+      ]
+    },
+    {
+      "name": "product_features",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "product",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["agyli", "markaly"]
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "features",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_product_features_prod ON product_features (product)"]
+    },
+    {
+      "name": "plans",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "product",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["agyli", "markaly"]
+        },
+        {
+          "name": "price_monthly",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "trial_days",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "max_professionals",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modules_included",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "active",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_plans_slug ON plans (slug)"]
+    },
+    {
+      "name": "subscriptions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.is_super_admin = true || organization_id = @request.auth.organization_id)",
+        "view": "@request.auth.id != '' && (@request.auth.is_super_admin = true || organization_id = @request.auth.organization_id)",
+        "create": null,
+        "update": null,
+        "delete": null
+      },
+      "fields": [
+        {
+          "name": "organization_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "plan_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "plans"
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["trial", "active", "overdue", "canceled"]
+        },
+        {
+          "name": "trial_ends_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "starts_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_period_ends_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "canceled_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "history",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_subscriptions_org ON subscriptions (organization_id)",
+        "CREATE INDEX idx_subscriptions_status ON subscriptions (status)"
       ]
     }
   ]

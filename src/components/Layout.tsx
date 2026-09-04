@@ -35,32 +35,56 @@ import { cn } from '@/lib/utils'
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
 
 export const Layout: React.FC = () => {
-  const { user, organization, logout, isAdmin } = useAuth()
+  const { user, organization, logout, isSuperAdmin, hasFeature, branding, currentProduct } =
+    useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Navigation menu EXACT ORDER as requested in prompt:
-  // Dashboard, Agenda, Clientes, Profissionais, Serviços, Financeiro, Assistente IA, Configurações
-  const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Agenda', path: '/agenda', icon: Calendar },
-    { name: 'Clientes', path: '/clientes', icon: Users },
-    { name: 'Profissionais', path: '/profissionais', icon: UserCheck },
-    { name: 'Serviços', path: '/servicos', icon: CalendarDays },
-    { name: 'Financeiro', path: '/financeiro', icon: DollarSign },
-    { name: 'Assistente IA', path: '/assistente-ia', icon: Bot, isAi: true },
-    { name: 'Configurações', path: '/configuracoes', icon: Settings },
+  // Navigation menu com feature gating por produto
+  const allNavItems = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, feature: 'dashboard' },
+    { name: 'Agenda', path: '/agenda', icon: Calendar, feature: 'agenda' },
+    { name: 'Clientes', path: '/clientes', icon: Users, feature: 'clientes' },
+    { name: 'Profissionais', path: '/profissionais', icon: UserCheck, feature: 'profissionais' },
+    { name: 'Serviços', path: '/servicos', icon: CalendarDays, feature: 'servicos' },
+    { name: 'Financeiro', path: '/financeiro', icon: DollarSign, feature: 'financeiro' },
+    {
+      name: 'Assistente IA',
+      path: '/assistente-ia',
+      icon: Bot,
+      isAi: true,
+      feature: 'assistente_ia',
+    },
+    {
+      name: 'Configurações',
+      path: '/configuracoes',
+      icon: Settings,
+      feature: 'configuracoes_basicas',
+    },
   ]
 
-  // Mobile Bottom Bar primary items
+  const navItems = allNavItems.filter((item) => hasFeature(item.feature))
+
+  // Mobile Bottom Bar primary items adaptados
   const bottomNavItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-    { name: 'Agenda', path: '/agenda', icon: Calendar },
-    { name: 'Clientes', path: '/clientes', icon: Users },
-    { name: 'Financeiro', path: '/financeiro', icon: DollarSign },
-    { name: 'Mais', onClick: () => setMobileMenuOpen(true), icon: Menu },
-  ]
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, show: true },
+    { name: 'Agenda', path: '/agenda', icon: Calendar, show: true },
+    { name: 'Clientes', path: '/clientes', icon: Users, show: true },
+    {
+      name: 'Financeiro',
+      path: '/financeiro',
+      icon: DollarSign,
+      show: hasFeature('financeiro'),
+    },
+    {
+      name: 'Serviços',
+      path: '/servicos',
+      icon: CalendarDays,
+      show: !hasFeature('financeiro') && hasFeature('servicos'),
+    },
+    { name: 'Mais', onClick: () => setMobileMenuOpen(true), icon: Menu, show: true },
+  ].filter((item) => item.show)
 
   const handleLogout = () => {
     logout()
@@ -90,14 +114,30 @@ export const Layout: React.FC = () => {
           </button>
 
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform">
+            <div
+              className={cn(
+                'w-9 h-9 rounded-xl text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform',
+                currentProduct === 'markaly'
+                  ? 'bg-sky-600 shadow-sky-600/20'
+                  : 'bg-emerald-600 shadow-emerald-600/20',
+              )}
+            >
               <Calendar className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-base tracking-tight text-slate-900">Contek</span>
-                <span className="font-semibold text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono">
-                  AGENDA IA
+                <span className="font-bold text-base tracking-tight text-slate-900">
+                  {branding.name}
+                </span>
+                <span
+                  className={cn(
+                    'font-semibold text-xs px-1.5 py-0.5 rounded font-mono uppercase tracking-wider',
+                    currentProduct === 'markaly'
+                      ? 'bg-sky-100 text-sky-800'
+                      : 'bg-emerald-100 text-emerald-800',
+                  )}
+                >
+                  {currentProduct === 'markaly' ? 'MARKALY' : 'AGENDA IA'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -107,6 +147,11 @@ export const Layout: React.FC = () => {
                 {organization?.slug === 'contek-demo' && (
                   <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
                     DEMO
+                  </span>
+                )}
+                {isSuperAdmin && (
+                  <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
+                    SUPERADMIN
                   </span>
                 )}
               </div>
@@ -119,15 +164,38 @@ export const Layout: React.FC = () => {
           {/* PWA Install Button */}
           <PwaInstallPrompt variant="button" />
 
+          {isSuperAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/admin')}
+              className="border-purple-300 text-purple-800 bg-purple-50/70 hover:bg-purple-100 text-xs font-semibold"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-600" />
+              <span className="hidden sm:inline">SuperAdmin Contek</span>
+              <span className="sm:hidden">Admin</span>
+            </Button>
+          )}
+
           {publicUrl && (
             <Button
               variant="outline"
               size="sm"
               asChild
-              className="hidden lg:inline-flex border-emerald-300 text-emerald-800 hover:bg-emerald-50 text-xs font-medium"
+              className={cn(
+                'hidden lg:inline-flex text-xs font-medium',
+                currentProduct === 'markaly'
+                  ? 'border-sky-300 text-sky-800 hover:bg-sky-50'
+                  : 'border-emerald-300 text-emerald-800 hover:bg-emerald-50',
+              )}
             >
               <Link to={publicUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
+                <ExternalLink
+                  className={cn(
+                    'w-3.5 h-3.5 mr-1.5',
+                    currentProduct === 'markaly' ? 'text-sky-600' : 'text-emerald-600',
+                  )}
+                />
                 Link Público
               </Link>
             </Button>
@@ -136,7 +204,12 @@ export const Layout: React.FC = () => {
           <Button
             size="sm"
             onClick={() => navigate('/agenda?new=1')}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm shadow-emerald-600/20"
+            className={cn(
+              'text-white text-xs font-semibold shadow-sm',
+              currentProduct === 'markaly'
+                ? 'bg-sky-600 hover:bg-sky-500 shadow-sky-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20',
+            )}
           >
             <PlusCircle className="w-3.5 h-3.5 mr-1 sm:mr-1.5" />
             <span className="hidden sm:inline">Novo Agendamento</span>
@@ -182,10 +255,21 @@ export const Layout: React.FC = () => {
                 <Settings className="w-4 h-4 mr-2 text-slate-500" />
                 Configurações da Empresa
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/assistente-ia')}>
-                <Bot className="w-4 h-4 mr-2 text-indigo-500" />
-                Assistente IA Contek
-              </DropdownMenuItem>
+              {hasFeature('assistente_ia') && (
+                <DropdownMenuItem onClick={() => navigate('/assistente-ia')}>
+                  <Bot className="w-4 h-4 mr-2 text-indigo-500" />
+                  Assistente IA
+                </DropdownMenuItem>
+              )}
+              {isSuperAdmin && (
+                <DropdownMenuItem
+                  onClick={() => navigate('/admin')}
+                  className="text-purple-700 focus:text-purple-800 focus:bg-purple-50"
+                >
+                  <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                  Painel SuperAdmin Contek
+                </DropdownMenuItem>
+              )}
               {publicUrl && (
                 <DropdownMenuItem onClick={() => window.open(publicUrl, '_blank')}>
                   <ExternalLink className="w-4 h-4 mr-2 text-emerald-600" />
@@ -237,7 +321,9 @@ export const Layout: React.FC = () => {
                     cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group',
                       active
-                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                        ? currentProduct === 'markaly'
+                          ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20'
+                          : 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                         : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                       item.isAi &&
                         !active &&
@@ -260,23 +346,57 @@ export const Layout: React.FC = () => {
                 </NavLink>
               )
             })}
+
+            {isSuperAdmin && (
+              <div className="pt-2 mt-2 border-t border-slate-800">
+                <NavLink
+                  to="/admin"
+                  className={({ isActive: active }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150',
+                      active
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'text-purple-300 hover:bg-purple-950/40 hover:text-purple-200',
+                    )
+                  }
+                >
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span>Painel SuperAdmin</span>
+                  <span className="ml-auto text-[9px] bg-purple-500/30 text-purple-200 px-1.5 py-0.2 rounded font-mono">
+                    ROOT
+                  </span>
+                </NavLink>
+              </div>
+            )}
           </nav>
 
           {/* Sidebar Footer Info */}
           <div className="p-3 border-t border-slate-800 text-xs text-slate-400 space-y-2">
             <div className="p-2.5 rounded-lg bg-slate-800/60 border border-slate-700/60 flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <Sparkles
+                className={cn(
+                  'w-4 h-4 mt-0.5 flex-shrink-0',
+                  currentProduct === 'markaly' ? 'text-sky-400' : 'text-emerald-400',
+                )}
+              />
               <div>
-                <p className="text-[11px] font-semibold text-slate-200">Contek Agenda IA V1</p>
+                <p className="text-[11px] font-semibold text-slate-200">{branding.fullName}</p>
                 <p className="text-[10px] text-slate-400">
-                  Desenvolvido por Contek Tecnologia e Consultoria
+                  {currentProduct === 'markaly'
+                    ? 'Versão MARKALY Simplificada'
+                    : 'Versão AGYLI Completa'}
                 </p>
               </div>
             </div>
             {/* Install Button inside desktop sidebar */}
             <PwaInstallPrompt
               variant="button"
-              className="w-full justify-center bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-700/50"
+              className={cn(
+                'w-full justify-center',
+                currentProduct === 'markaly'
+                  ? 'bg-sky-950/40 hover:bg-sky-900/60 border-sky-700/50'
+                  : 'bg-emerald-950/40 hover:bg-emerald-900/60 border-emerald-700/50',
+              )}
             />
           </div>
         </aside>
@@ -316,7 +436,9 @@ export const Layout: React.FC = () => {
                         className={cn(
                           'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                           isActive
-                            ? 'bg-emerald-600 text-white'
+                            ? currentProduct === 'markaly'
+                              ? 'bg-sky-600 text-white'
+                              : 'bg-emerald-600 text-white'
                             : 'text-slate-300 hover:bg-slate-800 hover:text-white',
                         )}
                       >
@@ -334,6 +456,20 @@ export const Layout: React.FC = () => {
               </div>
 
               <div className="space-y-3 pt-4 border-t border-slate-800">
+                {isSuperAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs justify-start border-purple-700 bg-purple-950/30 text-purple-200 hover:bg-purple-900/50"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      navigate('/admin')
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 mr-2 text-purple-400" />
+                    SuperAdmin Contek
+                  </Button>
+                )}
                 {publicUrl && (
                   <Button
                     variant="outline"
@@ -344,7 +480,12 @@ export const Layout: React.FC = () => {
                       window.open(publicUrl, '_blank')
                     }}
                   >
-                    <ExternalLink className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                    <ExternalLink
+                      className={cn(
+                        'w-3.5 h-3.5 mr-2',
+                        currentProduct === 'markaly' ? 'text-sky-400' : 'text-emerald-400',
+                      )}
+                    />
                     Página de Agendamento
                   </Button>
                 )}

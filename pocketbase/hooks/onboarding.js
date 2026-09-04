@@ -77,6 +77,8 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
     let createdUser = null
 
     // Executar atomicamente em transação
+    const requestedProduct = body.product === 'markaly' ? 'markaly' : 'agyli'
+
     $app.runInTransaction((txApp) => {
       // 1. Criar Organização
       const orgsCol = txApp.findCollectionByNameOrId('organizations')
@@ -86,11 +88,62 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
       orgRecord.set('phone', cleanPhone)
       orgRecord.set('whatsapp', cleanPhone)
       orgRecord.set('email', cleanEmail)
-      orgRecord.set('status', 'active')
-      orgRecord.set('plan_id', 'trial_v1')
+      orgRecord.set('status', 'trial')
+      orgRecord.set('product', requestedProduct)
+      orgRecord.set('plan_id', requestedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro')
       txApp.save(orgRecord)
       createdOrg = orgRecord
       const orgId = orgRecord.id
+
+      // 1.1 Criar Subscription inicial (trial de 7 dias)
+      try {
+        const plansCol = txApp.findCollectionByNameOrId('plans')
+        let planRec = null
+        try {
+          planRec = txApp.findFirstRecordByData(
+            'plans',
+            'slug',
+            requestedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
+          )
+        } catch (_) {
+          const defaultPlans = txApp.findRecordsByFilter(
+            'plans',
+            'product = "' + requestedProduct + '"',
+            '-created',
+            1,
+            0,
+          )
+          if (defaultPlans && defaultPlans.length > 0) {
+            planRec = defaultPlans[0]
+          }
+        }
+
+        if (planRec) {
+          const subsCol = txApp.findCollectionByNameOrId('subscriptions')
+          const subRecord = new Record(subsCol)
+          subRecord.set('organization_id', orgId)
+          subRecord.set('plan_id', planRec.id)
+          subRecord.set('status', 'trial')
+          const now = new Date()
+          const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+          subRecord.set('starts_at', now.toISOString())
+          subRecord.set('trial_ends_at', trialEnd.toISOString())
+          subRecord.set(
+            'notes',
+            'Trial de 7 dias criado automaticamente via cadastro self-service.',
+          )
+          subRecord.set('history', [
+            {
+              date: now.toISOString(),
+              action: 'TRIAL_STARTED',
+              note: 'Início do período de teste gratuito de 7 dias',
+            },
+          ])
+          txApp.save(subRecord)
+        }
+      } catch (subErr) {
+        console.log('[onboarding/self-service] warning creating subscription:', subErr)
+      }
 
       // 2. Criar Business Settings
       const settingsCol = txApp.findCollectionByNameOrId('business_settings')
@@ -212,14 +265,23 @@ routerAdd('POST', '/backend/v1/onboarding/manual', (e) => {
   }
 
   const body = e.requestInfo().body || {}
-  const { org_name, slug = '', admin_name, admin_email, admin_password, plan = 'pro_v1' } = body
+  const {
+    org_name,
+    slug = '',
+    admin_name,
+    admin_email,
+    admin_password,
+    plan = 'agyli-pro',
+    product = 'agyli',
+  } = body
 
   const cleanOrgName = typeof org_name === 'string' ? org_name.trim() : ''
   const customSlug = typeof slug === 'string' ? slug.trim() : ''
   const cleanAdminName = typeof admin_name === 'string' ? admin_name.trim() : ''
   const cleanAdminEmail = typeof admin_email === 'string' ? admin_email.trim().toLowerCase() : ''
   const cleanAdminPassword = typeof admin_password === 'string' ? admin_password : ''
-  const cleanPlan = typeof plan === 'string' && plan.trim() ? plan.trim() : 'pro_v1'
+  const cleanPlan = typeof plan === 'string' && plan.trim() ? plan.trim() : 'agyli-pro'
+  const chosenProduct = product === 'markaly' ? 'markaly' : 'agyli'
 
   // Validações
   if (!cleanOrgName) {
@@ -285,10 +347,51 @@ routerAdd('POST', '/backend/v1/onboarding/manual', (e) => {
       orgRecord.set('slug', finalSlug)
       orgRecord.set('email', cleanAdminEmail)
       orgRecord.set('status', 'active')
+      orgRecord.set('product', chosenProduct)
       orgRecord.set('plan_id', cleanPlan)
       txApp.save(orgRecord)
       createdOrg = orgRecord
       const orgId = orgRecord.id
+
+      // 1.1 Criar Subscription ativa
+      try {
+        let planRec = null
+        try {
+          planRec = txApp.findFirstRecordByData('plans', 'slug', cleanPlan)
+        } catch (_) {
+          const matchingPlans = txApp.findRecordsByFilter(
+            'plans',
+            'product = "' + chosenProduct + '"',
+            '-created',
+            1,
+            0,
+          )
+          if (matchingPlans && matchingPlans.length > 0) {
+            planRec = matchingPlans[0]
+          }
+        }
+
+        if (planRec) {
+          const subsCol = txApp.findCollectionByNameOrId('subscriptions')
+          const subRecord = new Record(subsCol)
+          subRecord.set('organization_id', orgId)
+          subRecord.set('plan_id', planRec.id)
+          subRecord.set('status', 'active')
+          const now = new Date()
+          subRecord.set('starts_at', now.toISOString())
+          subRecord.set('notes', 'Assinatura ativa criada via cadastro administrativo Contek.')
+          subRecord.set('history', [
+            {
+              date: now.toISOString(),
+              action: 'MANUAL_ACTIVATION',
+              note: 'Ativação direta Contek Admin',
+            },
+          ])
+          txApp.save(subRecord)
+        }
+      } catch (subErr) {
+        console.log('[onboarding/manual] warning creating subscription:', subErr)
+      }
 
       // 2. Criar Business Settings
       const settingsCol = txApp.findCollectionByNameOrId('business_settings')

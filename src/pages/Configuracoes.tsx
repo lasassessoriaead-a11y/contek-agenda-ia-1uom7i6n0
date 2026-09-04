@@ -370,6 +370,30 @@ export const Configuracoes: React.FC = () => {
         )}
       </div>
 
+      {/* Banner de Identidade do Produto e Assinatura */}
+      <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2.5">
+          <Badge
+            className={
+              organization?.product === 'markaly'
+                ? 'bg-sky-100 text-sky-800 border-sky-300 font-semibold'
+                : 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold'
+            }
+          >
+            PRODUTO: {organization?.product === 'markaly' ? 'MARKALY' : 'AGYLI'}
+          </Badge>
+          <span className="text-slate-600">
+            Status da organização:{' '}
+            <b className="uppercase text-slate-800">{organization?.status || 'active'}</b>
+          </span>
+        </div>
+        <span className="text-slate-500 text-[11px]">
+          {organization?.product === 'markaly'
+            ? 'Ambiente configurado com os módulos essenciais de agendamento.'
+            : 'Ambiente completo com inteligência artificial, relatórios e gestão financeira.'}
+        </span>
+      </div>
+
       <Tabs defaultValue="dados" className="space-y-4">
         <TabsList className="bg-slate-200/80 p-1">
           <TabsTrigger value="dados" className="text-xs">

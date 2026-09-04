@@ -1,5 +1,7 @@
 export type UserRole = 'ADMINISTRADOR' | 'PROFISSIONAL' | 'SUPERADMIN'
 
+export type ProductType = 'agyli' | 'markaly'
+
 export interface User {
   id: string
   email: string
@@ -8,6 +10,7 @@ export interface User {
   phone?: string
   role: UserRole
   organization_id?: string
+  is_super_admin?: boolean
   created: string
   updated: string
 }
@@ -16,6 +19,7 @@ export interface Organization {
   id: string
   name: string
   slug: string
+  product?: ProductType
   logo?: string
   phone?: string
   whatsapp?: string
@@ -25,6 +29,74 @@ export interface Organization {
   status: 'active' | 'trial' | 'suspended'
   created: string
   updated: string
+}
+
+export interface ProductFeatureConfig {
+  id: string
+  product: ProductType
+  name: string
+  description?: string
+  features: string[]
+  is_active: boolean
+}
+
+export interface Plan {
+  id: string
+  name: string
+  slug: string
+  product: ProductType
+  price_monthly?: number
+  trial_days?: number
+  max_professionals?: number
+  modules_included?: string[]
+  description?: string
+  active: boolean
+  created: string
+  updated: string
+}
+
+export type SubscriptionStatus = 'trial' | 'active' | 'overdue' | 'canceled'
+
+export interface Subscription {
+  id: string
+  organization_id: string
+  plan_id: string
+  status: SubscriptionStatus
+  trial_ends_at?: string
+  starts_at?: string
+  current_period_ends_at?: string
+  canceled_at?: string
+  notes?: string
+  history?: Array<{
+    date: string
+    action: string
+    note?: string
+    changed_by?: string
+  }>
+  created: string
+  updated: string
+}
+
+export interface OrganizationFeaturesResponse {
+  organization_id: string
+  organization_name: string
+  slug: string
+  product: ProductType
+  product_name: string
+  product_description: string
+  features: string[]
+  feature_map: Record<string, boolean>
+  subscription?: {
+    id: string
+    status: SubscriptionStatus
+    plan_id: string
+    plan_name?: string
+    starts_at?: string
+    trial_ends_at?: string
+    current_period_ends_at?: string
+    notes?: string
+  } | null
+  is_super_admin?: boolean
 }
 
 export interface BusinessSettings {

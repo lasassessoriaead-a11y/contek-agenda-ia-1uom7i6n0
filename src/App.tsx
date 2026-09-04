@@ -11,8 +11,10 @@ import Servicos from '@/pages/Servicos'
 import Financeiro from '@/pages/Financeiro'
 import AssistenteIa from '@/pages/AssistenteIa'
 import Configuracoes from '@/pages/Configuracoes'
+import SuperAdmin from '@/pages/SuperAdmin'
 import AgendamentoPublico from '@/pages/AgendamentoPublico'
 import ConfirmacaoPublica from '@/pages/ConfirmacaoPublica'
+import { FeatureGate, SuperAdminRoute } from '@/components/FeatureGate'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -66,9 +68,39 @@ export function App() {
             <Route path="clientes" element={<Clientes />} />
             <Route path="profissionais" element={<Profissionais />} />
             <Route path="servicos" element={<Servicos />} />
-            <Route path="financeiro" element={<Financeiro />} />
-            <Route path="assistente-ia" element={<AssistenteIa />} />
+            <Route
+              path="financeiro"
+              element={
+                <FeatureGate
+                  feature="financeiro"
+                  fallbackTitle="Financeiro indisponível no plano MARKALY"
+                  fallbackMessage="O módulo de fluxo de caixa e gestão financeira completa faz parte exclusivamente da solução AGYLI. Entre em contato ou acesse o plano AGYLI para habilitar."
+                >
+                  <Financeiro />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="assistente-ia"
+              element={
+                <FeatureGate
+                  feature="assistente_ia"
+                  fallbackTitle="Assistente IA indisponível no plano MARKALY"
+                  fallbackMessage="A inteligência artificial com análise de dados de atendimento e respostas automáticas faz parte exclusivamente da solução AGYLI."
+                >
+                  <AssistenteIa />
+                </FeatureGate>
+              }
+            />
             <Route path="configuracoes" element={<Configuracoes />} />
+            <Route
+              path="admin"
+              element={
+                <SuperAdminRoute>
+                  <SuperAdmin />
+                </SuperAdminRoute>
+              }
+            />
           </Route>
 
           {/* 404 Route */}

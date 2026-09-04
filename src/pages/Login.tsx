@@ -42,6 +42,7 @@ export const Login: React.FC = () => {
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
   const [signupPhone, setSignupPhone] = useState('')
+  const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>('agyli')
   const [loadingSignup, setLoadingSignup] = useState(false)
 
   // Manual Contek admin creation state
@@ -50,7 +51,8 @@ export const Login: React.FC = () => {
   const [manualAdminName, setManualAdminName] = useState('')
   const [manualAdminEmail, setManualAdminEmail] = useState('')
   const [manualAdminPassword, setManualAdminPassword] = useState('')
-  const [manualPlan, setManualPlan] = useState('pro_v1')
+  const [manualProduct, setManualProduct] = useState<'agyli' | 'markaly'>('agyli')
+  const [manualPlan, setManualPlan] = useState('agyli-pro')
   const [loadingManual, setLoadingManual] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -98,6 +100,7 @@ export const Login: React.FC = () => {
           phone: signupPhone.trim(),
           email: signupEmail.trim(),
           password: signupPassword,
+          product: signupProduct,
         },
       })
 
@@ -148,7 +151,8 @@ export const Login: React.FC = () => {
           admin_name: manualAdminName.trim(),
           admin_email: manualAdminEmail.trim(),
           admin_password: manualAdminPassword,
-          plan: manualPlan.trim() || 'pro_v1',
+          product: manualProduct,
+          plan: manualPlan.trim() || (manualProduct === 'markaly' ? 'markaly-start' : 'agyli-pro'),
         },
       })
 
@@ -327,6 +331,44 @@ export const Login: React.FC = () => {
                     />
                   </div>
 
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      Escolha a Solução / Produto Desejado *
+                    </Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSignupProduct('agyli')}
+                        className={`p-2.5 rounded-lg border text-left transition-all ${
+                          signupProduct === 'agyli'
+                            ? 'border-emerald-500 bg-emerald-950/50 text-white shadow-sm'
+                            : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <p className="text-xs font-bold text-emerald-400">AGYLI (Completo)</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Agenda + Financeiro + Assistente IA
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSignupProduct('markaly')}
+                        className={`p-2.5 rounded-lg border text-left transition-all ${
+                          signupProduct === 'markaly'
+                            ? 'border-sky-500 bg-sky-950/50 text-white shadow-sm'
+                            : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                        }`}
+                      >
+                        <p className="text-xs font-bold text-sky-400">MARKALY (Essencial)</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Agenda ágil + Clientes + Serviços
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
@@ -485,16 +527,34 @@ export const Login: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-300">
-                      Plano Contratado (V1)
-                    </Label>
-                    <Input
-                      value={manualPlan}
-                      onChange={(e) => setManualPlan(e.target.value)}
-                      placeholder="pro_v1, enterprise_v1"
-                      className="bg-slate-950 border-slate-700 text-white"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-slate-300">
+                        Produto Selecionado
+                      </Label>
+                      <select
+                        value={manualProduct}
+                        onChange={(e) => {
+                          const val = e.target.value as 'agyli' | 'markaly'
+                          setManualProduct(val)
+                          setManualPlan(val === 'markaly' ? 'markaly-start' : 'agyli-pro')
+                        }}
+                        className="w-full h-10 px-3 rounded-md bg-slate-950 border border-slate-700 text-xs text-white"
+                      >
+                        <option value="agyli">AGYLI (Completo com Financeiro e IA)</option>
+                        <option value="markaly">MARKALY (Essencial sem Financeiro/IA)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-slate-300">Slug do Plano</Label>
+                      <Input
+                        value={manualPlan}
+                        onChange={(e) => setManualPlan(e.target.value)}
+                        placeholder="agyli-pro, markaly-start"
+                        className="bg-slate-950 border-slate-700 text-white"
+                      />
+                    </div>
                   </div>
                 </CardContent>
 
