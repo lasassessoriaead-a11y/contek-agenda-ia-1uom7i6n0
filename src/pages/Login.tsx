@@ -43,7 +43,7 @@ export const Login: React.FC = () => {
 
   const [activeBrand, setActiveBrand] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
 
-  // Sign in state
+  // Sign in state (estritamente vazio, sem valores padrão, sem demo e sem resíduos)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loadingLogin, setLoadingLogin] = useState(false)
@@ -489,10 +489,12 @@ export const Login: React.FC = () => {
                           </Label>
                           <Input
                             id="forgot-email"
+                            name="forgot-email"
                             type="email"
                             value={forgotEmail}
                             onChange={(e) => setForgotEmail(e.target.value)}
                             placeholder="seu@email.com"
+                            autoComplete="email"
                             required
                             autoFocus
                             className={`rounded-xl h-11 ${
@@ -594,10 +596,12 @@ export const Login: React.FC = () => {
                       </Label>
                       <Input
                         id="login-email"
+                        name="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="seu@email.com"
+                        autoComplete="email"
                         required
                         className={`rounded-xl h-11 ${
                           activeBrand === 'markaly'
@@ -641,10 +645,12 @@ export const Login: React.FC = () => {
                       </div>
                       <Input
                         id="login-password"
+                        name="password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
+                        autoComplete="current-password"
                         required
                         className={`rounded-xl h-11 ${
                           activeBrand === 'markaly'
@@ -792,9 +798,11 @@ export const Login: React.FC = () => {
                       </Label>
                       <Input
                         type="email"
+                        name="signup-email"
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
                         placeholder="contato@empresa.com"
+                        autoComplete="email"
                         required
                         className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
@@ -807,9 +815,11 @@ export const Login: React.FC = () => {
                       </Label>
                       <Input
                         type="password"
+                        name="signup-password"
                         value={signupPassword}
                         onChange={(e) => setSignupPassword(e.target.value)}
                         placeholder="••••••••"
+                        autoComplete="new-password"
                         required
                         className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
                       />
@@ -895,9 +905,11 @@ export const Login: React.FC = () => {
                       </Label>
                       <Input
                         type="email"
+                        name="manual-admin-email"
                         value={manualAdminEmail}
                         onChange={(e) => setManualAdminEmail(e.target.value)}
                         placeholder="admin@empresa.com"
+                        autoComplete="off"
                         required
                         className="bg-slate-950 border-slate-700 text-white"
                       />
@@ -909,9 +921,11 @@ export const Login: React.FC = () => {
                       </Label>
                       <Input
                         type="password"
+                        name="manual-admin-password"
                         value={manualAdminPassword}
                         onChange={(e) => setManualAdminPassword(e.target.value)}
                         placeholder="mínimo 8 dígitos"
+                        autoComplete="new-password"
                         required
                         className="bg-slate-950 border-slate-700 text-white"
                       />
