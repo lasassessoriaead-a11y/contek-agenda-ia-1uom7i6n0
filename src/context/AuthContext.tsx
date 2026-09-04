@@ -97,17 +97,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   )
 
   const refreshOrganization = useCallback(async () => {
-    // 1. Prioriza o organization_id do usuário autenticado se presente
-    const targetOrgId =
-      user?.organization_id ||
-      (typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null)
-
-    if (targetOrgId) {
-      await loadOrgAndSettings(targetOrgId)
+    // 1. Prioriza SEMPRE a organização pertencente ao usuário autenticado
+    if (user?.organization_id) {
+      await loadOrgAndSettings(user.organization_id)
       return
     }
 
-    // 2. Fallback: verificar em organization_users
+    // 2. Fallback: verificar em organization_users para o ID deste usuário
     if (user?.id) {
       try {
         const userOrg = await pb
@@ -121,15 +117,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         /* intentionally ignored */
       }
     }
-  }, [user?.organization_id, user?.id, loadOrgAndSettings])
+
+    // 3. Somente SuperAdmin pode usar switch de org gravado no localStorage
+    const isSuper = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')
+    if (isSuper && typeof window !== 'undefined') {
+      const savedOrgId = localStorage.getItem('contek_active_org_id')
+      if (savedOrgId) {
+        await loadOrgAndSettings(savedOrgId)
+      }
+    }
+  }, [user?.organization_id, user?.id, user?.is_super_admin, user?.role, loadOrgAndSettings])
 
   useEffect(() => {
     const unsub = pb.authStore.onChange(async (_, model) => {
       if (model) {
         const u = model as unknown as User
         setUser(u)
+        const isSuper = Boolean(u.is_super_admin || u.role === 'SUPERADMIN')
         const savedOrgId =
-          typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+          isSuper && typeof window !== 'undefined'
+            ? localStorage.getItem('contek_active_org_id')
+            : null
         const activeOrgId = u.organization_id || savedOrgId
 
         if (activeOrgId) {
@@ -159,8 +167,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (pb.authStore.isValid && pb.authStore.record) {
       const u = pb.authStore.record as unknown as User
       setUser(u)
+      const isSuper = Boolean(u.is_super_admin || u.role === 'SUPERADMIN')
       const savedOrgId =
-        typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+        isSuper && typeof window !== 'undefined'
+          ? localStorage.getItem('contek_active_org_id')
+          : null
       const activeOrgId = u.organization_id || savedOrgId
 
       if (activeOrgId) {
@@ -186,6 +197,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loadOrgAndSettings])
 
   const login = async (email: string, pass: string) => {
+    // Limpar resíduo de switch de organização prévio para isolamento total
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('contek_active_org_id')
+    }
     const authData = await pb.collection('users').authWithPassword(email, pass)
     const u = authData.record as unknown as User
     setUser(u)
@@ -207,6 +222,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('contek_active_org_id')
+    }
     pb.authStore.clear()
     setUser(null)
     setOrganization(null)

@@ -154,6 +154,12 @@ export const Login: React.FC = () => {
 
     setLoadingSignup(true)
     try {
+      // Limpa qualquer vestígio de sessão ou org ativa anterior
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('contek_active_org_id')
+      }
+      pb.authStore.clear()
+
       const res = await pb.send<{
         success: boolean
         message?: string
@@ -175,7 +181,7 @@ export const Login: React.FC = () => {
         throw new Error(res.error || 'Erro ao cadastrar empresa.')
       }
 
-      // Auto login
+      // Auto login na conta recém criada
       await login(signupEmail.trim(), signupPassword)
       toast.success('Empresa e conta criadas com sucesso!')
       navigate('/')

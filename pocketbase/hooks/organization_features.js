@@ -42,9 +42,21 @@ routerAdd(
           } catch (_) {
             rawFeatures = null
           }
+        } else if (
+          Array.isArray(rawFeatures) &&
+          rawFeatures.length > 0 &&
+          typeof rawFeatures[0] === 'number'
+        ) {
+          // Goja byte array fallback
+          try {
+            const str = String.fromCharCode.apply(null, rawFeatures)
+            rawFeatures = JSON.parse(str)
+          } catch (_) {
+            rawFeatures = null
+          }
         }
         if (Array.isArray(rawFeatures) && rawFeatures.length > 0) {
-          features = rawFeatures
+          features = rawFeatures.map(String)
         } else {
           features = []
         }

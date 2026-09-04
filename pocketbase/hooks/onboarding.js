@@ -185,7 +185,8 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
       orgUserRecord.set('role', 'ADMINISTRADOR')
       txApp.save(orgUserRecord)
 
-      // 5. Criar Profissional padrão
+      // 5. Criar Profissional padrão exclusivo da nova organização
+      // O nome do profissional é SEMPRE o nome da pessoa informada no cadastro (cleanName)
       const profCol = txApp.findCollectionByNameOrId('professionals')
       const profRecord = new Record(profCol)
       profRecord.set('organization_id', orgId)
@@ -200,7 +201,7 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
       profRecord.set('active', true)
       txApp.save(profRecord)
 
-      // 6. Criar Serviço inicial
+      // 6. Criar Serviço inicial exclusivo da nova organização
       const servCol = txApp.findCollectionByNameOrId('services')
       const servRecord = new Record(servCol)
       servRecord.set('organization_id', orgId)
@@ -213,7 +214,7 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
       servRecord.set('active', true)
       txApp.save(servRecord)
 
-      // 7. Vincular Profissional ao Serviço
+      // 7. Vincular Profissional ao Serviço dentro da nova organização
       const profServCol = txApp.findCollectionByNameOrId('professional_services')
       const profServRecord = new Record(profServCol)
       profServRecord.set('organization_id', orgId)
@@ -429,6 +430,41 @@ routerAdd('POST', '/backend/v1/onboarding/manual', (e) => {
       orgUserRecord.set('user_id', userRecord.id)
       orgUserRecord.set('role', 'ADMINISTRADOR')
       txApp.save(orgUserRecord)
+
+      // 5. Criar Profissional inicial administrativo exclusivo da nova organização
+      const profCol = txApp.findCollectionByNameOrId('professionals')
+      const profRecord = new Record(profCol)
+      profRecord.set('organization_id', orgId)
+      profRecord.set('user_id', userRecord.id)
+      profRecord.set('name', cleanAdminName)
+      profRecord.set('specialty', 'Especialista')
+      profRecord.set('email', cleanAdminEmail)
+      profRecord.set('default_duration', 45)
+      profRecord.set('work_days', ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'])
+      profRecord.set('work_hours', { start: '08:00', end: '19:00' })
+      profRecord.set('active', true)
+      txApp.save(profRecord)
+
+      // 6. Criar Serviço inicial exclusivo da nova organização
+      const servCol = txApp.findCollectionByNameOrId('services')
+      const servRecord = new Record(servCol)
+      servRecord.set('organization_id', orgId)
+      servRecord.set('name', 'Atendimento Inicial / Consulta')
+      servRecord.set('description', 'Serviço padrão configurado automaticamente')
+      servRecord.set('duration', 45)
+      servRecord.set('price', 150)
+      servRecord.set('color', '#10b981')
+      servRecord.set('category', 'Geral')
+      servRecord.set('active', true)
+      txApp.save(servRecord)
+
+      // 7. Vincular Profissional ao Serviço
+      const profServCol = txApp.findCollectionByNameOrId('professional_services')
+      const profServRecord = new Record(profServCol)
+      profServRecord.set('organization_id', orgId)
+      profServRecord.set('professional_id', profRecord.id)
+      profServRecord.set('service_id', servRecord.id)
+      txApp.save(profServRecord)
     })
 
     return e.json(200, {
