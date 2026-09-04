@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T21:51:00.194Z",
+  "generatedAt": "2026-09-04T22:24:35.207Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,30 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "role",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["ADMINISTRADOR", "PROFISSIONAL", "SUPERADMIN"]
+          "selectValues": [
+            "ADMINISTRADOR",
+            "PROFISSIONAL",
+            "SUPERADMIN"
+          ]
         },
         {
           "name": "phone",
@@ -134,31 +143,45 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["active", "trial", "suspended"]
+          "selectValues": [
+            "active",
+            "trial",
+            "suspended"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "product",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["agyli", "markaly"]
+          "selectValues": [
+            "agyli",
+            "markaly"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_organizations_slug ON organizations (slug)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_organizations_slug ON organizations (slug)"
+      ]
     },
     {
       "name": "organization_users",
@@ -190,21 +213,29 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["ADMINISTRADOR", "PROFISSIONAL"]
+          "selectValues": [
+            "ADMINISTRADOR",
+            "PROFISSIONAL"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -295,14 +326,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "work_shifts",
@@ -317,7 +353,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_professionals_org ON professionals (organization_id)"]
+      "indexes": [
+        "CREATE INDEX idx_professionals_org ON professionals (organization_id)"
+      ]
     },
     {
       "name": "clients",
@@ -378,17 +416,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_clients_org_phone ON clients (organization_id, phone)"]
+      "indexes": [
+        "CREATE INDEX idx_clients_org_phone ON clients (organization_id, phone)"
+      ]
     },
     {
       "name": "services",
@@ -455,17 +500,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_services_org ON services (organization_id)"]
+      "indexes": [
+        "CREATE INDEX idx_services_org ON services (organization_id)"
+      ]
     },
     {
       "name": "professional_services",
@@ -504,14 +556,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -624,14 +681,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "confirmation_token",
@@ -701,7 +763,12 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["PIX", "Dinheiro", "Cartão", "Outro"]
+          "selectValues": [
+            "PIX",
+            "Dinheiro",
+            "Cartão",
+            "Outro"
+          ]
         },
         {
           "name": "payment_date",
@@ -726,17 +793,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_payments_org_date ON payments (organization_id, payment_date)"]
+      "indexes": [
+        "CREATE INDEX idx_payments_org_date ON payments (organization_id, payment_date)"
+      ]
     },
     {
       "name": "business_settings",
@@ -827,14 +901,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "whatsapp_phone_number",
@@ -932,14 +1011,22 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["WHATSAPP_AUTO", "WHATSAPP_MANUAL", "WEB"]
+          "selectValues": [
+            "WHATSAPP_AUTO",
+            "WHATSAPP_MANUAL",
+            "WEB"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["SENT", "PENDING_NO_CREDENTIALS", "FAILED"]
+          "selectValues": [
+            "SENT",
+            "PENDING_NO_CREDENTIALS",
+            "FAILED"
+          ]
         },
         {
           "name": "recipient_phone",
@@ -970,14 +1057,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -1001,7 +1093,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["agyli", "markaly"]
+          "selectValues": [
+            "agyli",
+            "markaly"
+          ]
         },
         {
           "name": "name",
@@ -1032,17 +1127,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_product_features_prod ON product_features (product)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_product_features_prod ON product_features (product)"
+      ]
     },
     {
       "name": "plans",
@@ -1072,7 +1174,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["agyli", "markaly"]
+          "selectValues": [
+            "agyli",
+            "markaly"
+          ]
         },
         {
           "name": "price_monthly",
@@ -1115,17 +1220,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_plans_slug ON plans (slug)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_plans_slug ON plans (slug)"
+      ]
     },
     {
       "name": "subscriptions",
@@ -1157,7 +1269,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["trial", "active", "overdue", "canceled"]
+          "selectValues": [
+            "trial",
+            "active",
+            "overdue",
+            "canceled"
+          ]
         },
         {
           "name": "trial_ends_at",
@@ -1200,14 +1317,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
