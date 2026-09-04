@@ -325,15 +325,20 @@ routerAdd(
         }
       } catch (_) {}
 
-      // 3. Gerar / validar slug
-      let baseSlug =
-        customSlug ||
-        cleanOrgName
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)+/g, '')
+      // 3. Gerar / validar slug (slug opcional: quando vazio ou ausente, gera automaticamente a partir do nome)
+      let baseSlug = customSlug
+        ? customSlug
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)+/g, '')
+        : cleanOrgName
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)+/g, '')
 
       if (!baseSlug) {
         baseSlug = 'empresa'

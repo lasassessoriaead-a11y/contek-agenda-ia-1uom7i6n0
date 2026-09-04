@@ -794,31 +794,28 @@ export const SuperAdmin: React.FC = () => {
                   <Input
                     required
                     value={createName}
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setCreateName(val)
-                      if (!createSlug || createSlug === generateSlugFromName(createName)) {
-                        setCreateSlug(generateSlugFromName(val))
-                      }
-                    }}
+                    onChange={(e) => setCreateName(e.target.value)}
                     placeholder="Ex: Studio Bela Vista"
                     className="text-xs"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-slate-700">
-                    Slug da URL <span className="text-rose-500">*</span>
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-slate-700">
+                      Slug da URL{' '}
+                      <span className="text-slate-400 text-[11px] font-normal">(Opcional)</span>
+                    </Label>
+                  </div>
                   <Input
-                    required
                     value={createSlug}
                     onChange={(e) => setCreateSlug(generateSlugFromName(e.target.value))}
-                    placeholder="studio-bela-vista"
+                    placeholder="Ex: studio-bela-vista (ou deixe vazio)"
                     className="text-xs font-mono"
                   />
-                  <p className="text-[10px] text-slate-400">
-                    Página pública: /agendar/{createSlug || '...'}
+                  <p className="text-[10px] text-slate-500">
+                    Deixe vazio para gerar automaticamente a partir do nome. Página pública:
+                    /agendar/{createSlug.trim() || generateSlugFromName(createName) || '...'}
                   </p>
                 </div>
               </div>
