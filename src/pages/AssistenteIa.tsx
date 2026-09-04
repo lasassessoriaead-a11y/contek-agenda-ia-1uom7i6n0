@@ -170,6 +170,7 @@ export const AssistenteIa: React.FC = () => {
         },
         body: JSON.stringify({
           message: textToSend,
+          organization_id: organization?.id,
           conversation_id: conversationId,
         }),
       })

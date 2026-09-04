@@ -278,15 +278,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isProfessional = user?.role === 'PROFISSIONAL'
 
   // Determinar o produto corrente:
-  // 1. Prioriza domínio se houver mapeamento configurado
-  // 2. Fallback para organization.product ou features.product
-  // 3. Fallback padrão 'agyli'
+  // Usuários autenticados usam organization.product (ou features.product) como fonte máxima da verdade.
+  // Se não houver organização ativa carregada, usa o domínio ou 'agyli' como fallback.
   const currentProduct: ProductType = useMemo(() => {
-    const orgProduct = organization?.product || features?.product || 'agyli'
-    if (typeof window !== 'undefined') {
-      return resolveProductByDomain(window.location.hostname, orgProduct)
+    if (organization?.product) {
+      return organization.product
     }
-    return orgProduct
+    if (features?.product) {
+      return features.product
+    }
+    if (typeof window !== 'undefined') {
+      return resolveProductByDomain(window.location.hostname, 'agyli')
+    }
+    return 'agyli'
   }, [organization?.product, features?.product])
 
   const branding = useMemo(() => {
@@ -295,7 +299,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const hasFeature = useCallback(
     (featureKey: string): boolean => {
-      // SuperAdmin tem bypass para visualização
+      const effectiveProduct = organization?.product || features?.product || currentProduct
+
+      // Features explicitamente proibidas no plano MARKALY:
+      // O produto REAL da organização ativa vence: se for markaly, essas features
+      // retornam false MESMO para SuperAdmin inspecionando o tenant.
+      const FORBIDDEN_MARKALY_FEATURES = [
+        'financeiro',
+        'assistente_ia',
+        'whatsapp_ai',
+        'relatorios',
+        'configuracoes_avancadas',
+      ]
+
+      if (effectiveProduct === 'markaly' && FORBIDDEN_MARKALY_FEATURES.includes(featureKey)) {
+        return false
+      }
+
+      // Para demais features ou produtos não-markaly, SuperAdmin tem bypass
       if (isSuperAdmin) return true
 
       // Se temos o mapa do endpoint do backend:
@@ -304,7 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Fallback local se a requisição ainda estiver carregando
-      if (currentProduct === 'markaly') {
+      if (effectiveProduct === 'markaly') {
         const markalyFeatures = [
           'dashboard',
           'agenda',
@@ -320,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // agyli por padrão tem tudo
       return true
     },
-    [features?.feature_map, isSuperAdmin, currentProduct],
+    [organization?.product, features?.product, features?.feature_map, isSuperAdmin, currentProduct],
   )
 
   return (

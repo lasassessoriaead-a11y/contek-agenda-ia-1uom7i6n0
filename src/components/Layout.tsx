@@ -257,6 +257,12 @@ export const Layout: React.FC = () => {
                 <Settings className="w-4 h-4 mr-2 text-slate-500" />
                 Configurações da Empresa
               </DropdownMenuItem>
+              {hasFeature('financeiro') && (
+                <DropdownMenuItem onClick={() => navigate('/financeiro')}>
+                  <DollarSign className="w-4 h-4 mr-2 text-emerald-600" />
+                  Financeiro
+                </DropdownMenuItem>
+              )}
               {hasFeature('assistente_ia') && (
                 <DropdownMenuItem onClick={() => navigate('/assistente-ia')}>
                   <Bot className="w-4 h-4 mr-2 text-indigo-500" />

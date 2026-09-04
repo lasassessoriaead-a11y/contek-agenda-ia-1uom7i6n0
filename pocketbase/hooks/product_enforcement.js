@@ -48,22 +48,55 @@ onRecordUpdateRequest((e) => {
   return e.next()
 }, 'payments')
 
+onRecordDeleteRequest((e) => {
+  const record = e.record
+  const orgId = record.getString('organization_id')
+  if (!orgId) return e.next()
+
+  try {
+    const org = $app.findRecordById('organizations', orgId)
+    const product = org.getString('product') || 'agyli'
+    if (product === 'markaly') {
+      return e.json(403, {
+        error:
+          'O módulo financeiro não está incluído no produto MARKALY. A exclusão de lançamentos é exclusiva do produto AGYLI.',
+      })
+    }
+  } catch (err) {
+    console.log('[product_enforcement] error loading org for payment delete:', err)
+  }
+
+  return e.next()
+}, 'payments')
+
 onRecordListRequest((e) => {
   const user = e.auth
   if (!user) return e.next()
-  if (user.getBool('is_super_admin')) return e.next()
 
-  let orgId = user.getString('organization_id')
-  if (!orgId) {
+  // 1. Tentar obter a organização alvo pelo query/filter da requisição ou pelo registro do usuário
+  let targetOrgId = ''
+  try {
+    const rawFilter = e.requestInfo().query?.filter || ''
+    const match = rawFilter.match(/organization_id\s*=\s*["']([^"']+)["']/)
+    if (match && match[1]) {
+      targetOrgId = match[1]
+    }
+  } catch (_) {}
+
+  if (!targetOrgId) {
+    targetOrgId = user.getString('organization_id')
+  }
+
+  if (!targetOrgId) {
     try {
       const orgUser = $app.findFirstRecordByData('organization_users', 'user_id', user.id)
-      if (orgUser) orgId = orgUser.getString('organization_id')
+      if (orgUser) targetOrgId = orgUser.getString('organization_id')
     } catch (_) {}
   }
 
-  if (orgId) {
+  if (targetOrgId) {
     try {
-      const org = $app.findRecordById('organizations', orgId)
+      const org = $app.findRecordById('organizations', targetOrgId)
       const product = org.getString('product') || 'agyli'
       if (product === 'markaly') {
         return e.json(403, {

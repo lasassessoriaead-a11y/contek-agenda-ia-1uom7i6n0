@@ -38,7 +38,7 @@ import { format, parseISO, isToday, startOfDay, endOfDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export const Dashboard: React.FC = () => {
-  const { organization, user } = useAuth()
+  const { organization, user, hasFeature } = useAuth()
   const navigate = useNavigate()
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -47,6 +47,8 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true)
 
   const orgId = organization?.id
+  const canViewFinancials = hasFeature('financeiro')
+  const canUseAi = hasFeature('assistente_ia')
 
   const loadData = async () => {
     if (!orgId) return
@@ -66,13 +68,23 @@ export const Dashboard: React.FC = () => {
       })
       setClientsCount(clientsResult.totalItems)
 
-      // 3. Fetch payments with appointment expand to filter out cancelled/missed
-      const pays = await pb.collection('payments').getFullList<Payment>({
-        filter: `organization_id = "${orgId}"`,
-        sort: '-created',
-        expand: 'appointment_id',
-      })
-      setPayments(pays)
+      // 3. Fetch payments ONLY if organization has 'financeiro' feature (AGYLI)
+      // Never fetch payments on MARKALY tenants
+      if (canViewFinancials) {
+        try {
+          const pays = await pb.collection('payments').getFullList<Payment>({
+            filter: `organization_id = "${orgId}"`,
+            sort: '-created',
+            expand: 'appointment_id',
+          })
+          setPayments(pays)
+        } catch (payErr) {
+          console.warn('Could not load payments:', payErr)
+          setPayments([])
+        }
+      } else {
+        setPayments([])
+      }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
     } finally {
@@ -88,15 +100,20 @@ export const Dashboard: React.FC = () => {
       const unsubAppts = pb.collection('appointments').subscribe('*', () => {
         loadData()
       })
-      const unsubPays = pb.collection('payments').subscribe('*', () => {
-        loadData()
-      })
+      let unsubPays: Promise<() => void> | null = null
+      if (canViewFinancials) {
+        unsubPays = pb.collection('payments').subscribe('*', () => {
+          loadData()
+        })
+      }
       return () => {
         unsubAppts.then((u) => u())
-        unsubPays.then((u) => u())
+        if (unsubPays) {
+          unsubPays.then((u) => u())
+        }
       }
     }
-  }, [orgId])
+  }, [orgId, canViewFinancials])
 
   // Calculated Metrics
   const todayStr = new Date().toISOString().slice(0, 10)
@@ -168,10 +185,10 @@ export const Dashboard: React.FC = () => {
     ].filter((item) => item.value > 0)
   }, [appointments, completedAppointments, missedAppointments, cancelledAppointments])
 
-  // Weekly Appointments & Revenue Chart
+  // Weekly Appointments Chart
   const weeklyData = useMemo(() => {
     const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-    const result = days.map((day) => ({ day, atendimentos: 0, faturamento: 0 }))
+    const result = days.map((day) => ({ day, atendimentos: 0 }))
 
     appointments.forEach((a) => {
       try {
@@ -183,20 +200,8 @@ export const Dashboard: React.FC = () => {
       }
     })
 
-    validPayments.forEach((p) => {
-      if (p.is_paid && p.payment_date) {
-        try {
-          const d = new Date(p.payment_date)
-          const dayIdx = d.getDay()
-          result[dayIdx].faturamento += p.amount
-        } catch {
-          /* intentionally ignored */
-        }
-      }
-    })
-
     return result
-  }, [appointments, validPayments])
+  }, [appointments])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -267,39 +272,49 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* AI SMART BANNER WIDGET */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
-            <Bot className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-white">Insight Contek Assistant IA</span>
-              <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/30 text-[10px]">
-                IA Contek
-              </Badge>
+      {/* AI SMART BANNER WIDGET (Somente se o plano possuir assistente_ia - AGYLI) */}
+      {canUseAi && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/30 text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+              <Bot className="w-5 h-5" />
             </div>
-            <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Você tem <b>{todayAppointments.length} agendamentos</b> programados para hoje (
-              {upcomingTodayAppointments.length} pendentes/em curso).
-              {missedAppointments.length > 0 &&
-                ` Dica: você registrou ${missedAppointments.length} falta(s) recente(s). Ative lembretes automáticos para diminuir faltas.`}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-white">
+                  Insight Contek Assistant IA
+                </span>
+                <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/30 text-[10px]">
+                  IA Contek
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                Você tem <b>{todayAppointments.length} agendamentos</b> programados para hoje (
+                {upcomingTodayAppointments.length} pendentes/em curso).
+                {missedAppointments.length > 0 &&
+                  ` Dica: você registrou ${missedAppointments.length} falta(s) recente(s). Ative lembretes automáticos para diminuir faltas.`}
+              </p>
+            </div>
           </div>
+          <Button
+            size="sm"
+            onClick={() => navigate('/assistente-ia')}
+            className="relative z-10 bg-indigo-600 hover:bg-indigo-500 text-white text-xs whitespace-nowrap self-start sm:self-auto shadow-sm"
+          >
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+            Conversar com IA
+          </Button>
         </div>
-        <Button
-          size="sm"
-          onClick={() => navigate('/assistente-ia')}
-          className="relative z-10 bg-indigo-600 hover:bg-indigo-500 text-white text-xs whitespace-nowrap self-start sm:self-auto shadow-sm"
-        >
-          <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-          Conversar com IA
-        </Button>
-      </div>
+      )}
 
-      {/* 8 PRIMARY STATS CARDS (clickable) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+      {/* PRIMARY STATS CARDS (clickable, responsivo dinâmico: 4 colunas no AGYLI, 3 colunas no MARKALY) */}
+      <div
+        className={
+          canViewFinancials
+            ? 'grid grid-cols-2 md:grid-cols-4 gap-3.5'
+            : 'grid grid-cols-2 md:grid-cols-3 gap-3.5'
+        }
+      >
         {/* Card 1: Agendamentos Hoje */}
         <Card
           onClick={() => navigate('/agenda')}
@@ -320,39 +335,49 @@ export const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card 2: Faturamento do Dia */}
-        <Card
-          onClick={() => navigate('/financeiro')}
-          className="cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all border-slate-200 bg-white"
-        >
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-medium text-slate-500">Faturamento Hoje</CardTitle>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">{formatCurrency(todayRevenue)}</div>
-            <p className="text-[11px] text-slate-500 mt-1">Valores pagos hoje</p>
-          </CardContent>
-        </Card>
+        {/* Card 2: Faturamento do Dia (Apenas AGYLI) */}
+        {canViewFinancials && (
+          <Card
+            onClick={() => navigate('/financeiro')}
+            className="cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all border-slate-200 bg-white"
+          >
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-xs font-medium text-slate-500">Faturamento Hoje</CardTitle>
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <DollarSign className="w-4 h-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-bold text-slate-900">
+                {formatCurrency(todayRevenue)}
+              </div>
+              <p className="text-[11px] text-slate-500 mt-1">Valores pagos hoje</p>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Card 3: Faturamento do Mês */}
-        <Card
-          onClick={() => navigate('/financeiro')}
-          className="cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all border-slate-200 bg-white"
-        >
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-xs font-medium text-slate-500">Faturamento do Mês</CardTitle>
-            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-2xl font-bold text-slate-900">{formatCurrency(monthRevenue)}</div>
-            <p className="text-[11px] text-teal-600 font-medium mt-1">Mês corrente</p>
-          </CardContent>
-        </Card>
+        {/* Card 3: Faturamento do Mês (Apenas AGYLI) */}
+        {canViewFinancials && (
+          <Card
+            onClick={() => navigate('/financeiro')}
+            className="cursor-pointer hover:border-emerald-400 hover:shadow-md transition-all border-slate-200 bg-white"
+          >
+            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-xs font-medium text-slate-500">
+                Faturamento do Mês
+              </CardTitle>
+              <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="text-2xl font-bold text-slate-900">
+                {formatCurrency(monthRevenue)}
+              </div>
+              <p className="text-[11px] text-teal-600 font-medium mt-1">Mês corrente</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Card 4: Clientes Cadastrados */}
         <Card

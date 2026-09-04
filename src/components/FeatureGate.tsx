@@ -18,9 +18,9 @@ export const FeatureGate: React.FC<FeatureGateProps> = ({
   fallbackTitle = 'Módulo não incluído no seu plano',
   fallbackMessage,
 }) => {
-  const { hasFeature, currentProduct, branding, isSuperAdmin } = useAuth()
+  const { hasFeature, currentProduct, branding } = useAuth()
 
-  if (hasFeature(feature) || isSuperAdmin) {
+  if (hasFeature(feature)) {
     return <>{children}</>
   }
 

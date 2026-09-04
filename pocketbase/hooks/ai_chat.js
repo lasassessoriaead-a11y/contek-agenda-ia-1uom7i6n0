@@ -11,8 +11,15 @@ routerAdd(
       if (!userId || !userRecord) return e.unauthorizedError('Autenticação necessária.')
       if (!body.message?.trim()) return e.badRequestError('Mensagem é obrigatória.')
 
-      // 1. Resolve organization_id strictly server-side from authenticated user record
-      let orgId = userRecord.getString('organization_id')
+      // 1. Resolve organization_id strictly server-side:
+      // Se body trouxer organization_id (ex: SuperAdmin inspecionando tenant específico) ou resolver do userRecord
+      let orgId = ''
+      if (body.organization_id && typeof body.organization_id === 'string') {
+        orgId = body.organization_id.trim()
+      }
+      if (!orgId) {
+        orgId = userRecord.getString('organization_id')
+      }
       if (!orgId) {
         try {
           const orgUser = $app.findFirstRecordByData('organization_users', 'user_id', userId)
