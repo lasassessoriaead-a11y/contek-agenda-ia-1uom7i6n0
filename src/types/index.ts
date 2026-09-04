@@ -48,6 +48,7 @@ export interface BusinessSettings {
   template_confirmation_request?: string
   template_confirmation_thanks?: string
   template_day_reminder?: string
+  whatsapp_ai_enabled?: boolean
   created: string
   updated: string
 }
@@ -159,7 +160,12 @@ export interface NotificationLog {
   id: string
   organization_id: string
   appointment_id?: string
-  type: 'CONFIRMATION_REQUEST' | 'CONFIRMATION_THANKS' | 'DAY_REMINDER' | 'MANUAL_WA'
+  type:
+    | 'CONFIRMATION_REQUEST'
+    | 'CONFIRMATION_THANKS'
+    | 'DAY_REMINDER'
+    | 'MANUAL_WA'
+    | 'WHATSAPP_AI'
   channel: 'WHATSAPP_AUTO' | 'WHATSAPP_MANUAL' | 'WEB'
   status: 'SENT' | 'PENDING_NO_CREDENTIALS' | 'FAILED'
   recipient_phone?: string

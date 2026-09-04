@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-04T17:56:29.172Z",
+  "generatedAt": "2026-09-04T18:04:03.574Z",
   "collections": [
     {
       "name": "users",
@@ -864,6 +864,12 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "whatsapp_ai_enabled",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -904,7 +910,8 @@
             "CONFIRMATION_REQUEST",
             "CONFIRMATION_THANKS",
             "DAY_REMINDER",
-            "MANUAL_WA"
+            "MANUAL_WA",
+            "WHATSAPP_AI"
           ]
         },
         {

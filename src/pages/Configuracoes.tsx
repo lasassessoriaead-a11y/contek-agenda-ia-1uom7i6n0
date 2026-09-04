@@ -20,6 +20,7 @@ import {
   CheckCircle,
   HelpCircle,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -80,6 +81,7 @@ export const Configuracoes: React.FC = () => {
   const [whatsappPhoneNumber, setWhatsappPhoneNumber] = useState('')
   const [whatsappWelcomeMessage, setWhatsappWelcomeMessage] = useState('')
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('')
+  const [whatsappAiEnabled, setWhatsappAiEnabled] = useState(false)
 
   // Message Automation templates state
   const [autoRemindersEnabled, setAutoRemindersEnabled] = useState(true)
@@ -191,6 +193,7 @@ export const Configuracoes: React.FC = () => {
       setWhatsappPhoneNumber(settings.whatsapp_phone_number || '')
       setWhatsappWelcomeMessage(settings.whatsapp_welcome_message || '')
       setWhatsappPhoneNumberId(settings.whatsapp_phone_number_id || '')
+      setWhatsappAiEnabled(Boolean(settings.whatsapp_ai_enabled))
       setAutoRemindersEnabled(settings.auto_reminders_enabled !== false)
       if (settings.template_confirmation_request) {
         setTemplateConfirm(settings.template_confirmation_request)
@@ -316,6 +319,7 @@ export const Configuracoes: React.FC = () => {
         whatsapp_phone_number: whatsappPhoneNumber.trim(),
         whatsapp_welcome_message: whatsappWelcomeMessage.trim(),
         whatsapp_phone_number_id: whatsappPhoneNumberId.trim(),
+        whatsapp_ai_enabled: whatsappAiEnabled,
         auto_reminders_enabled: autoRemindersEnabled,
         template_confirmation_request: templateConfirm.trim(),
         template_confirmation_thanks: templateThanks.trim(),
@@ -785,6 +789,31 @@ export const Configuracoes: React.FC = () => {
                       </span>
                     </div>
                     <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
+                  </div>
+
+                  {/* Interruptor: Atendente IA para Pacientes */}
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-emerald-200 bg-emerald-50/50">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-emerald-600" />
+                        <Label className="text-xs font-bold text-emerald-950 block">
+                          Atendente Virtual IA para Pacientes (WhatsApp)
+                        </Label>
+                        <Badge className="bg-emerald-600 text-white text-[10px] px-1.5 py-0 h-4">
+                          IA Ativa
+                        </Badge>
+                      </div>
+                      <span className="text-[11px] text-emerald-900/80 leading-relaxed block mt-0.5">
+                        Quando ativado, a IA responde as mensagens dos pacientes pelo WhatsApp com
+                        saudação personalizada, apresenta serviços, verifica horários livres com
+                        turnos/folgas e conclui agendamentos reais no sistema.
+                      </span>
+                    </div>
+                    <Switch
+                      checked={whatsappAiEnabled}
+                      onCheckedChange={setWhatsappAiEnabled}
+                      className="data-[state=checked]:bg-emerald-600"
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
