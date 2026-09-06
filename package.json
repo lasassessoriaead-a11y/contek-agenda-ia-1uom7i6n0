@@ -2,7 +2,7 @@
   "name": "contek-agenda",
   "description": "Plataforma corporativa Contek Agenda IA — Grupo CONTEK Tecnologia e Consultoria",
   "private": true,
-  "version": "0.0.59",
+  "version": "0.0.60",
   "type": "module",
   "scripts": {
     "start": "vite dev",
