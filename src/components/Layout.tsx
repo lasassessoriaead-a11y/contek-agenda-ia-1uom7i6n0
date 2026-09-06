@@ -428,7 +428,6 @@ export const Layout: React.FC = () => {
               </div>
             </div>
           </div>
-
           {/* Nav Items List */}
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             {navItems.map((item) => {

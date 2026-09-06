@@ -421,18 +421,20 @@ export const SuperAdmin: React.FC = () => {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
         {/* HEADER SUPERADMIN */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-6 rounded-2xl shadow-xl border border-slate-800">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#0D1B2A] text-white p-6 rounded-2xl shadow-xl border border-slate-800">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono text-[11px]">
+              <Badge className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-[11px]">
                 CONTEK ROOT ADMIN
               </Badge>
-              <span className="text-xs text-slate-400">Multi-Produto AGYLI / MARKALY</span>
+              <span className="text-xs text-slate-300">Multi-Produto AGYLI / MARKALY</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Painel SuperAdmin Contek</h1>
-            <p className="text-xs text-slate-400 max-w-xl mt-1">
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Painel SuperAdmin Contek
+            </h1>
+            <p className="text-xs text-slate-300 max-w-xl mt-1">
               Gestão centralizada de todas as organizações da base única, controle de produtos,
-              planos, assinaturas e status operacional.
+              planos, assinaturas e status operacional do Grupo Contek.
             </p>
           </div>
 

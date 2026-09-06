@@ -18,6 +18,7 @@ import LoginContek from '@/pages/LoginContek'
 import AgendamentoPublico from '@/pages/AgendamentoPublico'
 import ConfirmacaoPublica from '@/pages/ConfirmacaoPublica'
 import { FeatureGate, SuperAdminRoute } from '@/components/FeatureGate'
+import SuperAdminLayout from '@/components/SuperAdminLayout'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -113,14 +114,18 @@ export function App() {
               }
             />
             <Route path="configuracoes" element={<Configuracoes />} />
-            <Route
-              path="admin"
-              element={
-                <SuperAdminRoute>
-                  <SuperAdmin />
-                </SuperAdminRoute>
-              }
-            />
+          </Route>
+
+          {/* Painel SuperAdmin Contek - Layout Corporativo Próprio (/admin) */}
+          <Route
+            path="/admin"
+            element={
+              <SuperAdminRoute>
+                <SuperAdminLayout />
+              </SuperAdminRoute>
+            }
+          >
+            <Route index element={<SuperAdmin />} />
           </Route>
 
           {/* 404 Route */}
