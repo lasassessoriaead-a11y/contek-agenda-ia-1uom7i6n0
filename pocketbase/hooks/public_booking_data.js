@@ -180,6 +180,8 @@ routerAdd('GET', '/backend/v1/public-booking-data', (e) => {
         id: org.id,
         name: org.getString('name'),
         slug: org.getString('slug'),
+        product: org.getString('product') || 'agyli',
+        plan_id: org.getString('plan_id'),
         logo: org.getString('logo'),
         phone: org.getString('phone'),
         whatsapp: org.getString('whatsapp'),

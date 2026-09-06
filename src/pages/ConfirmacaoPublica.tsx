@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { AgyliEmblem } from '@/components/AgyliBranding'
-import { MarkalyEmblem } from '@/components/MarkalyBranding'
+import { AgyliEmblem, AgyliLogo } from '@/components/AgyliBranding'
+import { MarkalyEmblem, MarkalyLogo } from '@/components/MarkalyBranding'
 import { ContekSymbol } from '@/components/ContekBranding'
 
 interface ConfirmationResult {
@@ -47,6 +47,7 @@ export const ConfirmacaoPublica: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [result, setResult] = useState<ConfirmationResult | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
+  const isMarkaly = result?.appointment?.organization_product === 'markaly'
 
   useEffect(() => {
     if (!token) {
@@ -81,15 +82,35 @@ export const ConfirmacaoPublica: React.FC = () => {
   }, [token])
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col justify-center items-center p-4 selection:bg-[#3B82F6] selection:text-white font-['Poppins',sans-serif]">
+    <div
+      className={`min-h-screen text-slate-100 flex flex-col justify-center items-center p-4 font-['Poppins',sans-serif] transition-colors duration-300 ${
+        isMarkaly ? 'bg-[#1E0338] selection:bg-[#F97316]' : 'bg-[#0F172A] selection:bg-[#3B82F6]'
+      } selection:text-white`}
+    >
       <div className="w-full max-w-md">
         {/* BRAND HEADER */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#3B82F6] mb-3 shadow-inner">
-            <CheckCircle2 className="w-6 h-6 text-[#3B82F6]" />
+        <div className="text-center mb-6 space-y-2">
+          <div className="flex justify-center pb-1">
+            {isMarkaly ? (
+              <MarkalyLogo height={32} theme="dark" showSlogan={true} showSignature={false} />
+            ) : (
+              <AgyliLogo height={32} theme="dark" showSlogan={true} showSignature={false} />
+            )}
+          </div>
+          <div
+            className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-1 shadow-inner ${
+              isMarkaly
+                ? 'bg-orange-500/10 border border-orange-500/30 text-[#F97316]'
+                : 'bg-blue-500/10 border border-blue-500/20 text-[#3B82F6]'
+            }`}
+          >
+            <CheckCircle2
+              className={`w-6 h-6 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+            />
           </div>
           <h1 className="text-xl font-bold tracking-tight text-white">
-            {result?.appointment?.organization_name || 'AGYLI Agenda'}
+            {result?.appointment?.organization_name ||
+              (isMarkaly ? 'MARKALY Agenda' : 'AGYLI Agenda')}
           </h1>
           <p className="text-xs text-slate-400">Confirmação de Presença Online</p>
         </div>
@@ -98,7 +119,7 @@ export const ConfirmacaoPublica: React.FC = () => {
         {loading && (
           <Card className="border-slate-800 bg-[#1E293B] text-slate-100 shadow-xl rounded-2xl">
             <CardContent className="py-12 text-center space-y-4">
-              <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-10 h-10 border-4 border-slate-600 border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-sm text-slate-300 font-medium">
                 Validando e confirmando seu atendimento...
               </p>
@@ -133,10 +154,28 @@ export const ConfirmacaoPublica: React.FC = () => {
 
         {/* SUCCESS CONFIRMED STATE */}
         {!loading && result && (
-          <Card className="border-blue-500/30 bg-[#1E293B] text-slate-100 shadow-2xl overflow-hidden rounded-2xl">
-            <div className="h-1.5 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]" />
+          <Card
+            className={`text-slate-100 shadow-2xl overflow-hidden rounded-2xl ${
+              isMarkaly
+                ? 'border-purple-800/60 bg-[#2E0854] shadow-purple-950/50'
+                : 'border-blue-500/30 bg-[#1E293B] shadow-blue-950/50'
+            }`}
+          >
+            <div
+              className={`h-1.5 ${
+                isMarkaly
+                  ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED]'
+                  : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]'
+              }`}
+            />
             <CardHeader className="text-center pb-3">
-              <Badge className="w-fit mx-auto bg-blue-500/20 text-blue-300 border-blue-500/30 text-[11px] mb-1">
+              <Badge
+                className={`w-fit mx-auto text-[11px] mb-1 ${
+                  isMarkaly
+                    ? 'bg-orange-500/20 text-orange-200 border-orange-500/30'
+                    : 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                }`}
+              >
                 {result.already_confirmed
                   ? 'Já Estava Confirmado'
                   : 'Presença Confirmada com Sucesso!'}
@@ -144,24 +183,44 @@ export const ConfirmacaoPublica: React.FC = () => {
               <CardTitle className="text-xl font-bold text-white tracking-tight">
                 Obrigado, {result.appointment?.client_name || 'Paciente'}!
               </CardTitle>
-              <CardDescription className="text-xs text-slate-300">
+              <CardDescription
+                className={`text-xs ${isMarkaly ? 'text-purple-200' : 'text-slate-300'}`}
+              >
                 Seu agendamento foi validado no sistema e o profissional já foi notificado.
               </CardDescription>
             </CardHeader>
 
             <CardContent className="space-y-4 text-xs">
               {/* DETAILS SUMMARY */}
-              <div className="bg-[#0F172A] rounded-xl p-4 border border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between py-1 border-b border-slate-800">
+              <div
+                className={`rounded-xl p-4 border space-y-2.5 ${
+                  isMarkaly ? 'bg-[#1A0330] border-purple-900/60' : 'bg-[#0F172A] border-slate-800'
+                }`}
+              >
+                <div
+                  className={`flex items-center justify-between py-1 border-b ${
+                    isMarkaly ? 'border-purple-900/60' : 'border-slate-800'
+                  }`}
+                >
                   <span className="text-slate-400 flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#3B82F6]" /> Data:
+                    <Calendar
+                      className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                    />{' '}
+                    Data:
                   </span>
                   <span className="font-semibold text-slate-100">{result.appointment?.date}</span>
                 </div>
 
-                <div className="flex items-center justify-between py-1 border-b border-slate-800">
+                <div
+                  className={`flex items-center justify-between py-1 border-b ${
+                    isMarkaly ? 'border-purple-900/60' : 'border-slate-800'
+                  }`}
+                >
                   <span className="text-slate-400 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-[#3B82F6]" /> Horário:
+                    <Clock
+                      className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                    />{' '}
+                    Horário:
                   </span>
                   <span className="font-semibold text-slate-100">
                     {result.appointment?.start_time}
@@ -169,9 +228,16 @@ export const ConfirmacaoPublica: React.FC = () => {
                 </div>
 
                 {result.appointment?.service_name && (
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800">
+                  <div
+                    className={`flex items-center justify-between py-1 border-b ${
+                      isMarkaly ? 'border-purple-900/60' : 'border-slate-800'
+                    }`}
+                  >
                     <span className="text-slate-400 flex items-center gap-1.5">
-                      <Scissors className="w-3.5 h-3.5 text-[#3B82F6]" /> Procedimento:
+                      <Scissors
+                        className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                      />{' '}
+                      Procedimento:
                     </span>
                     <span className="font-semibold text-slate-100">
                       {result.appointment.service_name}
@@ -182,7 +248,10 @@ export const ConfirmacaoPublica: React.FC = () => {
                 {result.appointment?.professional_name && (
                   <div className="flex items-center justify-between py-1">
                     <span className="text-slate-400 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-[#3B82F6]" /> Profissional:
+                      <User
+                        className={`w-3.5 h-3.5 ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}
+                      />{' '}
+                      Profissional:
                     </span>
                     <span className="font-semibold text-slate-100">
                       {result.appointment.professional_name}
@@ -193,7 +262,13 @@ export const ConfirmacaoPublica: React.FC = () => {
 
               {/* THANKS MESSAGE CARD */}
               {result.thanks_message && (
-                <div className="p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl text-blue-200 text-xs leading-relaxed">
+                <div
+                  className={`p-3 rounded-xl text-xs leading-relaxed border ${
+                    isMarkaly
+                      ? 'bg-purple-950/40 border-purple-800/40 text-purple-200'
+                      : 'bg-blue-950/30 border-blue-500/20 text-blue-200'
+                  }`}
+                >
                   <p className="italic">"{result.thanks_message}"</p>
                 </div>
               )}
@@ -204,8 +279,14 @@ export const ConfirmacaoPublica: React.FC = () => {
               </p>
             </CardContent>
 
-            <CardFooter className="pt-3 pb-4 flex flex-col sm:flex-row items-center justify-center gap-2 border-t border-slate-800 text-xs text-slate-400">
-              {result.appointment?.organization_product === 'markaly' ? (
+            <CardFooter
+              className={`pt-3 pb-4 flex flex-col sm:flex-row items-center justify-center gap-2 border-t text-xs ${
+                isMarkaly
+                  ? 'border-purple-900/50 text-purple-300/80'
+                  : 'border-slate-800 text-slate-400'
+              }`}
+            >
+              {isMarkaly ? (
                 <div className="flex items-center gap-1.5">
                   <MarkalyEmblem size={16} />
                   <span>

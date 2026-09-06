@@ -474,7 +474,7 @@ export const AgendamentoPublico: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#0F172A] text-slate-100 flex items-center justify-center p-4 font-['Poppins',sans-serif]">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
+          <div className="w-10 h-10 border-4 border-slate-600 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-sm text-slate-400">Carregando página de agendamento...</p>
         </div>
       </div>
@@ -492,10 +492,7 @@ export const AgendamentoPublico: React.FC = () => {
           <p className="text-xs text-slate-400">
             O endereço <b>/agendar/{slug}</b> não corresponde a nenhuma empresa ativa.
           </p>
-          <Button
-            asChild
-            className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white text-xs"
-          >
+          <Button asChild className="bg-slate-700 hover:bg-slate-600 text-white text-xs">
             <Link to="/login">Ir para a Plataforma</Link>
           </Button>
         </Card>
@@ -506,12 +503,27 @@ export const AgendamentoPublico: React.FC = () => {
   // TELA FINAL DE SUCESSO
   if (bookingSuccessData) {
     return (
-      <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative font-['Poppins',sans-serif]">
+      <div
+        className={`min-h-screen text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative font-['Poppins',sans-serif] ${
+          isMarkaly ? 'bg-[#1E0338]' : 'bg-[#0F172A]'
+        }`}
+      >
         <div
-          className={`max-w-lg w-full bg-[#1E293B] border rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 text-center ${
-            isMarkaly ? 'border-orange-500/40' : 'border-[#3B82F6]/40'
+          className={`max-w-lg w-full border rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6 text-center ${
+            isMarkaly
+              ? 'bg-[#2E0854] border-purple-800/60 shadow-purple-950/50'
+              : 'bg-[#1E293B] border-[#3B82F6]/40 shadow-blue-950/50'
           }`}
         >
+          {/* Logo do produto com slogan oficial */}
+          <div className="flex justify-center pb-2">
+            {isMarkaly ? (
+              <MarkalyLogo height={34} theme="dark" showSlogan={true} showSignature={false} />
+            ) : (
+              <AgyliLogo height={34} theme="dark" showSlogan={true} showSignature={false} />
+            )}
+          </div>
+
           <div
             className={`w-16 h-16 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg animate-bounce ${
               isMarkaly
@@ -526,23 +538,33 @@ export const AgendamentoPublico: React.FC = () => {
             <h1 className="text-2xl font-bold text-white tracking-tight">
               Agendamento Realizado com Sucesso!
             </h1>
-            <p className={`text-xs mt-1 ${isMarkaly ? 'text-orange-300' : 'text-blue-300'}`}>
+            <p className={`text-xs mt-1 ${isMarkaly ? 'text-purple-200' : 'text-blue-300'}`}>
               Seu horário está confirmado em <b>{org.name}</b>.
             </p>
           </div>
 
-          <div className="bg-[#0F172A] p-4 rounded-xl border border-slate-800 text-left space-y-2.5 text-xs">
-            <div className="flex justify-between border-b border-slate-800 pb-2">
+          <div
+            className={`p-4 rounded-xl border text-left space-y-2.5 text-xs ${
+              isMarkaly ? 'bg-[#1A0330] border-purple-900/60' : 'bg-[#0F172A] border-slate-800'
+            }`}
+          >
+            <div
+              className={`flex justify-between border-b pb-2 ${isMarkaly ? 'border-purple-900/60' : 'border-slate-800'}`}
+            >
               <span className="text-slate-400">Serviço:</span>
               <span className="font-semibold text-white">{bookingSuccessData.service_name}</span>
             </div>
-            <div className="flex justify-between border-b border-slate-800 pb-2">
+            <div
+              className={`flex justify-between border-b pb-2 ${isMarkaly ? 'border-purple-900/60' : 'border-slate-800'}`}
+            >
               <span className="text-slate-400">Profissional:</span>
               <span className="font-semibold text-white">
                 {bookingSuccessData.professional_name}
               </span>
             </div>
-            <div className="flex justify-between border-b border-slate-800 pb-2">
+            <div
+              className={`flex justify-between border-b pb-2 ${isMarkaly ? 'border-purple-900/60' : 'border-slate-800'}`}
+            >
               <span className="text-slate-400">Data e Horário:</span>
               <span className={`font-bold ${isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}`}>
                 {format(parseISO(bookingSuccessData.date), "dd 'de' MMMM", { locale: ptBR })} às{' '}
@@ -558,7 +580,13 @@ export const AgendamentoPublico: React.FC = () => {
           </div>
 
           {settings?.default_booking_message && (
-            <p className="text-xs text-slate-400 italic bg-[#0F172A]/70 p-3 rounded-lg border border-slate-800">
+            <p
+              className={`text-xs text-slate-300 italic p-3 rounded-lg border ${
+                isMarkaly
+                  ? 'bg-[#1A0330]/80 border-purple-900/60'
+                  : 'bg-[#0F172A]/70 border-slate-800'
+              }`}
+            >
               "{settings.default_booking_message}"
             </p>
           )}
@@ -569,10 +597,10 @@ export const AgendamentoPublico: React.FC = () => {
                 href={whatsappLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition-colors border ${
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold transition-colors border ${
                   isMarkaly
-                    ? 'text-orange-300 border-orange-500/30'
-                    : 'text-blue-400 border-blue-500/30'
+                    ? 'bg-[#3B0764] hover:bg-[#4C0D80] text-purple-100 border-purple-500/40 shadow-sm'
+                    : 'bg-slate-800 hover:bg-slate-700 text-blue-400 border-blue-500/30'
                 }`}
               >
                 <Phone className="w-4 h-4 fill-current" />
@@ -589,7 +617,7 @@ export const AgendamentoPublico: React.FC = () => {
               }}
               className={`text-white font-bold h-11 ${
                 isMarkaly
-                  ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                  ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
                   : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
               }`}
             >
@@ -598,7 +626,13 @@ export const AgendamentoPublico: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-8 pt-4 border-t border-slate-800/80 w-full flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400">
+        <div
+          className={`mt-8 pt-4 border-t w-full flex flex-col sm:flex-row items-center justify-center gap-2 text-xs ${
+            isMarkaly
+              ? 'border-purple-900/50 text-purple-300/80'
+              : 'border-slate-800/80 text-slate-400'
+          }`}
+        >
           <div className="flex items-center gap-1.5">
             {isMarkaly ? <MarkalyEmblem size={18} /> : <AgyliEmblem size={18} />}
             <span>
@@ -624,27 +658,41 @@ export const AgendamentoPublico: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-x-hidden font-poppins">
+    <div
+      className={`min-h-screen text-slate-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-x-hidden font-poppins transition-colors duration-300 ${
+        isMarkaly ? 'bg-[#1E0338]' : 'bg-[#0F172A]'
+      }`}
+    >
       {/* Background accents */}
       <div
-        className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 rounded-full blur-3xl pointer-events-none ${
-          isMarkaly ? 'bg-orange-500/15' : 'bg-[#3B82F6]/15'
+        className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-72 rounded-full blur-3xl pointer-events-none ${
+          isMarkaly ? 'bg-gradient-to-b from-[#7C3AED]/20 to-[#F97316]/15' : 'bg-[#3B82F6]/15'
         }`}
       />
 
       <div className="max-w-2xl w-full space-y-6 relative z-10">
-        {/* ORGANIZATION BRAND HEADER */}
+        {/* PRODUTO BRANDING HEADER OFICIAL COM LOGO COMPLETA E SLOGAN */}
         <div className="text-center space-y-3">
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center gap-2">
             {isMarkaly ? (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#3B0764] border border-orange-400/40 text-orange-300 text-xs font-semibold shadow-sm">
-                <MarkalyEmblem size={16} />
-                <span>Agendamento Oficial • MARKALY</span>
+              <div className="flex flex-col items-center">
+                <div className="p-2.5 rounded-2xl bg-[#2E0854]/80 border border-purple-700/50 shadow-lg backdrop-blur">
+                  <MarkalyLogo height={38} theme="dark" showSlogan={true} showSignature={false} />
+                </div>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-0.5 rounded-full bg-[#3B0764] border border-orange-400/30 text-orange-200 text-[11px] font-semibold">
+                  <Sparkles className="w-3 h-3 text-[#F97316]" />
+                  <span>Plataforma Oficial MARKALY • Organizar hoje, crescer sempre.</span>
+                </div>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1E293B] border border-blue-500/30 text-blue-300 text-xs font-semibold">
-                <AgyliEmblem size={16} />
-                <span>Agendamento Oficial • AGYLI</span>
+              <div className="flex flex-col items-center">
+                <div className="p-2.5 rounded-2xl bg-[#1E293B]/80 border border-blue-500/30 shadow-lg backdrop-blur">
+                  <AgyliLogo height={38} theme="dark" showSlogan={true} showSignature={false} />
+                </div>
+                <div className="inline-flex items-center gap-1.5 mt-2 px-3 py-0.5 rounded-full bg-[#1E293B] border border-blue-500/30 text-blue-200 text-[11px] font-semibold">
+                  <Sparkles className="w-3 h-3 text-[#3B82F6]" />
+                  <span>Plataforma Oficial AGYLI • Agendar ficou simples.</span>
+                </div>
               </div>
             )}
           </div>
@@ -680,7 +728,11 @@ export const AgendamentoPublico: React.FC = () => {
         </div>
 
         {/* STEP PROGRESS BAR (1 to 6) */}
-        <div className="bg-[#1E293B] border border-slate-800 rounded-xl p-3 sm:p-4 shadow-xl">
+        <div
+          className={`border rounded-xl p-3 sm:p-4 shadow-xl ${
+            isMarkaly ? 'bg-[#2E0854] border-purple-800/60' : 'bg-[#1E293B] border-slate-800'
+          }`}
+        >
           <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 mb-2">
             <span>Passo {currentStep} de 6</span>
             <span className={isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'}>
@@ -693,7 +745,11 @@ export const AgendamentoPublico: React.FC = () => {
             </span>
           </div>
 
-          <div className="w-full bg-[#0F172A] h-2 rounded-full overflow-hidden">
+          <div
+            className={`w-full h-2 rounded-full overflow-hidden ${
+              isMarkaly ? 'bg-[#1A0330]' : 'bg-[#0F172A]'
+            }`}
+          >
             <div
               className={`h-full transition-all duration-300 rounded-full ${
                 isMarkaly
@@ -706,7 +762,11 @@ export const AgendamentoPublico: React.FC = () => {
         </div>
 
         {/* CARD WITH STEP CONTENTS */}
-        <Card className="border-slate-800 bg-[#1E293B] text-slate-100 shadow-2xl rounded-2xl">
+        <Card
+          className={`text-slate-100 shadow-2xl rounded-2xl ${
+            isMarkaly ? 'border-purple-800/60 bg-[#2E0854]' : 'border-slate-800 bg-[#1E293B]'
+          }`}
+        >
           {/* STEP 1: ESCOLHER SERVIÇO */}
           {currentStep === 1 && (
             <>

@@ -21,9 +21,11 @@ routerAdd('GET', '/backend/v1/appointments/confirm/{token}', (e) => {
     const serviceId = appointment.getString('service_id')
 
     let orgName = 'Contek Agenda'
+    let orgProduct = 'agyli'
     try {
       const org = $app.findRecordById('organizations', orgId)
       orgName = org.getString('name')
+      orgProduct = org.getString('product') || 'agyli'
     } catch (_) {}
 
     let clientName = appointment.getString('client_name_snapshot')
@@ -182,6 +184,7 @@ routerAdd('GET', '/backend/v1/appointments/confirm/{token}', (e) => {
         date: dateFormatted,
         start_time: startTime,
         organization_name: orgName,
+        organization_product: orgProduct,
       },
       thanks_message: thanksMessage,
       thanks_dispatched: thanksDispatched,
