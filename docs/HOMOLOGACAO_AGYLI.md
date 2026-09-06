@@ -126,7 +126,62 @@ Este documento estabelece o roteiro padronizado de validação e homologação d
 
 ---
 
-## 7. Etapa 6: Homologação Mobile e PWA (Progressive Web App)
+## 7. Testes Automatizados (Suíte de Homologação Comercial)
+
+A validação contínua da jornada comercial é garantida por testes automatizados em **Vitest**, que executam sem alterar nem consultar o banco de dados de produção (utilizando mocks de SDK e isolamento estrito).
+
+### Como Rodar os Testes:
+
+```bash
+npm test
+```
+
+Ou no modo contínuo de observação:
+
+```bash
+npm run test:watch
+```
+
+### O que a Suíte Cobre (`src/tests/agyliCommercialHomologation.test.ts`):
+
+1. **Cadastro Self-Service AGYLI**:
+   - Criação da empresa com status `trial` (7 dias exatos).
+   - Atribuição automática do plano `agyli-pro`.
+   - Vínculo do usuário como `ADMINISTRADOR` / owner.
+   - Criação do profissional inicial com o nome informado no cadastro, dias úteis de seg-sáb 08:00–19:00 e duração padrão de 45 minutos.
+   - Criação do serviço padrão _"Atendimento Inicial / Consulta"_ (R$ 150, 45 min) e seu vínculo na tabela `professional_services`.
+   - Rejeição de senhas com menos de 8 caracteres.
+
+2. **Login, Logout e Isolamento de Sessão**:
+   - Estados iniciais de e-mail e senha estritamente vazios (`""`) no formulário (`Login.tsx`).
+   - Carregamento imediato do contexto da organização pertencente ao usuário autenticado.
+   - Limpeza completa do `localStorage` (`contek_active_org_id`, `pb_auth`) no logout para impedir vazamento entre diferentes empresas ou sessões no mesmo navegador.
+
+3. **Isolamento Multi-tenant**:
+   - Duas empresas criadas pelo mesmo fluxo não compartilham profissionais, serviços nem agendamentos.
+   - Usuários comuns recém-logados nunca herdam `contek_active_org_id` deixado no navegador por outra conta.
+
+4. **Recuperação e Redefinição de Senha**:
+   - Formulário de recuperação solicita e-mail via `requestPasswordReset` com mensagens claras e amigáveis.
+   - Tela `RedefinirSenha.tsx` valida presença obrigatória do token na URL, tamanho mínimo de senha (8 caracteres) e confirmação idêntica.
+
+5. **Bloqueios MARKALY vs Liberação AGYLI**:
+   - Tenant com produto `markaly` tem `financeiro`, `assistente_ia`, `whatsapp_ai`, `relatorios` e `configuracoes_avancadas` estritamente bloqueados (inclusive para SuperAdmin inspecionando a empresa).
+   - Tenant `agyli` tem todos os módulos liberados.
+   - Fallback de integridade: quando a lista de features do servidor vem vazia, o sistema assume os padrões do produto em vez de ocultar todo o menu (correção v0.0.39 protegida por teste).
+
+6. **Agendamento Público (`/agendar/:slug`)**:
+   - Cálculo dinâmico de slots disponíveis respeitando abertura, fechamento e intervalo de almoço do profissional.
+   - Slots já ocupados por agendamentos existentes no mesmo dia **nunca** são oferecidos.
+   - Fluxo completo em 6 passos sem necessidade de login prévio do cliente/paciente.
+   - Detecção correta de folgas e dias de atendimento do profissional.
+
+7. **Branding Oficial AGYLI**:
+   - Resolução correta dos domínios oficiais (`agyli.com.br`, `app.agyli.com.br`, `*.goskip.app`) para o tema AGYLI com cores e slogan oficiais (#3B82F6 / #8B5CF6 / _"Agendar ficou simples."_).
+
+---
+
+## 8. Etapa 6: Homologação Mobile e PWA (Progressive Web App)
 
 ### Verificações em Smartphone (Android / iOS):
 
