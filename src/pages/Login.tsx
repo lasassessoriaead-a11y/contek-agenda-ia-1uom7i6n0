@@ -29,6 +29,7 @@ import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 
 import { resolveProductByDomain } from '@/lib/branding'
 
@@ -990,22 +991,28 @@ export const Login: React.FC = () => {
               <p className="text-xs text-slate-600 font-medium">
                 MARKALY • Organizar hoje, crescer sempre.
               </p>
-              <p className="text-[11px] text-slate-500">
-                Uma solução{' '}
-                <span className="text-[#3B0764] font-semibold">
-                  Contek Tecnologia e Consultoria
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+                <ContekSymbol size={12} className="inline-block" />
+                <span>
+                  Uma solução{' '}
+                  <span className="text-[#3B0764] font-semibold">
+                    Contek Tecnologia e Consultoria
+                  </span>
+                  . Todos os direitos reservados.
                 </span>
-                . Todos os direitos reservados.
-              </p>
+              </div>
             </>
           ) : (
             <>
               <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
-              <p className="text-[11px] text-slate-500">
-                Uma solução{' '}
-                <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>.
-                Todos os direitos reservados.
-              </p>
+              <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+                <ContekSymbol size={12} className="inline-block" />
+                <span>
+                  Uma solução{' '}
+                  <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>
+                  . Todos os direitos reservados.
+                </span>
+              </div>
             </>
           )}
         </div>

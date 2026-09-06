@@ -50,6 +50,64 @@ export interface ContekSymbolProps {
  * Símbolo C Oficial da CONTEK (arcos sobrepostos em azul, ciano e verde)
  * Usado exclusivamente em favicons, avatares, PWA, botões, mobile e cabeçalhos compactos.
  */
+/**
+ * Renderizador Vetorial 100% puro do Símbolo C Oficial da CONTEK.
+ * Zero dependência de rede, zero falha, nitidez vetorial máxima em qualquer DPI.
+ * Arcos característicos em gradiente: #1E3A8A (Azul) → #06B6D4 (Ciano) → #22C55E (Verde).
+ */
+export const ContekSymbolVector: React.FC<{ className?: string; title?: string }> = ({
+  className = '',
+  title = 'Símbolo Oficial CONTEK',
+}) => {
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      className={`w-full h-full select-none ${className}`}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label={title}
+    >
+      <title>{title}</title>
+      <defs>
+        <linearGradient id="contek-c-outer" x1="15%" y1="10%" x2="85%" y2="90%">
+          <stop offset="0%" stopColor="#1E3A8A" />
+          <stop offset="45%" stopColor="#06B6D4" />
+          <stop offset="100%" stopColor="#22C55E" />
+        </linearGradient>
+        <linearGradient id="contek-c-inner" x1="20%" y1="90%" x2="90%" y2="20%">
+          <stop offset="0%" stopColor="#06B6D4" />
+          <stop offset="65%" stopColor="#22C55E" />
+          <stop offset="100%" stopColor="#84CC16" />
+        </linearGradient>
+      </defs>
+      {/* Arco externo do C com extremidades arredondadas e espessura balanceada */}
+      <path
+        d="M 68 22 C 55 12 36 14 24 26 C 10 40 10 60 24 74 C 36 86 55 88 68 78"
+        stroke="url(#contek-c-outer)"
+        strokeWidth="13"
+        strokeLinecap="round"
+      />
+      {/* Arco interno sobreposto característico do símbolo C Contek */}
+      <path
+        d="M 58 36 C 48 28 38 30 32 38 C 24 46 24 54 32 62 C 38 70 48 72 58 64"
+        stroke="url(#contek-c-inner)"
+        strokeWidth="8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+/**
+ * Símbolo C Oficial da CONTEK (arcos sobrepostos em azul, ciano e verde)
+ * Usado exclusivamente em favicons, avatares, PWA, botões, mobile e cabeçalhos compactos.
+ *
+ * Estratégia de exibição à prova de falhas:
+ * 1. O SVG vetorial está SEMPRE montado imediatamente no fundo — nunca há caixa de imagem quebrada nem flash em branco.
+ * 2. Caso a imagem raster PNG carregue com sucesso, ela faz fade-in suave por cima.
+ * 3. Se a imagem PNG falhar (offline, erro 404, bloqueador), o SVG vetorial permanece ativo perfeitamente.
+ */
 export const ContekSymbol: React.FC<ContekSymbolProps> = ({
   size = 40,
   className = '',
@@ -57,20 +115,15 @@ export const ContekSymbol: React.FC<ContekSymbolProps> = ({
   glow = false,
 }) => {
   const dimension = typeof size === 'number' ? `${size}px` : size
-  const [imgSrc, setImgSrc] = useState<string>(contekSymbolBundled || '/contek-symbol.png')
-  const [hasError, setHasError] = useState(false)
+  const [imgFailed, setImgFailed] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
 
-  const handleImageError = () => {
-    if (imgSrc !== '/contek-symbol.png') {
-      setImgSrc('/contek-symbol.png')
-    } else {
-      setHasError(true)
-    }
-  }
+  // Asset oficial via bundler (prioritário) ou fallback do public
+  const resolvedSrc = contekSymbolBundled || '/contek-symbol.png'
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center shrink-0 select-none ${className}`}
+      className={`relative inline-flex items-center justify-center shrink-0 select-none overflow-hidden ${className}`}
       style={{ width: dimension, height: dimension }}
     >
       {glow && (
@@ -81,48 +134,27 @@ export const ContekSymbol: React.FC<ContekSymbolProps> = ({
           }}
         />
       )}
-      {!hasError ? (
+
+      {/* SVG vetorial como base nativa ininterrupta — NUNCA QUEBRA */}
+      <div
+        className="w-full h-full flex items-center justify-center relative z-10"
+        style={{ display: imgLoaded ? 'none' : 'flex' }}
+      >
+        <ContekSymbolVector title={alt} />
+      </div>
+
+      {/* Imagem raster oficial sobreposta quando disponível */}
+      {!imgFailed && resolvedSrc && (
         <img
-          src={imgSrc}
+          src={resolvedSrc}
           alt={alt}
-          onError={handleImageError}
-          className="w-full h-full object-contain relative z-10"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgFailed(true)}
+          className={`w-full h-full object-contain relative z-20 transition-opacity duration-200 ${
+            imgLoaded ? 'opacity-100' : 'opacity-0 absolute pointer-events-none'
+          }`}
           loading="eager"
         />
-      ) : (
-        /* Fallback vetorial fiel e nítido do Símbolo C Oficial da Contek */
-        <svg
-          viewBox="0 0 100 100"
-          className="w-full h-full relative z-10 select-none drop-shadow-sm"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="contek-c-grad-outer" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#1E3A8A" />
-              <stop offset="50%" stopColor="#06B6D4" />
-              <stop offset="100%" stopColor="#22C55E" />
-            </linearGradient>
-            <linearGradient id="contek-c-grad-inner" x1="0%" y1="100%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#06B6D4" />
-              <stop offset="100%" stopColor="#84CC16" />
-            </linearGradient>
-          </defs>
-          {/* Arco externo do C com extremidades arredondadas */}
-          <path
-            d="M 68 22 C 55 12 36 14 24 26 C 10 40 10 60 24 74 C 36 86 55 88 68 78"
-            stroke="url(#contek-c-grad-outer)"
-            strokeWidth="13"
-            strokeLinecap="round"
-          />
-          {/* Arco interno sobreposto característico do símbolo C Contek */}
-          <path
-            d="M 58 36 C 48 28 38 30 32 38 C 24 46 24 54 32 62 C 38 70 48 72 58 64"
-            stroke="url(#contek-c-grad-inner)"
-            strokeWidth="8"
-            strokeLinecap="round"
-          />
-        </svg>
       )}
     </div>
   )
@@ -139,6 +171,15 @@ export interface ContekFullLogoProps {
  * Logotipo Horizontal Completo Oficial do GRUPO CONTEK
  * Wordmark: "GRUPO CONTEK — TECNOLOGIA E CONSULTORIA" + Símbolo C
  */
+/**
+ * Logotipo Horizontal Completo Oficial do GRUPO CONTEK
+ * Wordmark: "GRUPO CONTEK — TECNOLOGIA E CONSULTORIA" + Símbolo C
+ *
+ * Estratégia de fallback à prova de falhas:
+ * 1. O layout vetorial oficial com o ContekSymbolVector + tipografia Poppins oficial está SEMPRE pronto.
+ * 2. Se a imagem oficial carregou com sucesso, renderiza a imagem.
+ * 3. Se falhar ou estiver carregando, o layout vetorial garante visual impecável sem caixa quebrada.
+ */
 export const ContekFullLogo: React.FC<ContekFullLogoProps> = ({
   className = '',
   height = 48,
@@ -146,50 +187,50 @@ export const ContekFullLogo: React.FC<ContekFullLogoProps> = ({
   theme = 'auto',
 }) => {
   const h = typeof height === 'number' ? `${height}px` : height
-  const [imgSrc, setImgSrc] = useState<string>(contekFullLogoBundled || '/contek-logo-full.png')
-  const [hasError, setHasError] = useState(false)
+  const numericHeight = typeof height === 'number' ? height : parseInt(String(height), 10) || 48
+  const [imgFailed, setImgFailed] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
 
-  const handleImageError = () => {
-    if (imgSrc !== '/contek-logo-full.png') {
-      setImgSrc('/contek-logo-full.png')
-    } else {
-      setHasError(true)
-    }
-  }
+  const resolvedSrc = contekFullLogoBundled || '/contek-logo-full.png'
 
   return (
-    <div className={`inline-flex items-center select-none ${className}`}>
-      {!hasError ? (
+    <div className={`inline-flex items-center select-none ${className}`} style={{ minHeight: h }}>
+      {/* Fallback vetorial tipográfico impecável (ativo enquanto a imagem não carrega ou se falhar) */}
+      <div className="items-center gap-2.5" style={{ display: imgLoaded ? 'none' : 'inline-flex' }}>
+        <ContekSymbol size={Math.max(28, Math.round(numericHeight * 0.85))} />
+        <div className="flex flex-col text-left leading-tight">
+          <span
+            className={`font-black tracking-tight uppercase font-poppins ${
+              theme === 'light' ? 'text-[#0D1B2A]' : 'text-white'
+            }`}
+            style={{ fontSize: `${Math.max(13, Math.round(numericHeight * 0.38))}px` }}
+          >
+            GRUPO CONTEK
+          </span>
+          <span
+            className={`font-semibold tracking-wider uppercase font-poppins ${
+              theme === 'light' ? 'text-slate-500' : 'text-[#06B6D4]'
+            }`}
+            style={{ fontSize: `${Math.max(8, Math.round(numericHeight * 0.2))}px` }}
+          >
+            Tecnologia e Consultoria
+          </span>
+        </div>
+      </div>
+
+      {/* Imagem raster oficial horizontal com transição suave */}
+      {!imgFailed && resolvedSrc && (
         <img
-          src={imgSrc}
+          src={resolvedSrc}
           alt={alt}
-          onError={handleImageError}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgFailed(true)}
           style={{ height: h, width: 'auto' }}
           className={`object-contain max-w-full ${
             theme === 'dark' ? 'drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)]' : ''
-          }`}
+          } ${imgLoaded ? 'block' : 'hidden'}`}
           loading="eager"
         />
-      ) : (
-        <div className="flex items-center gap-2.5">
-          <ContekSymbol size={typeof height === 'number' ? height : 36} />
-          <div className="flex flex-col text-left">
-            <span
-              className={`font-black text-lg tracking-tight uppercase leading-tight font-poppins ${
-                theme === 'light' ? 'text-slate-900' : 'text-white'
-              }`}
-            >
-              GRUPO CONTEK
-            </span>
-            <span
-              className={`text-[9px] font-semibold tracking-wider uppercase font-poppins ${
-                theme === 'light' ? 'text-slate-500' : 'text-cyan-400'
-              }`}
-            >
-              Tecnologia e Consultoria
-            </span>
-          </div>
-        </div>
       )}
     </div>
   )

@@ -13,12 +13,17 @@ if (!fs.existsSync(publicDir)) {
   fs.mkdirSync(publicDir, { recursive: true })
 }
 
-// 1. Símbolo Contek
-const symbolSrc = path.join(assetsDir, 'c-da-contek-23a2f.png')
+// 1. Símbolo Contek (c-da-contek-23a2f.png)
+const symbolCandidates = [
+  path.join(assetsDir, 'c-da-contek-23a2f.png'),
+  path.join(assetsDir, 'contek-symbol.png'),
+  path.join(publicDir, 'contek-symbol.png'),
+]
+const symbolSrc = symbolCandidates.find((p) => fs.existsSync(p))
 const symbolPublic = path.join(publicDir, 'contek-symbol.png')
 const symbolAsset = path.join(assetsDir, 'contek-symbol.png')
 
-if (fs.existsSync(symbolSrc)) {
+if (symbolSrc) {
   try {
     fs.copyFileSync(symbolSrc, symbolPublic)
     fs.copyFileSync(symbolSrc, symbolAsset)
@@ -30,12 +35,17 @@ if (fs.existsSync(symbolSrc)) {
   }
 }
 
-// 2. Logo Horizontal Contek
-const fullLogoSrc = path.join(assetsDir, 'logo-contek-correto-25856.png')
+// 2. Logo Horizontal Contek (logo-contek-correto-25856.png)
+const fullLogoCandidates = [
+  path.join(assetsDir, 'logo-contek-correto-25856.png'),
+  path.join(assetsDir, 'contek-logo-full.png'),
+  path.join(publicDir, 'contek-logo-full.png'),
+]
+const fullLogoSrc = fullLogoCandidates.find((p) => fs.existsSync(p))
 const fullLogoPublic = path.join(publicDir, 'contek-logo-full.png')
 const fullLogoAsset = path.join(assetsDir, 'contek-logo-full.png')
 
-if (fs.existsSync(fullLogoSrc)) {
+if (fullLogoSrc) {
   try {
     fs.copyFileSync(fullLogoSrc, fullLogoPublic)
     fs.copyFileSync(fullLogoSrc, fullLogoAsset)

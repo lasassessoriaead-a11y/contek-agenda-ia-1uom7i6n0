@@ -14,10 +14,10 @@
   "categories": ["business", "productivity", "utilities"],
   "icons": [
     {
-      "src": "/contek-symbol.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "/pwa-192x192.svg",
@@ -32,10 +32,10 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "/contek-symbol.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/favicon.ico",
