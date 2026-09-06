@@ -127,11 +127,17 @@ export const Login: React.FC = () => {
     }
     setLoadingLogin(true)
     try {
-      await login(email, password)
+      const loggedUser = await login(email, password)
       toast.success(
         activeBrand === 'markaly' ? 'Bem-vindo ao MARKALY!' : 'Bem-vindo ao AGYLI Agenda IA!',
       )
-      navigate('/')
+      // Se o usuário for SuperAdmin, redirecionar para a Central Contek (/contek)
+      const isSuper = Boolean(loggedUser?.is_super_admin || loggedUser?.role === 'SUPERADMIN')
+      if (isSuper) {
+        navigate('/contek')
+      } else {
+        navigate('/')
+      }
     } catch (err: unknown) {
       console.error(err)
       toast.error('E-mail ou senha incorretos. Verifique suas credenciais.')

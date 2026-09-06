@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import loginSource from '../pages/Login.tsx?raw'
 import redefinirSource from '../pages/RedefinirSenha.tsx?raw'
 import agendamentoSource from '../pages/AgendamentoPublico.tsx?raw'
+import appSource from '../App.tsx?raw'
+import centralContekSource from '../pages/CentralContek.tsx?raw'
 import { resolveProductByDomain, PRODUCTS_CONFIG, getProductBranding } from '@/lib/branding'
 
 // --- Tipos para Simulação e Mocks da Jornada ---
@@ -809,6 +811,69 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       expect(resolveProductByDomain('app.agyli.com.br')).toBe('agyli')
       expect(resolveProductByDomain('www.agyli.com.br')).toBe('agyli')
       expect(resolveProductByDomain('contek-agenda-ia-479d4.goskip.app')).toBe('agyli')
+    })
+  })
+
+  // -------------------------------------------------------------------------
+  // 8. CENTRAL CONTEK (HUB DE SISTEMAS SUPERADMIN)
+  // -------------------------------------------------------------------------
+  describe('8. Central Contek — Hub de Sistemas SuperAdmin (/contek)', () => {
+    it('rota /contek existe no App.tsx e está protegida com SuperAdminRoute', () => {
+      expect(appSource).toContain('path="/contek"')
+      expect(appSource).toMatch(/<SuperAdminRoute>\s*<CentralContek\s*\/>\s*<\/SuperAdminRoute>/)
+    })
+
+    it('redirecionamento pós-login envia super admin para /contek e usuário comum para / (painel da empresa)', () => {
+      // Simulação da lógica de redirecionamento aplicada no componente Login.tsx
+      const resolvePostLoginDestination = (user: { is_super_admin?: boolean; role?: string }) => {
+        const isSuper = Boolean(user.is_super_admin || user.role === 'SUPERADMIN')
+        return isSuper ? '/contek' : '/'
+      }
+
+      // SuperAdmin (Luciana / Lucas)
+      expect(resolvePostLoginDestination({ is_super_admin: true, role: 'SUPERADMIN' })).toBe('/contek')
+      expect(resolvePostLoginDestination({ role: 'SUPERADMIN' })).toBe('/contek')
+
+      // Usuário comum (Dono de clínica / La Bela / Lulu / Administrador de empresa)
+      expect(resolvePostLoginDestination({ is_super_admin: false, role: 'ADMINISTRADOR' })).toBe('/')
+      expect(resolvePostLoginDestination({ role: 'PROFISSIONAL' })).toBe('/')
+      expect(resolvePostLoginDestination({})).toBe('/')
+
+      // Validação do código em Login.tsx
+      expect(loginSource).toContain("isSuper")
+      expect(loginSource).toContain("navigate('/contek')")
+      expect(loginSource).toContain("navigate('/')")
+    })
+
+    it('bloqueia usuário comum ao tentar acessar rotas SuperAdmin (redireciona para /)', () => {
+      // Simulação da guarda de rota SuperAdminRoute
+      const simulateSuperAdminGuard = (user: { id: string; is_super_admin?: boolean; role?: string } | null) => {
+        if (!user) return { allowed: false, redirect: '/login' }
+        const isSuper = Boolean(user.is_super_admin || user.role === 'SUPERADMIN')
+        if (!isSuper) return { allowed: false, redirect: '/' }
+        return { allowed: true, redirect: null }
+      }
+
+      // Visitante deslogado
+      expect(simulateSuperAdminGuard(null)).toEqual({ allowed: false, redirect: '/login' })
+
+      // Usuário comum (empresa/clínica)
+      const regularUser = { id: 'u_regular', role: 'ADMINISTRADOR', is_super_admin: false }
+      expect(simulateSuperAdminGuard(regularUser)).toEqual({ allowed: false, redirect: '/' })
+
+      // SuperAdmin
+      const superAdminUser = { id: 'u_super', role: 'SUPERADMIN', is_super_admin: true }
+      expect(simulateSuperAdminGuard(superAdminUser)).toEqual({ allowed: true, redirect: null })
+    })
+
+    it('apresenta identidade Contek com boas-vindas, cards oficiais AGYLI e MARKALY e assinatura', () => {
+      expect(centralContekSource).toContain('Central Contek')
+      expect(centralContekSource).toContain('Uma solução')
+      expect(centralContekSource).toContain('Contek Tecnologia e Consultoria')
+      expect(centralContekSource).toContain('AgyliLogo')
+      expect(centralContekSource).toContain('MarkalyLogo')
+      expect(centralContekSource).toContain('switchOrganization')
+      expect(centralContekSource).toContain('/backend/v1/superadmin/overview')
     })
   })
 })

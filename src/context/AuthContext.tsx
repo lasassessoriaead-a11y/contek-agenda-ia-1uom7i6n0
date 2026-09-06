@@ -21,7 +21,7 @@ interface AuthContextType {
   isProfessional: boolean
   isSuperAdmin: boolean
   hasFeature: (featureKey: string) => boolean
-  login: (email: string, pass: string) => Promise<void>
+  login: (email: string, pass: string) => Promise<User>
   logout: () => void
   refreshOrganization: () => Promise<void>
   refreshFeatures: () => Promise<void>
@@ -196,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsub()
   }, [loadOrgAndSettings])
 
-  const login = async (email: string, pass: string) => {
+  const login = async (email: string, pass: string): Promise<User> => {
     // Limpar resíduo de switch de organização prévio para isolamento total
     if (typeof window !== 'undefined') {
       localStorage.removeItem('contek_active_org_id')
@@ -219,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         /* intentionally ignored */
       }
     }
+    return u
   }
 
   const logout = () => {

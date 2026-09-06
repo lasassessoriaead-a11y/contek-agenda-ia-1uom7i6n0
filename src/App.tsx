@@ -13,6 +13,7 @@ import Financeiro from '@/pages/Financeiro'
 import AssistenteIa from '@/pages/AssistenteIa'
 import Configuracoes from '@/pages/Configuracoes'
 import SuperAdmin from '@/pages/SuperAdmin'
+import CentralContek from '@/pages/CentralContek'
 import AgendamentoPublico from '@/pages/AgendamentoPublico'
 import ConfirmacaoPublica from '@/pages/ConfirmacaoPublica'
 import { FeatureGate, SuperAdminRoute } from '@/components/FeatureGate'
@@ -56,6 +57,16 @@ export function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/redefinir-senha" element={<RedefinirSenha />} />
           <Route path="/reset-password" element={<RedefinirSenha />} />
+
+          {/* Central Contek Hub (Exclusivo SuperAdmin) */}
+          <Route
+            path="/contek"
+            element={
+              <SuperAdminRoute>
+                <CentralContek />
+              </SuperAdminRoute>
+            }
+          />
 
           {/* Protected Internal Routes */}
           <Route

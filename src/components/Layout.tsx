@@ -222,12 +222,12 @@ export const Layout: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate('/contek')}
               className="border-purple-300 text-purple-800 bg-purple-50/70 hover:bg-purple-100 text-xs font-semibold"
             >
               <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-600" />
-              <span className="hidden sm:inline">SuperAdmin Contek</span>
-              <span className="sm:hidden">Admin</span>
+              <span className="hidden sm:inline">Central Contek</span>
+              <span className="sm:hidden">Contek</span>
             </Button>
           )}
 
@@ -335,11 +335,20 @@ export const Layout: React.FC = () => {
               )}
               {isSuperAdmin && (
                 <DropdownMenuItem
-                  onClick={() => navigate('/admin')}
+                  onClick={() => navigate('/contek')}
                   className="text-purple-700 focus:text-purple-800 focus:bg-purple-50"
                 >
                   <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
-                  Painel SuperAdmin Contek
+                  Central Contek (Sistemas)
+                </DropdownMenuItem>
+              )}
+              {isSuperAdmin && (
+                <DropdownMenuItem
+                  onClick={() => navigate('/admin')}
+                  className="text-slate-600 focus:text-slate-800"
+                >
+                  <Settings className="w-4 h-4 mr-2 text-slate-500" />
+                  Painel Avançado SuperAdmin
                 </DropdownMenuItem>
               )}
               {publicUrl && (
@@ -466,12 +475,12 @@ export const Layout: React.FC = () => {
             {isSuperAdmin && (
               <div
                 className={cn(
-                  'pt-2 mt-2 border-t',
+                  'pt-2 mt-2 border-t space-y-1',
                   currentProduct === 'markaly' ? 'border-purple-900/60' : 'border-slate-800',
                 )}
               >
                 <NavLink
-                  to="/admin"
+                  to="/contek"
                   className={({ isActive: active }) =>
                     cn(
                       'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150',
@@ -482,10 +491,25 @@ export const Layout: React.FC = () => {
                   }
                 >
                   <Sparkles className="w-4 h-4 text-purple-400" />
-                  <span>Painel SuperAdmin</span>
+                  <span>Central Contek</span>
                   <span className="ml-auto text-[9px] bg-purple-500/30 text-purple-200 px-1.5 py-0.2 rounded font-mono">
-                    ROOT
+                    HUB
                   </span>
+                </NavLink>
+
+                <NavLink
+                  to="/admin"
+                  className={({ isActive: active }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150',
+                      active
+                        ? 'bg-slate-700 text-white shadow-md'
+                        : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
+                    )
+                  }
+                >
+                  <Settings className="w-4 h-4 text-slate-400" />
+                  <span>Painel /admin</span>
                 </NavLink>
               </div>
             )}
@@ -647,11 +671,11 @@ export const Layout: React.FC = () => {
                     className="w-full text-xs justify-start border-purple-700 bg-purple-950/30 text-purple-200 hover:bg-purple-900/50"
                     onClick={() => {
                       setMobileMenuOpen(false)
-                      navigate('/admin')
+                      navigate('/contek')
                     }}
                   >
                     <Sparkles className="w-3.5 h-3.5 mr-2 text-purple-400" />
-                    SuperAdmin Contek
+                    Central Contek (Sistemas)
                   </Button>
                 )}
                 {publicUrl && (

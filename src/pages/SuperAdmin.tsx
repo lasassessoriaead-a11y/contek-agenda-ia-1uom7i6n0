@@ -443,6 +443,25 @@ export const SuperAdmin: React.FC = () => {
                   variant="outline"
                   size="sm"
                   asChild
+                  className="border-purple-500/40 text-purple-200 bg-purple-950/40 hover:bg-purple-900/60 text-xs font-semibold"
+                >
+                  <Link to="/contek">
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
+                    Central Contek
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Retornar ao Hub de Sistemas da Contek</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
                   className="border-slate-700 text-slate-200 hover:bg-slate-800 text-xs"
                 >
                   <Link to="/">
