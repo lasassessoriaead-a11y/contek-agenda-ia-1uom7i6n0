@@ -90,20 +90,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await refreshFeatures()
       } catch (err) {
         console.error('Error loading organization:', err)
-        setOrganization(null)
+        // Proteção de sessão: se o token PB ainda for válido, NÃO definir organization como null
+        // de modo a não deslogar o usuário ou quebrar componentes se for erro transitório de rede.
+        if (!pb.authStore.isValid) {
+          setOrganization(null)
+        }
       }
     },
     [refreshFeatures],
   )
 
   const refreshOrganization = useCallback(async () => {
-    // 1. Prioriza SEMPRE a organização pertencente ao usuário autenticado
+    const isSuper = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')
+
+    // 1. Se for SuperAdmin, a organização ativa vem estritamente de contek_active_org_id (localStorage/memória)
+    // para nunca ficar preso à última empresa inspecionada no banco de dados.
+    if (isSuper) {
+      if (typeof window !== 'undefined') {
+        const savedOrgId = localStorage.getItem('contek_active_org_id')
+        if (savedOrgId) {
+          await loadOrgAndSettings(savedOrgId)
+          return
+        }
+      }
+      // SuperAdmin sem seleção ativa: não carrega organização
+      setOrganization(null)
+      setSettings(null)
+      return
+    }
+
+    // 2. Usuários comuns: prioriza SEMPRE a organização pertencente ao usuário autenticado
     if (user?.organization_id) {
       await loadOrgAndSettings(user.organization_id)
       return
     }
 
-    // 2. Fallback: verificar em organization_users para o ID deste usuário
+    // 3. Fallback para usuários comuns: verificar em organization_users para o ID deste usuário
     if (user?.id) {
       try {
         const userOrg = await pb
@@ -117,15 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         /* intentionally ignored */
       }
     }
-
-    // 3. Somente SuperAdmin pode usar switch de org gravado no localStorage
-    const isSuper = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')
-    if (isSuper && typeof window !== 'undefined') {
-      const savedOrgId = localStorage.getItem('contek_active_org_id')
-      if (savedOrgId) {
-        await loadOrgAndSettings(savedOrgId)
-      }
-    }
   }, [user?.organization_id, user?.id, user?.is_super_admin, user?.role, loadOrgAndSettings])
 
   useEffect(() => {
@@ -134,25 +147,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const u = model as unknown as User
         setUser(u)
         const isSuper = Boolean(u.is_super_admin || u.role === 'SUPERADMIN')
-        const savedOrgId =
-          isSuper && typeof window !== 'undefined'
-            ? localStorage.getItem('contek_active_org_id')
-            : null
-        const activeOrgId = u.organization_id || savedOrgId
 
-        if (activeOrgId) {
-          await loadOrgAndSettings(activeOrgId)
-        } else if (u.id) {
-          // Check organization_users membership
-          try {
-            const userOrg = await pb
-              .collection('organization_users')
-              .getFirstListItem(`user_id = "${u.id}"`)
-            if (userOrg && userOrg.organization_id) {
-              await loadOrgAndSettings(userOrg.organization_id)
+        if (isSuper) {
+          // Para SuperAdmin, a organização ativa é APENAS contek_active_org_id em memória/localStorage
+          const savedOrgId =
+            typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+          if (savedOrgId) {
+            await loadOrgAndSettings(savedOrgId)
+          } else {
+            setOrganization(null)
+            setSettings(null)
+          }
+        } else {
+          // Para usuários comuns, prioriza u.organization_id ou tabela de junção
+          if (u.organization_id) {
+            await loadOrgAndSettings(u.organization_id)
+          } else if (u.id) {
+            try {
+              const userOrg = await pb
+                .collection('organization_users')
+                .getFirstListItem(`user_id = "${u.id}"`)
+              if (userOrg && userOrg.organization_id) {
+                await loadOrgAndSettings(userOrg.organization_id)
+              }
+            } catch {
+              /* intentionally ignored */
             }
-          } catch {
-            /* intentionally ignored */
           }
         }
       } else {
@@ -168,26 +188,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const u = pb.authStore.record as unknown as User
       setUser(u)
       const isSuper = Boolean(u.is_super_admin || u.role === 'SUPERADMIN')
-      const savedOrgId =
-        isSuper && typeof window !== 'undefined'
-          ? localStorage.getItem('contek_active_org_id')
-          : null
-      const activeOrgId = u.organization_id || savedOrgId
 
-      if (activeOrgId) {
-        loadOrgAndSettings(activeOrgId).finally(() => setLoading(false))
-      } else if (u.id) {
-        pb.collection('organization_users')
-          .getFirstListItem(`user_id = "${u.id}"`)
-          .then((orgUser) => {
-            if (orgUser && orgUser.organization_id) {
-              return loadOrgAndSettings(orgUser.organization_id)
-            }
-          })
-          .catch(() => {})
-          .finally(() => setLoading(false))
+      if (isSuper) {
+        const savedOrgId =
+          typeof window !== 'undefined' ? localStorage.getItem('contek_active_org_id') : null
+        if (savedOrgId) {
+          loadOrgAndSettings(savedOrgId).finally(() => setLoading(false))
+        } else {
+          setOrganization(null)
+          setSettings(null)
+          setLoading(false)
+        }
       } else {
-        setLoading(false)
+        if (u.organization_id) {
+          loadOrgAndSettings(u.organization_id).finally(() => setLoading(false))
+        } else if (u.id) {
+          pb.collection('organization_users')
+            .getFirstListItem(`user_id = "${u.id}"`)
+            .then((orgUser) => {
+              if (orgUser && orgUser.organization_id) {
+                return loadOrgAndSettings(orgUser.organization_id)
+              }
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false))
+        } else {
+          setLoading(false)
+        }
       }
     } else {
       setLoading(false)
@@ -204,19 +231,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const authData = await pb.collection('users').authWithPassword(email, pass)
     const u = authData.record as unknown as User
     setUser(u)
-    if (u.organization_id) {
-      await loadOrgAndSettings(u.organization_id)
-    } else if (u.id) {
-      try {
-        const orgUser = await pb
-          .collection('organization_users')
-          .getFirstListItem(`user_id = "${u.id}"`)
-        if (orgUser && orgUser.organization_id) {
-          await pb.collection('users').update(u.id, { organization_id: orgUser.organization_id })
-          await loadOrgAndSettings(orgUser.organization_id)
+    const isSuper = Boolean(u.is_super_admin || u.role === 'SUPERADMIN')
+
+    if (isSuper) {
+      // SuperAdmin começa limpo sem organização ativa até escolher uma na Central Contek
+      setOrganization(null)
+      setSettings(null)
+    } else {
+      if (u.organization_id) {
+        await loadOrgAndSettings(u.organization_id)
+      } else if (u.id) {
+        try {
+          const orgUser = await pb
+            .collection('organization_users')
+            .getFirstListItem(`user_id = "${u.id}"`)
+          if (orgUser && orgUser.organization_id) {
+            await pb.collection('users').update(u.id, { organization_id: orgUser.organization_id })
+            await loadOrgAndSettings(orgUser.organization_id)
+          }
+        } catch {
+          /* intentionally ignored */
         }
-      } catch {
-        /* intentionally ignored */
       }
     }
     return u
@@ -251,25 +286,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const switchOrganization = async (orgId: string) => {
     if (!orgId) return
 
+    const isSuper = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')
+
     // 1. Armazena localmente para persistência imediata
     if (typeof window !== 'undefined') {
       localStorage.setItem('contek_active_org_id', orgId)
     }
 
-    // 2. Atualiza o registro do usuário se logado
     if (user?.id) {
-      try {
-        const updatedUser = await pb
-          .collection('users')
-          .update<User>(user.id, { organization_id: orgId })
-        setUser(updatedUser)
-      } catch (err) {
-        console.warn('Could not update user organization_id on PB:', err)
-      }
-
-      // 3. Se for SuperAdmin, assegura vínculo na tabela organization_users para o tenant
-      const isSuper = Boolean(user.is_super_admin || user.role === 'SUPERADMIN')
       if (isSuper) {
+        // SuperAdmin: NÃO persistir no banco users.organization_id para não "sequestrar"
+        // a conta permanentemente para a última empresa inspecionada.
+        // Apenas assegura o vínculo na tabela de junção se necessário.
         try {
           const existing = await pb
             .collection('organization_users')
@@ -285,11 +313,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch {
           /* ignore */
         }
+      } else {
+        // Usuários comuns: vínculo mantido normalmente no banco
+        try {
+          const updatedUser = await pb
+            .collection('users')
+            .update<User>(user.id, { organization_id: orgId })
+          setUser(updatedUser)
+        } catch (err) {
+          console.warn('Could not update user organization_id on PB:', err)
+        }
       }
     }
 
-    // 4. Carrega a organização e suas configurações
-    await loadOrgAndSettings(orgId)
+    // Carrega a organização e suas configurações
+    try {
+      await loadOrgAndSettings(orgId)
+    } catch (err) {
+      console.error('Erro ao trocar de organização:', err)
+      // Proteção de sessão: não derrubar a sessão em caso de erro transitório
+    }
   }
 
   const isSuperAdmin = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')

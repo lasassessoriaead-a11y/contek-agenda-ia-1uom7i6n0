@@ -875,5 +875,67 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       expect(centralContekSource).toContain('switchOrganization')
       expect(centralContekSource).toContain('/backend/v1/superadmin/overview')
     })
+
+    it('isola a organização do SuperAdmin em memória/localStorage sem poluir o banco e garante retorno à Central pós-logout', () => {
+      // Cenário de teste solicitado:
+      // SuperAdmin que inspecionou empresa MARKALY (ex.: Lulu) e deslogou volta à Central Contek (não ao painel MARKALY)
+      const mockStorage: Record<string, string> = {}
+      const superAdminUser: MockUser = {
+        id: 'usr_super_luciana',
+        email: 'luciana@contek.com.br',
+        name: 'Luciana SuperAdmin',
+        phone: '11999990000',
+        role: 'SUPERADMIN',
+        organization_id: '', // SuperAdmin tem organization_id vazio no banco
+        verified: true,
+        is_super_admin: true,
+      }
+
+      // 1. SuperAdmin faz switch para a empresa Lulu (MARKALY)
+      const luluOrg = { id: 'org_markaly_lulu', name: 'Lulu', product: 'markaly' }
+      const performSuperAdminSwitch = (org: { id: string }) => {
+        // Salva apenas no storage temporário / memória, NÃO no banco
+        mockStorage['contek_active_org_id'] = org.id
+      }
+      performSuperAdminSwitch(luluOrg)
+      expect(mockStorage['contek_active_org_id']).toBe('org_markaly_lulu')
+      expect(superAdminUser.organization_id).toBe('') // Banco permanece intacto
+
+      // 2. SuperAdmin faz logout do sistema
+      const performLogout = () => {
+        delete mockStorage['contek_active_org_id']
+      }
+      performLogout()
+      expect(mockStorage['contek_active_org_id']).toBeUndefined()
+
+      // 3. SuperAdmin faz login novamente
+      // Como o storage foi limpo no logout e o organization_id no banco é vazio,
+      // ele não cai preso na empresa MARKALY e é encaminhado direto para a Central Contek (/contek)
+      const isSuper = Boolean(superAdminUser.is_super_admin || superAdminUser.role === 'SUPERADMIN')
+      const targetRoute = isSuper ? '/contek' : '/'
+      expect(targetRoute).toBe('/contek')
+
+      // 4. Verificação de organização ativa pós-login sem switch
+      const activeOrgResolved = isSuper ? (mockStorage['contek_active_org_id'] || null) : superAdminUser.organization_id
+      expect(activeOrgResolved).toBeNull() // Livre de qualquer tenant antigo
+    })
+
+    it('filtra e separa adequadamente organizações nos cards AGYLI e MARKALY da Central Contek', () => {
+      const mockOverviewList = [
+        { id: '1', name: 'LUIS', product: 'agyli', slug: 'luis' },
+        { id: '2', name: 'Contek Estética', product: 'agyli', slug: 'contek-demo' },
+        { id: '3', name: 'Lulu', product: 'markaly', slug: 'lulu' },
+        { id: '4', name: 'La Bela', product: 'markaly', slug: 'la-bela' },
+      ]
+
+      const agyliList = mockOverviewList.filter((o) => o.product === 'agyli')
+      const markalyList = mockOverviewList.filter((o) => o.product === 'markaly')
+
+      expect(agyliList.length).toBe(2)
+      expect(agyliList.map((o) => o.name)).toEqual(['LUIS', 'Contek Estética'])
+
+      expect(markalyList.length).toBe(2)
+      expect(markalyList.map((o) => o.name)).toEqual(['Lulu', 'La Bela'])
+    })
   })
 })

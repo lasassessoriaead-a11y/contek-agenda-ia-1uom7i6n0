@@ -195,25 +195,55 @@ export const CentralContek: React.FC = () => {
 
             {/* Ações do Topo */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Badge indicativo de organização ativa (se for MARKALY ou outra) */}
               {currentActiveOrg && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="text-xs border-slate-300 text-slate-700 hover:bg-slate-100 hidden sm:inline-flex"
-                    >
-                      <Link to="/">
-                        <Building2 className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
-                        Ir para {currentActiveOrg.name}
-                      </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Abrir painel da empresa atualmente selecionada ({currentActiveOrg.name})</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`text-xs px-2.5 py-1 font-medium hidden md:inline-flex items-center gap-1.5 ${
+                      currentActiveOrg.product === 'markaly'
+                        ? 'bg-[#FEF3E2] text-[#3B0764] border-orange-300'
+                        : 'bg-blue-50 text-blue-700 border-blue-200'
+                    }`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        currentActiveOrg.product === 'markaly' ? 'bg-[#F97316]' : 'bg-blue-600'
+                      }`}
+                    />
+                    <span>
+                      Conectada a:{' '}
+                      <strong className="font-bold uppercase">{currentActiveOrg.product}</strong> •{' '}
+                      {currentActiveOrg.name}
+                    </span>
+                  </Badge>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className={`text-xs hidden sm:inline-flex ${
+                          currentActiveOrg.product === 'markaly'
+                            ? 'border-orange-300 text-[#3B0764] hover:bg-orange-50'
+                            : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Link to="/">
+                          <Building2 className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+                          Ir para {currentActiveOrg.name}
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Abrir painel da empresa selecionada ({currentActiveOrg.name} •{' '}
+                        {currentActiveOrg.product.toUpperCase()})
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               )}
 
               <Tooltip>
@@ -380,6 +410,22 @@ export const CentralContek: React.FC = () => {
                       <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                     </Link>
                   </Button>
+
+                  {/* Se houver empresa AGYLI cadastrada (ex.: LUIS ou Contek Estética), atalho direto em destaque */}
+                  {agyliOrgs.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEnterOrg(agyliOrgs[0])}
+                      disabled={enteringOrgId === agyliOrgs[0].id}
+                      className="text-xs font-semibold border-blue-300 text-blue-700 bg-white hover:bg-blue-50 shadow-xs"
+                    >
+                      <LogIn
+                        className={`w-3.5 h-3.5 mr-1.5 text-blue-600 ${enteringOrgId === agyliOrgs[0].id ? 'animate-spin' : ''}`}
+                      />
+                      <span>Ir direto para {agyliOrgs[0].name}</span>
+                    </Button>
+                  )}
 
                   <Badge variant="secondary" className="bg-blue-100/70 text-blue-800 text-[11px]">
                     {filteredAgyli.length} {filteredAgyli.length === 1 ? 'empresa' : 'empresas'}
