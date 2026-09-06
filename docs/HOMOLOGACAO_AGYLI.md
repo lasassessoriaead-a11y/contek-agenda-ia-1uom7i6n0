@@ -61,6 +61,25 @@ Este documento estabelece o roteiro padronizado de validação e homologação d
 
 ## 4. Etapa 3: Onboarding Operacional da Empresa
 
+### Criação Manual de Empresa pelo SuperAdmin e Disparo Automático de Credenciais:
+
+1. **Acesso SuperAdmin (`/admin`)**:
+   - [ ] Autenticação com credenciais de Super Administrador (Luciana / Contek).
+   - [ ] Clicar no botão **"Nova Empresa"**.
+2. **Preenchimento e Envio**:
+   - [ ] Preencher Nome da Empresa (ex.: _Camila Estética_), E-mail do Administrador (_camila@exemplo.com_), Senha Inicial Provisória, Seleção de Produto (**MARKALY** ou **AGYLI**) e Plano.
+   - [ ] Submeter criação via endpoint `/backend/v1/superadmin/org/create`.
+3. **Disparo Automático de E-mail de Boas-Vindas**:
+   - [ ] Disparo server-side imediato via `$app.newMailClient().send(...)`.
+   - [ ] E-mail formatado na paleta oficial do **Grupo CONTEK** (#0D1B2A, #1E3A8A, #06B6D4, #22C55E; Poppins; chancela oficial).
+   - [ ] Conteúdo do e-mail: Saudação personalizada, Produto e Plano, Link de Login, E-mail de acesso, Senha Provisória, Link Público `/agendar/:slug` e instrução de troca de senha no primeiro acesso.
+4. **Feedback e Resiliência na Interface**:
+   - [ ] Modal de credenciais geradas exibe status de confirmação do envio do e-mail.
+   - [ ] Caso o envio falhe, a empresa é criada normalmente, o erro é relatado de forma transparente e um botão de **"Reenviar E-mail"** fica disponível.
+   - [ ] Tabela de organizações do SuperAdmin possui ação dedicada de **"Reenviar e-mail de acesso"** (ícone de e-mail) para qualquer tenant cadastrado.
+
+---
+
 ### Verificações Obrigatórias no Painel (`/configuracoes` e Módulos):
 
 1. **Dados da Empresa (`/configuracoes`)**:

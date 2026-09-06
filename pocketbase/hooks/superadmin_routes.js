@@ -274,6 +274,294 @@ routerAdd(
 
 routerAdd(
   'POST',
+  '/backend/v1/superadmin/org/resend-credentials',
+  (e) => {
+    try {
+      const user = e.auth
+      if (!user) return e.unauthorizedError('Autenticação necessária.')
+      if (!user.getBool('is_super_admin')) {
+        return e.forbiddenError('Acesso restrito a Super Administradores da Contek.')
+      }
+
+      const body = e.requestInfo().body || {}
+      const { organization_id, admin_email, custom_password } = body
+
+      if (!organization_id && !admin_email) {
+        return e.badRequestError('ID da organização ou e-mail do administrador é obrigatório.')
+      }
+
+      let org = null
+      if (organization_id) {
+        try {
+          org = $app.findRecordById('organizations', organization_id)
+        } catch (_) {}
+      }
+
+      let adminUser = null
+      if (admin_email) {
+        try {
+          adminUser = $app.findAuthRecordByEmail(
+            '_pb_users_auth_',
+            admin_email.trim().toLowerCase(),
+          )
+        } catch (_) {}
+      }
+
+      if (!adminUser && org) {
+        // Buscar usuário administrador vinculado à organização
+        try {
+          const orgUsers = $app.findRecordsByFilter(
+            'organization_users',
+            'organization_id = "' + org.id + '" && role = "ADMINISTRADOR"',
+            '-created',
+            5,
+            0,
+          )
+          for (const ou of orgUsers) {
+            try {
+              const u = $app.findRecordById('_pb_users_auth_', ou.getString('user_id'))
+              if (u && !u.getBool('is_super_admin')) {
+                adminUser = u
+                break
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+
+      if (!adminUser && org && org.getString('email')) {
+        try {
+          adminUser = $app.findAuthRecordByEmail('_pb_users_auth_', org.getString('email'))
+        } catch (_) {}
+      }
+
+      if (!adminUser) {
+        return e.json(404, { error: 'Usuário administrador da organização não foi encontrado.' })
+      }
+
+      if (!org && adminUser.getString('organization_id')) {
+        try {
+          org = $app.findRecordById('organizations', adminUser.getString('organization_id'))
+        } catch (_) {}
+      }
+
+      if (!org) {
+        return e.json(404, { error: 'Organização correspondente não foi encontrada.' })
+      }
+
+      const orgName = org.getString('name') || 'Sua Empresa'
+      const orgSlug = org.getString('slug') || ''
+      const orgProduct = org.getString('product') || 'agyli'
+      const targetEmail = adminUser.getString('email')
+      const targetName = adminUser.getString('name') || `Gestor ${orgName}`
+
+      // Se foi fornecida uma nova senha no reenvio, atualizar o usuário
+      let passwordToDisplay = ''
+      if (typeof custom_password === 'string' && custom_password.trim().length >= 8) {
+        passwordToDisplay = custom_password.trim()
+        adminUser.setPassword(passwordToDisplay)
+        $app.save(adminUser)
+      } else {
+        // Se não foi informada senha nova, gera uma nova senha provisória de 10 caracteres e atualiza
+        passwordToDisplay = $security.randomString(10) + '@'
+        adminUser.setPassword(passwordToDisplay)
+        $app.save(adminUser)
+      }
+
+      // Buscar plano para exibição
+      let planDisplayName = orgProduct === 'markaly' ? 'Markaly Start' : 'Agyli Pro'
+      try {
+        const subs = $app.findRecordsByFilter(
+          'subscriptions',
+          'organization_id = "' + org.id + '"',
+          '-created',
+          1,
+          0,
+        )
+        if (subs && subs.length > 0) {
+          const planRec = $app.findRecordById('plans', subs[0].getString('plan_id'))
+          if (planRec) planDisplayName = planRec.getString('name')
+        }
+      } catch (_) {}
+
+      const publicBaseUrl =
+        $os.getenv('SITE_URL') ||
+        ($app.settings() && $app.settings().meta && $app.settings().meta.appURL) ||
+        'https://contek-agenda-ia-479d4.goskip.app'
+      const loginUrl = publicBaseUrl + '/login'
+      const publicBookingUrl = publicBaseUrl + '/agendar/' + orgSlug
+      const resetPassUrl = publicBaseUrl + '/redefinir-senha'
+
+      const prodDisplayName = orgProduct === 'markaly' ? 'MARKALY' : 'AGYLI'
+      const senderName =
+        ($app.settings() && $app.settings().meta && $app.settings().meta.senderName) ||
+        'Grupo CONTEK — Gestão & Tecnologia'
+      const senderAddress =
+        ($app.settings() && $app.settings().meta && $app.settings().meta.senderAddress) ||
+        'suporte@contek.com.br'
+
+      const htmlBody = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credenciais de Acesso ao Sistema - ${prodDisplayName}</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0D1B2A; color: #F8FAFC;">
+  <div style="max-width: 580px; margin: 0 auto; background: #1E293B; border-radius: 16px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+    
+    <!-- Top Header -->
+    <div style="background: linear-gradient(135deg, #0D1B2A 0%, #1E3A8A 50%, #06B6D4 100%); padding: 32px 28px; text-align: center; border-bottom: 2px solid #22C55E;">
+      <div style="display: inline-block; background: rgba(255, 255, 255, 0.12); padding: 4px 14px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: #67E8F9; margin-bottom: 12px;">
+        Uma Solução Grupo CONTEK
+      </div>
+      <h1 style="margin: 0; font-size: 26px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;">
+        Reenvio de Credenciais: ${prodDisplayName}
+      </h1>
+      <p style="margin: 8px 0 0; font-size: 13px; color: #E2E8F0; font-weight: 400;">
+        Plataforma Inteligente de Gestão &amp; Agendamento • Grupo CONTEK
+      </p>
+    </div>
+
+    <!-- Content Body -->
+    <div style="padding: 32px 28px;">
+      <p style="font-size: 15px; line-height: 1.6; color: #F1F5F9; margin: 0 0 16px 0;">
+        Olá, <strong>${targetName}</strong>!
+      </p>
+      <p style="font-size: 14px; line-height: 1.6; color: #CBD5E1; margin: 0 0 24px 0;">
+        Conforme solicitado pelo suporte do Grupo CONTEK, reenviamos suas credenciais de acesso ao sistema <strong>${prodDisplayName}</strong> da sua empresa <strong>${orgName}</strong> (Plano <strong>${planDisplayName}</strong>).
+      </p>
+
+      <!-- Credentials Card -->
+      <div style="background: #0F172A; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #06B6D4; margin-bottom: 14px;">
+          🔑 Suas Credenciais Atualizadas
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8; width: 35%;">Link de Login:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: 600;">
+              <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: none;">${loginUrl}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">E-mail de Acesso:</td>
+            <td style="padding: 6px 0; color: #22C55E; font-weight: 700; font-family: monospace; font-size: 14px;">
+              ${targetEmail}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">Senha de Acesso:</td>
+            <td style="padding: 6px 0; color: #FCD34D; font-weight: 700; font-family: monospace; font-size: 14px; letter-spacing: 0.5px;">
+              ${passwordToDisplay}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">Página Pública:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: 600;">
+              <a href="${publicBookingUrl}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: none;">/agendar/${orgSlug}</a>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Action Button -->
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="background: linear-gradient(135deg, #1E3A8A 0%, #06B6D4 100%); color: #FFFFFF; font-weight: 700; font-size: 15px; padding: 14px 32px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);">
+          Acessar Painel Agora
+        </a>
+      </div>
+
+      <!-- Security Notice -->
+      <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #F59E0B; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+        <strong style="color: #FBBF24; font-size: 13px; display: block; margin-bottom: 4px;">
+          🔒 Dica de Segurança:
+        </strong>
+        <p style="font-size: 12px; line-height: 1.5; color: #E2E8F0; margin: 0;">
+          Você pode redefinir sua senha pessoal a qualquer momento através do menu <em>Configurações &gt; Minha Conta</em> ou utilizando a função <a href="${resetPassUrl}" target="_blank" rel="noopener noreferrer" style="color: #FBBF24; text-decoration: underline;">Esqueci minha senha</a> na tela de login.
+        </p>
+      </div>
+
+      <!-- Public Booking Link Box -->
+      <div style="background: rgba(34, 197, 94, 0.08); border: 1px dashed #22C55E; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px;">
+        <div style="font-size: 12px; font-weight: 600; color: #4ADE80; margin-bottom: 4px;">
+          📅 Seu Link Público de Agendamento:
+        </div>
+        <p style="font-size: 12px; color: #CBD5E1; margin: 0 0 8px 0;">
+          Disponibilize para seus pacientes e clientes marcarem horários online:
+        </p>
+        <a href="${publicBookingUrl}" target="_blank" rel="noopener noreferrer" style="color: #86EFAC; font-weight: 600; font-size: 13px; word-break: break-all;">
+          ${publicBookingUrl}
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer Signature -->
+    <div style="background: #0D1B2A; padding: 24px 28px; text-align: center; border-top: 1px solid #334155; font-size: 11px; color: #94A3B8; line-height: 1.6;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: #F8FAFC; letter-spacing: 0.5px;">
+        GRUPO CONTEK — TECNOLOGIA E CONSULTORIA
+      </p>
+      <p style="margin: 0 0 8px 0; color: #06B6D4;">
+        Soluções Corporativas • AGYLI &amp; MARKALY
+      </p>
+      <p style="margin: 0; color: #64748B;">
+        Mensagem gerada automaticamente pelo sistema Contek Agenda.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
+      `
+
+      let mailSent = false
+      let mailError = ''
+
+      try {
+        const mailMsg = new MailerMessage({
+          from: {
+            address: senderAddress,
+            name: senderName,
+          },
+          to: [{ address: targetEmail }],
+          subject: `Reenvio de credenciais de acesso - ${prodDisplayName} (${orgName})`,
+          html: htmlBody,
+        })
+
+        $app.newMailClient().send(mailMsg)
+        mailSent = true
+      } catch (err) {
+        mailSent = false
+        mailError = err && err.message ? err.message : String(err)
+        console.log('[superadmin/org/resend-credentials] erro ao enviar e-mail:', mailError)
+      }
+
+      if (!mailSent) {
+        return e.json(500, {
+          error: `Falha ao enviar e-mail para ${targetEmail}: ${mailError || 'Erro no serviço de e-mail.'}`,
+        })
+      }
+
+      return e.json(200, {
+        success: true,
+        message: `E-mail de credenciais reenviado com sucesso para ${targetEmail}!`,
+        admin_email: targetEmail,
+        new_password: passwordToDisplay,
+      })
+    } catch (err) {
+      console.log('[superadmin/org/resend-credentials] error:', err.message || err)
+      return e.json(500, {
+        error: err.message || 'Erro ao reenviar e-mail de credenciais pelo SuperAdmin.',
+      })
+    }
+  },
+  $apis.requireAuth(),
+)
+
+routerAdd(
+  'POST',
   '/backend/v1/superadmin/org/create',
   (e) => {
     try {
@@ -520,9 +808,174 @@ routerAdd(
         txApp.save(profServRecord)
       })
 
+      // 5. Enviar e-mail de boas-vindas com credenciais automaticamente
+      let emailSent = false
+      let emailError = ''
+
+      try {
+        const publicBaseUrl =
+          $os.getenv('SITE_URL') ||
+          ($app.settings() && $app.settings().meta && $app.settings().meta.appURL) ||
+          'https://contek-agenda-ia-479d4.goskip.app'
+        const loginUrl = publicBaseUrl + '/login'
+        const publicBookingUrl = publicBaseUrl + '/agendar/' + finalSlug
+        const resetPassUrl = publicBaseUrl + '/redefinir-senha'
+
+        const prodDisplayName = chosenProduct === 'markaly' ? 'MARKALY' : 'AGYLI'
+        const planDisplayName = resolvedPlanRecord
+          ? resolvedPlanRecord.getString('name')
+          : chosenProduct === 'markaly'
+            ? 'Markaly Start'
+            : 'Agyli Pro'
+
+        const senderName =
+          ($app.settings() && $app.settings().meta && $app.settings().meta.senderName) ||
+          'Grupo CONTEK — Gestão & Tecnologia'
+        const senderAddress =
+          ($app.settings() && $app.settings().meta && $app.settings().meta.senderAddress) ||
+          'suporte@contek.com.br'
+
+        const htmlBody = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bem-vindo ao ${prodDisplayName} - Suas credenciais de acesso</title>
+</head>
+<body style="margin: 0; padding: 24px 12px; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0D1B2A; color: #F8FAFC;">
+  <div style="max-width: 580px; margin: 0 auto; background: #1E293B; border-radius: 16px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);">
+    
+    <!-- Top Header -->
+    <div style="background: linear-gradient(135deg, #0D1B2A 0%, #1E3A8A 50%, #06B6D4 100%); padding: 32px 28px; text-align: center; border-bottom: 2px solid #22C55E;">
+      <div style="display: inline-block; background: rgba(255, 255, 255, 0.12); padding: 4px 14px; border-radius: 9999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; color: #67E8F9; margin-bottom: 12px;">
+        Uma Solução Grupo CONTEK
+      </div>
+      <h1 style="margin: 0; font-size: 28px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.5px;">
+        Bem-vindo(a) ao ${prodDisplayName}!
+      </h1>
+      <p style="margin: 8px 0 0; font-size: 13px; color: #E2E8F0; font-weight: 400;">
+        Plataforma Inteligente de Gestão & Agendamento • Grupo CONTEK
+      </p>
+    </div>
+
+    <!-- Content Body -->
+    <div style="padding: 32px 28px;">
+      <p style="font-size: 15px; line-height: 1.6; color: #F1F5F9; margin: 0 0 16px 0;">
+        Olá, <strong>${finalAdminName}</strong>!
+      </p>
+      <p style="font-size: 14px; line-height: 1.6; color: #CBD5E1; margin: 0 0 24px 0;">
+        A sua empresa <strong>${cleanOrgName}</strong> foi cadastrada com sucesso no sistema <strong>${prodDisplayName}</strong> (Plano <strong>${planDisplayName}</strong>). Abaixo estão os seus dados oficiais de acesso ao painel de administração e o link público de agendamentos.
+      </p>
+
+      <!-- Credentials Card -->
+      <div style="background: #0F172A; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #06B6D4; margin-bottom: 14px;">
+          🔑 Suas Credenciais de Acesso
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8; width: 35%;">Link de Login:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: 600;">
+              <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: none;">${loginUrl}</a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">E-mail de Acesso:</td>
+            <td style="padding: 6px 0; color: #22C55E; font-weight: 700; font-family: monospace; font-size: 14px;">
+              ${cleanAdminEmail}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">Senha Provisória:</td>
+            <td style="padding: 6px 0; color: #FCD34D; font-weight: 700; font-family: monospace; font-size: 14px; letter-spacing: 0.5px;">
+              ${cleanAdminPassword}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #94A3B8;">Página Pública:</td>
+            <td style="padding: 6px 0; color: #FFFFFF; font-weight: 600;">
+              <a href="${publicBookingUrl}" target="_blank" rel="noopener noreferrer" style="color: #38BDF8; text-decoration: none;">/agendar/${finalSlug}</a>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Action Button -->
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="background: linear-gradient(135deg, #1E3A8A 0%, #06B6D4 100%); color: #FFFFFF; font-weight: 700; font-size: 15px; padding: 14px 32px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);">
+          Acessar Painel Agora
+        </a>
+      </div>
+
+      <!-- Important Security Notice -->
+      <div style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #F59E0B; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
+        <strong style="color: #FBBF24; font-size: 13px; display: block; margin-bottom: 4px;">
+          🔒 Recomendação Importante de Segurança:
+        </strong>
+        <p style="font-size: 12px; line-height: 1.5; color: #E2E8F0; margin: 0;">
+          Por segurança, recomendamos que altere sua senha no seu primeiro acesso através do menu <em>Configurações &gt; Minha Conta</em> ou utilizando a função <a href="${resetPassUrl}" target="_blank" rel="noopener noreferrer" style="color: #FBBF24; text-decoration: underline;">Esqueci minha senha</a> na tela de login.
+        </p>
+      </div>
+
+      <!-- Public Booking Link Box -->
+      <div style="background: rgba(34, 197, 94, 0.08); border: 1px dashed #22C55E; border-radius: 10px; padding: 14px 16px; margin-bottom: 24px;">
+        <div style="font-size: 12px; font-weight: 600; color: #4ADE80; margin-bottom: 4px;">
+          📅 Seu Link Público de Agendamento Online:
+        </div>
+        <p style="font-size: 12px; color: #CBD5E1; margin: 0 0 8px 0;">
+          Compartilhe este link com seus clientes via WhatsApp, Instagram ou site:
+        </p>
+        <a href="${publicBookingUrl}" target="_blank" rel="noopener noreferrer" style="color: #86EFAC; font-weight: 600; font-size: 13px; word-break: break-all;">
+          ${publicBookingUrl}
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer Signature -->
+    <div style="background: #0D1B2A; padding: 24px 28px; text-align: center; border-top: 1px solid #334155; font-size: 11px; color: #94A3B8; line-height: 1.6;">
+      <p style="margin: 0 0 4px 0; font-weight: 700; color: #F8FAFC; letter-spacing: 0.5px;">
+        GRUPO CONTEK — TECNOLOGIA E CONSULTORIA
+      </p>
+      <p style="margin: 0 0 8px 0; color: #06B6D4;">
+        Soluções Corporativas • AGYLI &amp; MARKALY
+      </p>
+      <p style="margin: 0; color: #64748B;">
+        Mensagem gerada automaticamente pelo sistema Contek Agenda. Por favor, não responda diretamente a este e-mail.
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>
+        `
+
+        const mailMsg = new MailerMessage({
+          from: {
+            address: senderAddress,
+            name: senderName,
+          },
+          to: [{ address: cleanAdminEmail }],
+          subject: `Bem-vindo(a) ao ${prodDisplayName} - Suas credenciais de acesso (${cleanOrgName})`,
+          html: htmlBody,
+        })
+
+        $app.newMailClient().send(mailMsg)
+        emailSent = true
+      } catch (mailErr) {
+        emailSent = false
+        emailError = mailErr && mailErr.message ? mailErr.message : String(mailErr)
+        console.log('[superadmin/org/create] Erro ao enviar e-mail de boas-vindas:', emailError)
+      }
+
       return e.json(200, {
         success: true,
-        message: `Empresa "${cleanOrgName}" cadastrada com sucesso pelo SuperAdmin!`,
+        message: emailSent
+          ? `Empresa "${cleanOrgName}" cadastrada com sucesso! E-mail com credenciais enviado para ${cleanAdminEmail}.`
+          : `Empresa "${cleanOrgName}" criada, mas houve uma falha no envio do e-mail: ${emailError || 'Verifique o serviço de e-mail.'}`,
+        email_sent: emailSent,
+        email_error: emailError || null,
         organization: {
           id: createdOrg.id,
           name: createdOrg.getString('name'),

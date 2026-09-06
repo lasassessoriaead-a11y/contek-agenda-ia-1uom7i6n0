@@ -48,6 +48,10 @@ import {
   Copy,
   Check,
   Globe,
+  Mail,
+  Send,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProductType } from '@/types'
@@ -109,6 +113,8 @@ interface CreatedCredentialsModalData {
   admin_email: string
   admin_password: string
   org_id: string
+  email_sent?: boolean
+  email_error?: string | null
 }
 
 export const SuperAdmin: React.FC = () => {
@@ -149,6 +155,10 @@ export const SuperAdmin: React.FC = () => {
 
   // Estado de loading ao entrar em uma organização
   const [enteringOrgId, setEnteringOrgId] = useState<string | null>(null)
+
+  // Estado de reenvio de e-mail de credenciais
+  const [resendingOrgId, setResendingOrgId] = useState<string | null>(null)
+  const [resendingFromModal, setResendingFromModal] = useState(false)
 
   const loadOverview = useCallback(async () => {
     setLoading(true)
@@ -303,6 +313,8 @@ export const SuperAdmin: React.FC = () => {
       const res = await pb.send<{
         success: boolean
         message?: string
+        email_sent?: boolean
+        email_error?: string | null
         organization?: { id: string; name: string; slug: string }
         created_credentials?: {
           name: string
@@ -327,10 +339,16 @@ export const SuperAdmin: React.FC = () => {
       })
 
       if (res.success) {
-        toast.success(res.message || 'Empresa criada com sucesso!')
+        if (res.email_sent) {
+          toast.success(res.message || 'Empresa criada e e-mail de acesso enviado com sucesso!')
+        } else {
+          toast.warning(
+            res.message || 'Empresa criada, mas houve falha no envio do e-mail de boas-vindas.',
+          )
+        }
         setIsCreateOpen(false)
 
-        // Abre modal para exibir e copiar as credenciais do novo gestor
+        // Abre modal para exibir e copiar as credenciais do novo gestor com feedback de envio de e-mail
         if (res.organization) {
           setCreatedCredentials({
             name: res.organization.name || finalOrgName,
@@ -339,6 +357,8 @@ export const SuperAdmin: React.FC = () => {
             admin_email: finalAdminEmail,
             admin_password: finalAdminPass,
             org_id: res.organization.id,
+            email_sent: res.email_sent,
+            email_error: res.email_error,
           })
         }
 
@@ -353,6 +373,68 @@ export const SuperAdmin: React.FC = () => {
       toast.error(message)
     } finally {
       setIsSubmittingCreate(false)
+    }
+  }
+
+  const handleResendCredentials = async (
+    org: { id: string; name: string; email?: string },
+    customPass?: string,
+  ) => {
+    setResendingOrgId(org.id)
+    try {
+      const res = await pb.send<{
+        success: boolean
+        message?: string
+        admin_email?: string
+        new_password?: string
+      }>('/backend/v1/superadmin/org/resend-credentials', {
+        method: 'POST',
+        body: {
+          organization_id: org.id,
+          admin_email: org.email,
+          custom_password: customPass || undefined,
+        },
+      })
+
+      if (res.success) {
+        toast.success(res.message || `Credenciais reenviadas com sucesso para ${res.admin_email}!`)
+
+        // Se o modal estiver aberto, atualiza o status para enviado e a senha se foi gerada nova
+        if (createdCredentials && createdCredentials.org_id === org.id) {
+          setCreatedCredentials((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  email_sent: true,
+                  email_error: null,
+                  admin_password: res.new_password || prev.admin_password,
+                }
+              : null,
+          )
+        }
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      const message =
+        (err as { data?: { error?: string } })?.data?.error ||
+        (err as { message?: string })?.message ||
+        'Erro ao reenviar e-mail de credenciais.'
+      toast.error(message)
+
+      if (createdCredentials && createdCredentials.org_id === org.id) {
+        setCreatedCredentials((prev) =>
+          prev
+            ? {
+                ...prev,
+                email_sent: false,
+                email_error: message,
+              }
+            : null,
+        )
+      }
+    } finally {
+      setResendingOrgId(null)
+      setResendingFromModal(false)
     }
   }
 
@@ -811,7 +893,33 @@ export const SuperAdmin: React.FC = () => {
                               </TooltipContent>
                             </Tooltip>
 
-                            {/* 3. Editar Empresa (Produto, Plano, Status) */}
+                            {/* 3. Reenviar e-mail de credenciais */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResendCredentials(org)}
+                                  disabled={resendingOrgId === org.id}
+                                  className="h-8 w-8 p-0 text-cyan-600 hover:text-cyan-700 hover:bg-cyan-50"
+                                >
+                                  <Mail
+                                    className={`w-3.5 h-3.5 ${resendingOrgId === org.id ? 'animate-spin' : ''}`}
+                                  />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                <p className="font-semibold text-slate-800">
+                                  Reenviar e-mail de acesso
+                                </p>
+                                <p className="text-[11px] text-slate-500">
+                                  Dispara e-mail oficial Grupo Contek com credenciais para{' '}
+                                  {org.email || 'o administrador'}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {/* 4. Editar Empresa (Produto, Plano, Status) */}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button
@@ -882,6 +990,60 @@ export const SuperAdmin: React.FC = () => {
 
             {createdCredentials && (
               <div className="space-y-3 pt-1">
+                {/* Status do envio de e-mail de boas-vindas */}
+                {createdCredentials.email_sent ? (
+                  <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-emerald-800">
+                        E-mail de boas-vindas enviado automaticamente!
+                      </p>
+                      <p className="text-[11px] text-emerald-700 mt-0.5">
+                        As credenciais de login, senha provisória e instruções foram enviadas para{' '}
+                        <strong className="font-mono">{createdCredentials.admin_email}</strong>.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2.5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+                    <div className="flex items-start gap-2 flex-1">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-800">
+                          Aviso: Não foi possível enviar o e-mail automático
+                        </p>
+                        <p className="text-[11px] text-amber-700 mt-0.5">
+                          {createdCredentials.email_error ||
+                            'O e-mail falhou, mas a empresa foi criada perfeitamente. Você pode copiar os dados abaixo ou tentar reenviar.'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={resendingFromModal || resendingOrgId === createdCredentials.org_id}
+                      onClick={() => {
+                        setResendingFromModal(true)
+                        handleResendCredentials(
+                          {
+                            id: createdCredentials.org_id,
+                            name: createdCredentials.name,
+                            email: createdCredentials.admin_email,
+                          },
+                          createdCredentials.admin_password,
+                        )
+                      }}
+                      className="shrink-0 h-7 text-[11px] border-amber-300 bg-amber-100/60 hover:bg-amber-100 text-amber-900 font-semibold"
+                    >
+                      <Send
+                        className={`w-3 h-3 mr-1 ${resendingFromModal ? 'animate-spin' : ''}`}
+                      />
+                      Reenviar E-mail
+                    </Button>
+                  </div>
+                )}
+
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2.5 text-xs">
                   <div>
                     <span className="text-[11px] text-slate-500 font-medium block">Empresa</span>
@@ -926,7 +1088,7 @@ export const SuperAdmin: React.FC = () => {
                   <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-200">
                     <div>
                       <span className="text-[10px] text-slate-400 uppercase font-mono block">
-                        Senha Inicial
+                        Senha Inicial Provisória
                       </span>
                       <span className="font-mono text-slate-800 font-semibold">
                         {createdCredentials.admin_password}
@@ -981,14 +1143,37 @@ export const SuperAdmin: React.FC = () => {
                   <Button
                     type="button"
                     onClick={() => {
-                      const text = `Acesso Contek Agenda IA\nEmpresa: ${createdCredentials.name}\nLogin: ${createdCredentials.admin_email}\nSenha: ${createdCredentials.admin_password}\nLink do App: ${window.location.origin}/login\nPágina de Agendamento: ${window.location.origin}/agendar/${createdCredentials.slug}`
+                      const text = `Acesso Contek Agenda IA\nEmpresa: ${createdCredentials.name}\nLogin: ${createdCredentials.admin_email}\nSenha Provisória: ${createdCredentials.admin_password}\nLink do App: ${window.location.origin}/login\nPágina de Agendamento: ${window.location.origin}/agendar/${createdCredentials.slug}`
                       handleCopy(text, 'Todos os dados de acesso')
                     }}
                     variant="outline"
                     className="flex-1 text-xs font-semibold"
                   >
                     <Copy className="w-3.5 h-3.5 mr-1.5" />
-                    Copiar Todos os Dados
+                    Copiar Dados
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={resendingFromModal || resendingOrgId === createdCredentials.org_id}
+                    onClick={() => {
+                      setResendingFromModal(true)
+                      handleResendCredentials(
+                        {
+                          id: createdCredentials.org_id,
+                          name: createdCredentials.name,
+                          email: createdCredentials.admin_email,
+                        },
+                        createdCredentials.admin_password,
+                      )
+                    }}
+                    className="text-xs font-semibold text-cyan-800 border-cyan-300 hover:bg-cyan-50"
+                  >
+                    <Mail
+                      className={`w-3.5 h-3.5 mr-1.5 ${resendingFromModal ? 'animate-spin' : ''}`}
+                    />
+                    Reenviar E-mail
                   </Button>
 
                   <Button
@@ -1002,7 +1187,7 @@ export const SuperAdmin: React.FC = () => {
                     className="flex-1 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md"
                   >
                     <LogIn className="w-3.5 h-3.5 mr-1.5" />
-                    Entrar no Painel Agora
+                    Entrar no Painel
                   </Button>
                 </div>
               </div>
