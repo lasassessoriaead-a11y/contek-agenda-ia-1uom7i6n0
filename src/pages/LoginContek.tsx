@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,6 @@ import {
   Lock,
   ShieldCheck,
   ArrowRight,
-  ArrowLeft,
   AlertCircle,
   KeyRound,
   CheckCircle2,
@@ -119,15 +118,8 @@ export const LoginContek: React.FC = () => {
       <div className="absolute top-1/4 -left-12 w-64 h-64 rounded-full border border-[#22C55E]/15 pointer-events-none" />
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 rounded-full border border-[#1E3A8A]/25 pointer-events-none" />
 
-      {/* Topo com navegação sutil de volta ao portal */}
-      <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-between py-2">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition-colors py-1.5 px-3 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-[#06B6D4]/40"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 text-[#06B6D4]" />
-          <span>Voltar ao login dos produtos</span>
-        </Link>
+      {/* Topo corporativo Contek */}
+      <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-end py-2">
         <span className="text-[11px] text-slate-400 font-mono tracking-wider uppercase flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
           Ambiente Corporativo Contek

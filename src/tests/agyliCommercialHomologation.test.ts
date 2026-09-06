@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import loginSource from '../pages/Login.tsx?raw'
+import loginContekSource from '../pages/LoginContek.tsx?raw'
 import redefinirSource from '../pages/RedefinirSenha.tsx?raw'
 import agendamentoSource from '../pages/AgendamentoPublico.tsx?raw'
 import appSource from '../App.tsx?raw'
@@ -938,11 +939,18 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       expect(markalyList.map((o) => o.name)).toEqual(['Lulu', 'La Bela'])
     })
 
-    it('suporta acesso interno Contek dedicado (/acesso-contek) e link discreto no Login', () => {
+    it('suporta acesso interno Contek dedicado (/acesso-contek) de forma estrita e sem links cruzados com /login', () => {
+      // 1. Rota dedicada corporativa existe no App.tsx
       expect(appSource).toContain('path="/acesso-contek"')
       expect(appSource).toContain('LoginContek')
-      expect(loginSource).toContain('/acesso-contek')
-      expect(loginSource).toContain('Acesso Corporativo Contek')
+
+      // 2. /login (porta dos clientes) NÃO tem link para /acesso-contek nem texto 'Acesso Corporativo Contek'
+      expect(loginSource).not.toContain('/acesso-contek')
+      expect(loginSource).not.toContain('Acesso Corporativo Contek')
+
+      // 3. /acesso-contek (porta da equipe Contek) NÃO tem link de retorno para o login dos produtos
+      expect(loginContekSource).not.toContain('Voltar ao login dos produtos')
+      expect(loginContekSource).not.toContain('to="/login"')
     })
   })
 })
