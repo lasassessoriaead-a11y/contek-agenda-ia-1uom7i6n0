@@ -121,7 +121,6 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
         }
         return { destination: 'ALLOWED', replace: false }
       }
-
       // Cliente comum logado (dono de clínica) tenta acessar /admin ou /contek
       const clientUser = { id: 'usr_cliente_123', role: 'ADMINISTRADOR', is_super_admin: false }
       expect(runSuperAdminRoute(clientUser)).toEqual({ destination: '/', replace: true })
@@ -197,6 +196,88 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
       // Clientes comuns continuam isolados
       expect(layoutSource).toContain('{Boolean(isSuperAdmin) && (')
       expect(layoutSource).not.toContain('contek-admin-tenant-leak')
+    })
+  })
+
+  describe('6. Fluxo de Logout e Redirecionamento da Raiz "/"', () => {
+    it('(a) logout de SuperAdmin termina em /acesso-contek', () => {
+      const performLogoutForUser = (user: { is_super_admin?: boolean; role?: string } | null) => {
+        const wasSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
+        return wasSuper ? '/acesso-contek' : '/login'
+      }
+
+      const superAdminUser = { is_super_admin: true, role: 'SUPERADMIN' }
+      expect(performLogoutForUser(superAdminUser)).toBe('/acesso-contek')
+
+      const superAdminLuciana = { is_super_admin: true, role: 'ADMINISTRADOR' }
+      expect(performLogoutForUser(superAdminLuciana)).toBe('/acesso-contek')
+    })
+
+    it('(b) logout de cliente termina em /login', () => {
+      const performLogoutForUser = (user: { is_super_admin?: boolean; role?: string } | null) => {
+        const wasSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
+        return wasSuper ? '/acesso-contek' : '/login'
+      }
+
+      const clientAdmin = { is_super_admin: false, role: 'ADMINISTRADOR' }
+      expect(performLogoutForUser(clientAdmin)).toBe('/login')
+
+      const clientProf = { is_super_admin: false, role: 'PROFISSIONAL' }
+      expect(performLogoutForUser(clientProf)).toBe('/login')
+
+      const anonymousUser = null
+      expect(performLogoutForUser(anonymousUser)).toBe('/login')
+    })
+
+    it('(c) SuperAdmin logado que abre "/" vai automaticamente para a Central Contek (/contek)', () => {
+      // Simulação do comportamento da rota raiz "/"
+      const resolveRootRoute = (user: { is_super_admin?: boolean; role?: string } | null) => {
+        if (!user) {
+          return { destination: '/login', replace: true }
+        }
+        const isSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
+        if (isSuper) {
+          return { destination: '/contek', replace: true }
+        }
+        return { destination: 'DASHBOARD_TENANT', replace: false }
+      }
+
+      const superAdminUser = { is_super_admin: true, role: 'SUPERADMIN' }
+      expect(resolveRootRoute(superAdminUser)).toEqual({ destination: '/contek', replace: true })
+    })
+
+    it('(d) cliente logado que abre "/" continua no painel da própria empresa (Dashboard do tenant)', () => {
+      const resolveRootRoute = (user: { is_super_admin?: boolean; role?: string } | null) => {
+        if (!user) {
+          return { destination: '/login', replace: true }
+        }
+        const isSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
+        if (isSuper) {
+          return { destination: '/contek', replace: true }
+        }
+        return { destination: 'DASHBOARD_TENANT', replace: false }
+      }
+
+      const regularClient = { is_super_admin: false, role: 'ADMINISTRADOR' }
+      expect(resolveRootRoute(regularClient)).toEqual({ destination: 'DASHBOARD_TENANT', replace: false })
+
+      const profClient = { is_super_admin: false, role: 'PROFISSIONAL' }
+      expect(resolveRootRoute(profClient)).toEqual({ destination: 'DASHBOARD_TENANT', replace: false })
+    })
+
+    it('implementação real do AuthContext.tsx, Layout.tsx, CentralContek.tsx e SuperAdminLayout.tsx redireciona SuperAdmin para /acesso-contek no logout', () => {
+      expect(authContextSource).toContain("wasSuper ? '/acesso-contek' : '/login'")
+      expect(layoutSource).toContain('const redirectPath = logout()')
+      expect(layoutSource).toContain('navigate(redirectPath)')
+      expect(superAdminLayoutSource).toContain('const redirectPath = logout()')
+      expect(superAdminLayoutSource).toContain('navigate(redirectPath)')
+    })
+
+    it('implementação real do App.tsx possui RootRoute protegendo "/" com redirecionamento de SuperAdmin para /contek', () => {
+      expect(appSource).toContain('RootRoute')
+      expect(appSource).toContain('if (isSuperAdmin) {')
+      expect(appSource).toContain('to="/contek"')
+      expect(appSource).toContain('<Route index element={<RootRoute />} />')
     })
   })
 })

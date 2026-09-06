@@ -107,8 +107,8 @@ export const Layout: React.FC = () => {
   ].filter((item) => item.show)
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    const redirectPath = logout()
+    navigate(redirectPath)
   }
 
   const getInitials = (name?: string) => {

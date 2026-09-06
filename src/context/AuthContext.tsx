@@ -22,7 +22,7 @@ interface AuthContextType {
   isSuperAdmin: boolean
   hasFeature: (featureKey: string) => boolean
   login: (email: string, pass: string) => Promise<User>
-  logout: () => void
+  logout: () => string
   refreshOrganization: () => Promise<void>
   refreshFeatures: () => Promise<void>
   updateSettings: (newSettings: Partial<BusinessSettings>) => Promise<void>
@@ -258,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = () => {
+    const wasSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
     if (typeof window !== 'undefined') {
       localStorage.removeItem('contek_active_org_id')
     }
@@ -265,6 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null)
     setOrganization(null)
     setSettings(null)
+    return wasSuper ? '/acesso-contek' : '/login'
   }
 
   const updateSettings = async (newSettings: Partial<BusinessSettings>) => {

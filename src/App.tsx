@@ -43,6 +43,18 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>
 }
 
+const RootRoute: React.FC = () => {
+  const { isSuperAdmin } = useAuth()
+
+  // Se o usuário logado for SuperAdmin (ex.: Luciana da Contek), vai direto para a Central Contek (/contek)
+  if (isSuperAdmin) {
+    return <Navigate to="/contek" replace />
+  }
+
+  // Clientes comuns logados: exibem o painel da própria empresa (Dashboard)
+  return <Dashboard />
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -84,7 +96,7 @@ export function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Dashboard />} />
+            <Route index element={<RootRoute />} />
             <Route path="agenda" element={<Agenda />} />
             <Route path="clientes" element={<Clientes />} />
             <Route path="profissionais" element={<Profissionais />} />

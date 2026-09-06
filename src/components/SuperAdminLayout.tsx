@@ -41,8 +41,8 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
-    logout()
-    navigate('/acesso-contek')
+    const redirectPath = logout()
+    navigate(redirectPath)
   }
 
   const getInitials = (name?: string) => {

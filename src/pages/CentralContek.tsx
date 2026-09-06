@@ -119,8 +119,8 @@ export const CentralContek: React.FC = () => {
   }
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    const redirectPath = logout()
+    navigate(redirectPath)
   }
 
   // Primeiro nome para saudação amigável ("Olá, Luciana")
