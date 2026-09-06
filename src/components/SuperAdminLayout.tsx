@@ -105,12 +105,12 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
 
         {/* Top Header Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Se houver tenant previamente inspecionado */}
+          {/* Se houver empresa previamente inspecionada */}
           {currentActiveOrg && (
             <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-[11px] text-slate-600 border border-slate-200">
               <Building2 className="w-3.5 h-3.5 text-slate-500" />
               <span>
-                Último tenant inspecionado:{' '}
+                Última empresa inspecionada:{' '}
                 <strong className="text-slate-800">{currentActiveOrg.name}</strong>
               </span>
             </div>
@@ -222,7 +222,7 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
                 <span className="text-[10px] uppercase font-mono tracking-wider">Ambiente</span>
                 <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Produção Multi-Tenant
+                  Produção Corporativa Contek
                 </span>
               </div>
               <p className="text-slate-400 text-[10px]">

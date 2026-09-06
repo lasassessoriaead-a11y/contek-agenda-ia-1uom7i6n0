@@ -600,7 +600,7 @@ export const SuperAdmin: React.FC = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Retornar ao dashboard operacional do tenant ativo</p>
+                <p>Retornar ao painel operacional da empresa ativa</p>
               </TooltipContent>
             </Tooltip>
 
@@ -720,7 +720,7 @@ export const SuperAdmin: React.FC = () => {
                   Organizações Cadastradas
                 </CardTitle>
                 <CardDescription className="text-xs text-slate-500">
-                  Gerencie produto, plano e status operacional de cada tenant.
+                  Gerencie produto, plano e status operacional de cada empresa cliente.
                 </CardDescription>
               </div>
 
@@ -812,7 +812,7 @@ export const SuperAdmin: React.FC = () => {
                               )}
                               {isCurrentActiveTenant && (
                                 <Badge className="bg-purple-100 text-purple-800 text-[9px] px-1.5 py-0 border-purple-200 font-semibold">
-                                  TENANT ATUAL
+                                  EMPRESA ATUAL
                                 </Badge>
                               )}
                             </div>

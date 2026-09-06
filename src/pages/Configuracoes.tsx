@@ -406,7 +406,7 @@ export const Configuracoes: React.FC = () => {
             WhatsApp & Mensagens
           </TabsTrigger>
           <TabsTrigger value="plano" className="text-xs">
-            Plano & Multi-tenant
+            Plano & Segurança
           </TabsTrigger>
         </TabsList>
 
@@ -809,7 +809,7 @@ export const Configuracoes: React.FC = () => {
                       </Label>
                       <span className="text-[11px] text-slate-500">
                         Exibe o botão de WhatsApp na página pública e permite que o bot responda por
-                        este tenant.
+                        esta empresa.
                       </span>
                     </div>
                     <Switch checked={whatsappEnabled} onCheckedChange={setWhatsappEnabled} />
@@ -1271,13 +1271,13 @@ export const Configuracoes: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* TAB 4: PLANO & MULTI-TENANT */}
+        {/* TAB 4: PLANO & SEGURANÇA */}
         <TabsContent value="plano">
           <Card className="border-slate-200 bg-white shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-base text-slate-900 flex items-center gap-2">
                 <Shield className="w-4 h-4 text-emerald-600" />
-                Isolamento Multi-tenant & Status do Plano
+                Segurança dos Dados & Status do Plano
               </CardTitle>
               <CardDescription className="text-xs text-slate-500">
                 Informações de infraestrutura e permissões de acesso do usuário.
@@ -1309,11 +1309,11 @@ export const Configuracoes: React.FC = () => {
               </div>
 
               <div className="p-3.5 bg-slate-900 text-slate-200 rounded-xl space-y-1.5 text-xs">
-                <p className="font-semibold text-emerald-400">Regras de Acesso Multi-tenant:</p>
+                <p className="font-semibold text-emerald-400">Isolamento Completo dos Dados:</p>
                 <p className="text-slate-300 leading-relaxed text-[11px]">
                   Todas as consultas a clientes, agendamentos, serviços e finanças são estritamente
-                  filtradas por <code className="text-emerald-300 font-mono">organization_id</code>{' '}
-                  no backend PocketBase. Uma empresa jamais tem acesso aos dados de outra empresa.
+                  vinculadas à sua organização no backend da Contek. Uma empresa jamais tem acesso
+                  aos dados de outra empresa.
                 </p>
                 <div className="pt-1 flex items-center gap-2 text-[11px] text-slate-400">
                   <span>

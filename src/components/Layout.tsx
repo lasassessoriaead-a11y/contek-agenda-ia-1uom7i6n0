@@ -349,7 +349,7 @@ export const Layout: React.FC = () => {
                       variant="outline"
                       className="text-[10px] px-1.5 py-0 border-blue-200 text-blue-700"
                     >
-                      Multi-tenant OK
+                      Acesso Seguro
                     </Badge>
                   </div>
                 </div>
@@ -459,7 +459,7 @@ export const Layout: React.FC = () => {
                     currentProduct === 'markaly' ? 'text-orange-300' : 'text-blue-400',
                   )}
                 >
-                  Tenant Ativo
+                  Empresa Ativa
                 </p>
               </div>
             </div>
