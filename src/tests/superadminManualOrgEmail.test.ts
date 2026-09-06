@@ -41,6 +41,33 @@ describe('SuperAdmin Manual Organization Creation & Automatic Welcome Email', ()
       expect(superadminRoutesHookSource).toContain('Reenvio de credenciais')
       expect(superadminRoutesHookSource).toContain('$security.randomString')
     })
+
+    it('generates customized tenant login link with org, brand and email in emails and responses', () => {
+      // O link de login inclui org, brand e email tanto na criação quanto no reenvio
+      expect(superadminRoutesHookSource).toContain('/login?org=')
+      expect(superadminRoutesHookSource).toContain('&brand=')
+      expect(superadminRoutesHookSource).toContain('&email=')
+    })
+
+    it('supports create_example_service flag (defaults to true) when seeding organization', () => {
+      expect(superadminRoutesHookSource).toContain('create_example_service = true')
+      expect(superadminRoutesHookSource).toContain('shouldCreateExampleService')
+      expect(superadminRoutesHookSource).toContain('Atendimento Inicial / Consulta')
+    })
+  })
+
+  describe('SuperAdmin UI Updates for Brand Login & Example Service', () => {
+    it('has example service checkbox and clear guidance in SuperAdmin.tsx', () => {
+      expect(superAdminSource).toContain('create_example_service: createExampleService')
+      expect(superAdminSource).toContain('Criar serviço de exemplo (Atendimento Inicial / Consulta)')
+      expect(superAdminSource).toContain('A cliente pode editar ou remover este serviço a qualquer momento no menu')
+    })
+
+    it('alerts SuperAdmin clearly when credentials resend invalidates the previous password', () => {
+      expect(superAdminSource).toContain('password_regenerated')
+      expect(superAdminSource).toContain('Atenção: Nova senha gerada!')
+      expect(superAdminSource).toContain('A senha anterior foi invalidada')
+    })
   })
 
   describe('Frontend SuperAdmin UI & Credentials Modal', () => {

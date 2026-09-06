@@ -357,6 +357,7 @@ routerAdd(
 
       // Se foi fornecida uma nova senha no reenvio, atualizar o usuário
       let passwordToDisplay = ''
+      let isNewGeneratedPassword = false
       if (typeof custom_password === 'string' && custom_password.trim().length >= 8) {
         passwordToDisplay = custom_password.trim()
         adminUser.setPassword(passwordToDisplay)
@@ -364,6 +365,7 @@ routerAdd(
       } else {
         // Se não foi informada senha nova, gera uma nova senha provisória de 10 caracteres e atualiza
         passwordToDisplay = $security.randomString(10) + '@'
+        isNewGeneratedPassword = true
         adminUser.setPassword(passwordToDisplay)
         $app.save(adminUser)
       }
@@ -388,7 +390,14 @@ routerAdd(
         $os.getenv('SITE_URL') ||
         ($app.settings() && $app.settings().meta && $app.settings().meta.appURL) ||
         'https://contek-agenda-ia-479d4.goskip.app'
-      const loginUrl = publicBaseUrl + '/login'
+      const loginUrl =
+        publicBaseUrl +
+        '/login?org=' +
+        encodeURIComponent(orgSlug) +
+        '&brand=' +
+        encodeURIComponent(orgProduct) +
+        '&email=' +
+        encodeURIComponent(targetEmail)
       const publicBookingUrl = publicBaseUrl + '/agendar/' + orgSlug
       const resetPassUrl = publicBaseUrl + '/redefinir-senha'
 
@@ -546,9 +555,19 @@ routerAdd(
 
       return e.json(200, {
         success: true,
-        message: `E-mail de credenciais reenviado com sucesso para ${targetEmail}!`,
+        message: isNewGeneratedPassword
+          ? `E-mail reenviado com sucesso para ${targetEmail}! Uma nova senha foi gerada e a senha anterior foi invalidada.`
+          : `E-mail de credenciais reenviado com sucesso para ${targetEmail}!`,
         admin_email: targetEmail,
         new_password: passwordToDisplay,
+        password_regenerated: isNewGeneratedPassword,
+        login_url:
+          '/login?org=' +
+          encodeURIComponent(orgSlug) +
+          '&brand=' +
+          encodeURIComponent(orgProduct) +
+          '&email=' +
+          encodeURIComponent(targetEmail),
       })
     } catch (err) {
       console.log('[superadmin/org/resend-credentials] error:', err.message || err)
@@ -580,6 +599,7 @@ routerAdd(
         admin_password,
         product = 'agyli',
         plan_id = '',
+        create_example_service = true,
       } = body
 
       const cleanOrgName = typeof name === 'string' ? name.trim() : ''
@@ -786,26 +806,30 @@ routerAdd(
         profRecord.set('active', true)
         txApp.save(profRecord)
 
-        // 4.7 Criar Serviço Inicial Padrão
-        const servCol = txApp.findCollectionByNameOrId('services')
-        const servRecord = new Record(servCol)
-        servRecord.set('organization_id', orgId)
-        servRecord.set('name', 'Atendimento Inicial / Consulta')
-        servRecord.set('description', 'Serviço padrão configurado automaticamente')
-        servRecord.set('duration', 45)
-        servRecord.set('price', 150)
-        servRecord.set('color', '#10b981')
-        servRecord.set('category', 'Geral')
-        servRecord.set('active', true)
-        txApp.save(servRecord)
+        // 4.7 Criar Serviço Inicial Padrão se flag for true (padrão true para retrocompatibilidade)
+        const shouldCreateExampleService =
+          create_example_service !== false && create_example_service !== 'false'
+        if (shouldCreateExampleService) {
+          const servCol = txApp.findCollectionByNameOrId('services')
+          const servRecord = new Record(servCol)
+          servRecord.set('organization_id', orgId)
+          servRecord.set('name', 'Atendimento Inicial / Consulta')
+          servRecord.set('description', 'Serviço padrão configurado automaticamente')
+          servRecord.set('duration', 45)
+          servRecord.set('price', 150)
+          servRecord.set('color', '#10b981')
+          servRecord.set('category', 'Geral')
+          servRecord.set('active', true)
+          txApp.save(servRecord)
 
-        // 4.8 Vincular Profissional ao Serviço
-        const profServCol = txApp.findCollectionByNameOrId('professional_services')
-        const profServRecord = new Record(profServCol)
-        profServRecord.set('organization_id', orgId)
-        profServRecord.set('professional_id', profRecord.id)
-        profServRecord.set('service_id', servRecord.id)
-        txApp.save(profServRecord)
+          // 4.8 Vincular Profissional ao Serviço
+          const profServCol = txApp.findCollectionByNameOrId('professional_services')
+          const profServRecord = new Record(profServCol)
+          profServRecord.set('organization_id', orgId)
+          profServRecord.set('professional_id', profRecord.id)
+          profServRecord.set('service_id', servRecord.id)
+          txApp.save(profServRecord)
+        }
       })
 
       // 5. Enviar e-mail de boas-vindas com credenciais automaticamente
@@ -817,7 +841,14 @@ routerAdd(
           $os.getenv('SITE_URL') ||
           ($app.settings() && $app.settings().meta && $app.settings().meta.appURL) ||
           'https://contek-agenda-ia-479d4.goskip.app'
-        const loginUrl = publicBaseUrl + '/login'
+        const loginUrl =
+          publicBaseUrl +
+          '/login?org=' +
+          encodeURIComponent(finalSlug) +
+          '&brand=' +
+          encodeURIComponent(chosenProduct) +
+          '&email=' +
+          encodeURIComponent(cleanAdminEmail)
         const publicBookingUrl = publicBaseUrl + '/agendar/' + finalSlug
         const resetPassUrl = publicBaseUrl + '/redefinir-senha'
 
@@ -995,7 +1026,8 @@ routerAdd(
           admin_name: finalAdminName,
           admin_email: cleanAdminEmail,
           admin_password: cleanAdminPassword,
-          login_url: '/login',
+          product: chosenProduct,
+          login_url: `/login?org=${encodeURIComponent(finalSlug)}&brand=${encodeURIComponent(chosenProduct)}&email=${encodeURIComponent(cleanAdminEmail)}`,
           public_url: `/agendar/${finalSlug}`,
         },
       })

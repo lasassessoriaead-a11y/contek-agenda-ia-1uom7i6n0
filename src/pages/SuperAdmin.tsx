@@ -52,6 +52,7 @@ import {
   Send,
   AlertCircle,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProductType } from '@/types'
@@ -112,9 +113,13 @@ interface CreatedCredentialsModalData {
   admin_name: string
   admin_email: string
   admin_password: string
+  product?: ProductType
+  login_url?: string
+  public_url?: string
   org_id: string
   email_sent?: boolean
   email_error?: string | null
+  password_regenerated?: boolean
 }
 
 export const SuperAdmin: React.FC = () => {
@@ -145,6 +150,7 @@ export const SuperAdmin: React.FC = () => {
   const [createAdminPassword, setCreateAdminPassword] = useState('')
   const [createProduct, setCreateProduct] = useState<ProductType>('agyli')
   const [createPlanId, setCreatePlanId] = useState('')
+  const [createExampleService, setCreateExampleService] = useState(true)
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
 
   // Modal de exibição das credenciais criadas
@@ -248,6 +254,7 @@ export const SuperAdmin: React.FC = () => {
     setCreateAdminEmail('')
     setCreateAdminPassword('')
     setCreateProduct('agyli')
+    setCreateExampleService(true)
 
     const initialPlan = (data?.plans || []).find((p) => p.product === 'agyli')
     setCreatePlanId(initialPlan?.id || '')
@@ -335,6 +342,7 @@ export const SuperAdmin: React.FC = () => {
           admin_password: finalAdminPass,
           product: createProduct,
           plan_id: createPlanId,
+          create_example_service: createExampleService,
         },
       })
 
@@ -350,12 +358,18 @@ export const SuperAdmin: React.FC = () => {
 
         // Abre modal para exibir e copiar as credenciais do novo gestor com feedback de envio de e-mail
         if (res.organization) {
+          const creds = res.created_credentials
           setCreatedCredentials({
             name: res.organization.name || finalOrgName,
             slug: res.organization.slug,
             admin_name: createAdminName.trim() || `Gestor ${finalOrgName}`,
             admin_email: finalAdminEmail,
             admin_password: finalAdminPass,
+            product: createProduct,
+            login_url:
+              creds?.login_url ||
+              `/login?org=${encodeURIComponent(res.organization.slug)}&brand=${encodeURIComponent(createProduct)}&email=${encodeURIComponent(finalAdminEmail)}`,
+            public_url: creds?.public_url || `/agendar/${res.organization.slug}`,
             org_id: res.organization.id,
             email_sent: res.email_sent,
             email_error: res.email_error,
@@ -377,7 +391,7 @@ export const SuperAdmin: React.FC = () => {
   }
 
   const handleResendCredentials = async (
-    org: { id: string; name: string; email?: string },
+    org: { id: string; name: string; email?: string; slug?: string; product?: ProductType },
     customPass?: string,
   ) => {
     setResendingOrgId(org.id)
@@ -387,6 +401,8 @@ export const SuperAdmin: React.FC = () => {
         message?: string
         admin_email?: string
         new_password?: string
+        password_regenerated?: boolean
+        login_url?: string
       }>('/backend/v1/superadmin/org/resend-credentials', {
         method: 'POST',
         body: {
@@ -397,7 +413,16 @@ export const SuperAdmin: React.FC = () => {
       })
 
       if (res.success) {
-        toast.success(res.message || `Credenciais reenviadas com sucesso para ${res.admin_email}!`)
+        if (res.password_regenerated) {
+          toast.success(
+            `Nova senha gerada (${res.new_password}) e enviada para ${res.admin_email}! A senha anterior foi invalidada.`,
+            { duration: 7000 },
+          )
+        } else {
+          toast.success(
+            res.message || `Credenciais reenviadas com sucesso para ${res.admin_email}!`,
+          )
+        }
 
         // Se o modal estiver aberto, atualiza o status para enviado e a senha se foi gerada nova
         if (createdCredentials && createdCredentials.org_id === org.id) {
@@ -408,9 +433,29 @@ export const SuperAdmin: React.FC = () => {
                   email_sent: true,
                   email_error: null,
                   admin_password: res.new_password || prev.admin_password,
+                  password_regenerated: res.password_regenerated,
+                  login_url: res.login_url || prev.login_url,
                 }
               : null,
           )
+        } else if (res.new_password) {
+          // Se disparado pela listagem fora do modal, abre modal com os dados atualizados para cópia imediata
+          setCreatedCredentials({
+            name: org.name,
+            slug: org.slug || '',
+            admin_name: org.name,
+            admin_email: res.admin_email || org.email || '',
+            admin_password: res.new_password,
+            product: org.product,
+            login_url:
+              res.login_url ||
+              `/login?org=${encodeURIComponent(org.slug || '')}&brand=${encodeURIComponent(org.product || 'agyli')}&email=${encodeURIComponent(res.admin_email || org.email || '')}`,
+            public_url: `/agendar/${org.slug || ''}`,
+            org_id: org.id,
+            email_sent: true,
+            email_error: null,
+            password_regenerated: res.password_regenerated,
+          })
         }
       }
     } catch (err: unknown) {
@@ -991,15 +1036,30 @@ export const SuperAdmin: React.FC = () => {
             {createdCredentials && (
               <div className="space-y-3 pt-1">
                 {/* Status do envio de e-mail de boas-vindas */}
+                {createdCredentials.password_regenerated && (
+                  <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-300 rounded-xl p-3 text-xs text-amber-900">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-800">Atenção: Nova senha gerada!</p>
+                      <p className="text-[11px] text-amber-700 mt-0.5">
+                        A senha do e-mail anterior foi <strong>invalidada</strong>. O administrador
+                        deve usar exclusivamente a nova senha exibida abaixo.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {createdCredentials.email_sent ? (
                   <div className="flex items-start gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="font-semibold text-emerald-800">
-                        E-mail de boas-vindas enviado automaticamente!
+                        {createdCredentials.password_regenerated
+                          ? 'E-mail com a nova senha enviado!'
+                          : 'E-mail de boas-vindas enviado automaticamente!'}
                       </p>
                       <p className="text-[11px] text-emerald-700 mt-0.5">
-                        As credenciais de login, senha provisória e instruções foram enviadas para{' '}
+                        As credenciais de login, link personalizado e instruções foram enviadas para{' '}
                         <strong className="font-mono">{createdCredentials.admin_email}</strong>.
                       </p>
                     </div>
@@ -1143,7 +1203,12 @@ export const SuperAdmin: React.FC = () => {
                   <Button
                     type="button"
                     onClick={() => {
-                      const text = `Acesso Contek Agenda IA\nEmpresa: ${createdCredentials.name}\nLogin: ${createdCredentials.admin_email}\nSenha Provisória: ${createdCredentials.admin_password}\nLink do App: ${window.location.origin}/login\nPágina de Agendamento: ${window.location.origin}/agendar/${createdCredentials.slug}`
+                      const finalLoginUrl = createdCredentials.login_url
+                        ? createdCredentials.login_url.startsWith('http')
+                          ? createdCredentials.login_url
+                          : `${window.location.origin}${createdCredentials.login_url}`
+                        : `${window.location.origin}/login?org=${encodeURIComponent(createdCredentials.slug)}&brand=${encodeURIComponent(createdCredentials.product || 'agyli')}&email=${encodeURIComponent(createdCredentials.admin_email)}`
+                      const text = `Acesso Contek Agenda IA\nEmpresa: ${createdCredentials.name}\nLogin: ${createdCredentials.admin_email}\nSenha Provisória: ${createdCredentials.admin_password}\nLink de Acesso: ${finalLoginUrl}\nPágina de Agendamento: ${window.location.origin}/agendar/${createdCredentials.slug}`
                       handleCopy(text, 'Todos os dados de acesso')
                     }}
                     variant="outline"
@@ -1331,6 +1396,32 @@ export const SuperAdmin: React.FC = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              {/* Checkbox Criar Serviço de Exemplo */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 space-y-1">
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="create_example_service"
+                    checked={createExampleService}
+                    onChange={(e) => setCreateExampleService(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <div className="space-y-0.5">
+                    <Label
+                      htmlFor="create_example_service"
+                      className="text-xs font-semibold text-slate-800 cursor-pointer"
+                    >
+                      Criar serviço de exemplo (Atendimento Inicial / Consulta)
+                    </Label>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                      Semeia um profissional padrão e um serviço de exemplo (R$ 150 / 45 min) para a
+                      página pública não nascer vazia. A cliente pode editar ou remover este serviço
+                      a qualquer momento no menu <strong>Serviços</strong>.
+                    </p>
+                  </div>
                 </div>
               </div>
 

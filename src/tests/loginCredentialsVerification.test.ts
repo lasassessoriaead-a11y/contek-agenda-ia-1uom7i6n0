@@ -46,4 +46,21 @@ describe('Login Credentials and Form Pre-fill Verification', () => {
     expect(loginSource).toContain("setActiveBrand('agyli')")
     expect(loginSource).toContain("setActiveBrand('markaly')")
   })
+
+  it('supports URL search params brand, org, and email for customized Markaly/Agyli login', () => {
+    // Leitura de useSearchParams
+    expect(loginSource).toContain('useSearchParams()')
+    expect(loginSource).toContain("searchParams.get('brand')")
+    expect(loginSource).toContain("searchParams.get('org')")
+    expect(loginSource).toContain("searchParams.get('email')")
+
+    // Pré-preenchimento de e-mail a partir do parâmetro de URL
+    expect(loginSource).toContain('setEmail(emailParam)')
+
+    // Paleta MARKALY: Fundo roxo escuro #1E0338 e slogan oficial
+    expect(loginSource).toContain('#1E0338')
+    expect(loginSource).toContain('MARKALY • Organizar hoje, crescer sempre.')
+    expect(loginSource).toContain('Entrar no MARKALY')
+    expect(loginSource).toContain('Entrar no AGYLI')
+  })
 })
