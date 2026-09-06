@@ -937,5 +937,12 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       expect(markalyList.length).toBe(2)
       expect(markalyList.map((o) => o.name)).toEqual(['Lulu', 'La Bela'])
     })
+
+    it('suporta acesso interno Contek dedicado (/acesso-contek) e link discreto no Login', () => {
+      expect(appSource).toContain('path="/acesso-contek"')
+      expect(appSource).toContain('LoginContek')
+      expect(loginSource).toContain('/acesso-contek')
+      expect(loginSource).toContain('Acesso interno Contek')
+    })
   })
 })

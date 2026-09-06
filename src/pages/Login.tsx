@@ -983,7 +983,7 @@ export const Login: React.FC = () => {
           </Tabs>
         </Card>
 
-        <div className="mt-6 text-center space-y-1">
+        <div className="mt-6 text-center space-y-1.5">
           {activeBrand === 'markaly' ? (
             <>
               <p className="text-xs text-slate-600 font-medium">
@@ -1007,6 +1007,16 @@ export const Login: React.FC = () => {
               </p>
             </>
           )}
+
+          {/* Link discreto e neutro no rodapé para a equipe interna Contek */}
+          <div className="pt-2">
+            <Link
+              to="/acesso-contek"
+              className="text-[11px] text-slate-400/60 hover:text-slate-400 transition-colors inline-flex items-center gap-1 opacity-70 hover:opacity-100 font-normal"
+            >
+              <span>Acesso interno Contek</span>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
