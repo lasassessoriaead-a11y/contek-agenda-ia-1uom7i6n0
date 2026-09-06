@@ -20,8 +20,21 @@ import { toast } from 'sonner'
 import { ContekSymbol } from '@/components/ContekBranding'
 
 export const LoginContek: React.FC = () => {
-  const { login, logout } = useAuth()
+  const { user, isSuperAdmin, login, logout } = useAuth()
   const navigate = useNavigate()
+
+  // Se já houver um usuário autenticado acessando esta rota:
+  // - Se for SuperAdmin, vai direto para a /contek
+  // - Se for cliente comum logado, redireciona para a empresa dele ('/')
+  React.useEffect(() => {
+    if (user) {
+      if (isSuperAdmin) {
+        navigate('/contek', { replace: true })
+      } else {
+        navigate('/', { replace: true })
+      }
+    }
+  }, [user, isSuperAdmin, navigate])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

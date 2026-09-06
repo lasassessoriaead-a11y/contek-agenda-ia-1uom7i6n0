@@ -78,13 +78,20 @@ export const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ child
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Validando credenciais SuperAdmin...</p>
+          <p className="text-xs text-slate-400 font-medium">Validando credenciais de acesso...</p>
         </div>
       </div>
     )
   }
 
-  if (!user || !isSuperAdmin) {
+  // Se não estiver logado, redireciona ao login
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Se o usuário estiver logado mas NÃO for SuperAdmin (ex: dono da empresa, cliente comum),
+  // redireciona imediatamente para o painel da sua empresa ('/'). Nunca expõe telas administrativas.
+  if (!isSuperAdmin) {
     return <Navigate to="/" replace />
   }
 

@@ -335,7 +335,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const isSuperAdmin = Boolean(user?.is_super_admin || user?.role === 'SUPERADMIN')
+  // SuperAdmin estrito: APENAS quem tiver explicitamente is_super_admin === true ou role === 'SUPERADMIN'.
+  // Default seguro: false. Qualquer cliente comum (mesmo ADMINISTRADOR da clínica) NUNCA é SuperAdmin.
+  const isSuperAdmin = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
   const isAdmin = user?.role === 'ADMINISTRADOR' || isSuperAdmin || !user?.role
   const isProfessional = user?.role === 'PROFISSIONAL'
 

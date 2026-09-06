@@ -942,7 +942,7 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       expect(appSource).toContain('path="/acesso-contek"')
       expect(appSource).toContain('LoginContek')
       expect(loginSource).toContain('/acesso-contek')
-      expect(loginSource).toContain('Acesso interno Contek')
+      expect(loginSource).toContain('Acesso Corporativo Contek')
     })
   })
 })

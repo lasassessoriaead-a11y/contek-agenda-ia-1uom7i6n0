@@ -169,7 +169,7 @@ export const Layout: React.FC = () => {
                         DEMO
                       </span>
                     )}
-                    {isSuperAdmin && (
+                    {Boolean(isSuperAdmin) && (
                       <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
                         SUPERADMIN
                       </span>
@@ -201,7 +201,7 @@ export const Layout: React.FC = () => {
                         DEMO
                       </span>
                     )}
-                    {isSuperAdmin && (
+                    {Boolean(isSuperAdmin) && (
                       <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
                         SUPERADMIN
                       </span>
@@ -218,12 +218,13 @@ export const Layout: React.FC = () => {
           {/* PWA Install Button */}
           <PwaInstallPrompt variant="button" />
 
-          {isSuperAdmin && (
+          {Boolean(isSuperAdmin) && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/contek')}
               className="border-cyan-300 text-[#0D1B2A] bg-cyan-50/70 hover:bg-cyan-100 text-xs font-semibold"
+              data-testid="superadmin-central-contek-btn"
             >
               <img
                 src="/contek-symbol.png"
@@ -337,10 +338,11 @@ export const Layout: React.FC = () => {
                   Assistente IA
                 </DropdownMenuItem>
               )}
-              {isSuperAdmin && (
+              {Boolean(isSuperAdmin) && (
                 <DropdownMenuItem
                   onClick={() => navigate('/contek')}
                   className="text-[#0D1B2A] focus:text-[#06B6D4] focus:bg-cyan-50 font-medium"
+                  data-testid="dropdown-central-contek"
                 >
                   <img
                     src="/contek-symbol.png"
@@ -349,11 +351,12 @@ export const Layout: React.FC = () => {
                   />
                   Central Contek (Sistemas)
                 </DropdownMenuItem>
-              )}{' '}
-              {isSuperAdmin && (
+              )}
+              {Boolean(isSuperAdmin) && (
                 <DropdownMenuItem
                   onClick={() => navigate('/admin')}
                   className="text-slate-600 focus:text-slate-800"
+                  data-testid="dropdown-superadmin-panel"
                 >
                   <Settings className="w-4 h-4 mr-2 text-slate-500" />
                   Painel Avançado SuperAdmin
@@ -480,12 +483,13 @@ export const Layout: React.FC = () => {
               )
             })}
 
-            {isSuperAdmin && (
+            {Boolean(isSuperAdmin) && (
               <div
                 className={cn(
                   'pt-2 mt-2 border-t space-y-1',
                   currentProduct === 'markaly' ? 'border-purple-900/60' : 'border-slate-800',
                 )}
+                data-testid="sidebar-superadmin-section"
               >
                 <NavLink
                   to="/contek"
@@ -497,6 +501,7 @@ export const Layout: React.FC = () => {
                         : 'text-purple-300 hover:bg-purple-950/40 hover:text-purple-200',
                     )
                   }
+                  data-testid="sidebar-central-contek-link"
                 >
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   <span>Central Contek</span>
@@ -515,6 +520,7 @@ export const Layout: React.FC = () => {
                         : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200',
                     )
                   }
+                  data-testid="sidebar-admin-panel-link"
                 >
                   <Settings className="w-4 h-4 text-slate-400" />
                   <span>Painel /admin</span>
@@ -679,7 +685,7 @@ export const Layout: React.FC = () => {
                   currentProduct === 'markaly' ? 'border-purple-800' : 'border-slate-800',
                 )}
               >
-                {isSuperAdmin && (
+                {Boolean(isSuperAdmin) && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -688,6 +694,7 @@ export const Layout: React.FC = () => {
                       setMobileMenuOpen(false)
                       navigate('/contek')
                     }}
+                    data-testid="mobile-central-contek-btn"
                   >
                     <Sparkles className="w-3.5 h-3.5 mr-2 text-purple-400" />
                     Central Contek (Sistemas)

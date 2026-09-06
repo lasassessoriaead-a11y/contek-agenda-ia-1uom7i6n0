@@ -62,6 +62,7 @@ export function App() {
           {/* Acesso exclusivo e discreto da equipe Contek */}
           <Route path="/acesso-contek" element={<LoginContek />} />
           <Route path="/contek-login" element={<LoginContek />} />
+          <Route path="/admin-contek" element={<Navigate to="/contek" replace />} />
 
           {/* Central Contek Hub (Exclusivo SuperAdmin) */}
           <Route
