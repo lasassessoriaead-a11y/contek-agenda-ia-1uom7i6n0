@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekFullLogo, ContekSymbol } from '@/components/ContekBranding'
 import { ProductType } from '@/types'
 
 interface HubOrgItem {
@@ -169,28 +170,21 @@ export const CentralContek: React.FC = () => {
         {/* CABEÇALHO DISCRETO E NEUTRO - IDENTIDADE CONTEK SÓBRIA */}
         <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            {/* Logo Contek - Fundo claro, limpo, sem gradientes pesados */}
+            {/* Logo Contek Oficial Completa - Fundo claro, wordmark nítida */}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
-                <span className="font-extrabold text-base tracking-tight">C</span>
+              <div className="hidden sm:block">
+                <ContekFullLogo height={38} theme="light" />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-bold tracking-tight text-slate-900">CONTEK</span>
-                  <span className="text-[11px] font-medium text-slate-500 hidden sm:inline">
-                    • Central de Sistemas
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="border-purple-300 bg-purple-50 text-purple-700 text-[10px] font-semibold px-1.5 py-0"
-                  >
-                    SuperAdmin
-                  </Badge>
-                </div>
-                <span className="text-[10px] text-slate-400 leading-none">
-                  Tecnologia e Consultoria
-                </span>
+              <div className="sm:hidden flex items-center gap-2">
+                <ContekSymbol size={32} />
+                <span className="text-sm font-extrabold text-[#0D1B2A] tracking-tight">CONTEK</span>
               </div>
+              <Badge
+                variant="outline"
+                className="border-cyan-300 bg-cyan-50/70 text-[#06B6D4] text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              >
+                SuperAdmin
+              </Badge>
             </div>
 
             {/* Ações do Topo */}
@@ -747,13 +741,18 @@ export const CentralContek: React.FC = () => {
         </main>
 
         {/* FOOTER OFICIAL CONTEK */}
-        <footer className="bg-white border-t border-slate-200 py-4 px-4 sm:px-6 text-center text-xs text-slate-500 mt-auto">
-          <p className="font-medium text-slate-700">Central Contek de Gestão Multi-Sistemas</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Uma solução{' '}
-            <span className="text-slate-800 font-semibold">Contek Tecnologia e Consultoria</span>.
-            Todos os direitos reservados.
-          </p>
+        <footer className="bg-white border-t border-slate-200 py-5 px-4 sm:px-6 text-center text-xs text-slate-500 mt-auto">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <ContekSymbol size={22} />
+              <span className="font-bold text-[#0D1B2A]">
+                Grupo CONTEK — Tecnologia e Consultoria
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400">
+              Central Corporativa de Gestão Multi-Sistemas • Todos os direitos reservados.
+            </p>
+          </div>
         </footer>
       </div>
     </TooltipProvider>

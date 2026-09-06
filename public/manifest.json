@@ -1,18 +1,24 @@
 {
-  "short_name": "AGYLI",
-  "name": "AGYLI - Agendar ficou simples.",
-  "description": "Mais tempo para o que realmente importa. Plataforma de agendamento e gestão inteligente. Uma solução Contek.",
+  "short_name": "CONTEK",
+  "name": "Grupo CONTEK — Tecnologia e Consultoria",
+  "description": "Plataforma corporativa de agendamento e gestão inteligente multi-sistemas Contek Agenda IA.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
-  "background_color": "#0F172A",
-  "theme_color": "#3B82F6",
+  "background_color": "#0D1B2A",
+  "theme_color": "#0D1B2A",
   "lang": "pt-BR",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
+    {
+      "src": "/contek-symbol.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/pwa-192x192.svg",
       "sizes": "192x192",

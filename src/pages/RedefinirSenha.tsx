@@ -394,27 +394,43 @@ export const RedefinirSenha: React.FC = () => {
           )}
         </Card>
 
-        <div className="mt-6 text-center space-y-1">
+        <div className="mt-6 text-center space-y-1 flex flex-col items-center">
           {activeBrand === 'markaly' ? (
             <>
               <p className="text-xs text-slate-600 font-medium">
                 MARKALY • Organizar hoje, crescer sempre.
               </p>
-              <p className="text-[11px] text-slate-500">
-                Uma solução{' '}
-                <span className="text-[#3B0764] font-semibold">
-                  Contek Tecnologia e Consultoria
+              <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                <img
+                  src="/contek-symbol.png"
+                  alt="Contek"
+                  className="w-3 h-3 object-contain inline"
+                />
+                <span>
+                  Uma solução{' '}
+                  <span className="text-[#3B0764] font-semibold">
+                    Grupo CONTEK — Tecnologia e Consultoria
+                  </span>
+                  . Todos os direitos reservados.
                 </span>
-                . Todos os direitos reservados.
               </p>
             </>
           ) : (
             <>
               <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
-              <p className="text-[11px] text-slate-500">
-                Uma solução{' '}
-                <span className="text-blue-400 font-medium">Contek Tecnologia e Consultoria</span>.
-                Todos os direitos reservados.
+              <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                <img
+                  src="/contek-symbol.png"
+                  alt="Contek"
+                  className="w-3 h-3 object-contain inline"
+                />
+                <span>
+                  Uma solução{' '}
+                  <span className="text-blue-400 font-medium">
+                    Grupo CONTEK — Tecnologia e Consultoria
+                  </span>
+                  . Todos os direitos reservados.
+                </span>
               </p>
             </>
           )}

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
+import { ContekSymbol } from '@/components/ContekBranding'
 
 export const LoginContek: React.FC = () => {
   const { login, logout } = useAuth()
@@ -94,44 +95,59 @@ export const LoginContek: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-['Poppins',sans-serif] relative overflow-hidden">
-      {/* Background gradients discretos e escuros */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-slate-800/30 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-10 w-96 h-96 bg-purple-950/20 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#0D1B2A] text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-poppins relative overflow-hidden">
+      {/* Arcos e gradientes tecnológicos inspirados no símbolo C oficial da Contek */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[340px] bg-[#1E3A8A]/35 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-20 right-10 w-80 h-80 bg-[#06B6D4]/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-10 w-96 h-96 bg-[#22C55E]/15 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Elementos decorativos sutis inspirados nos arcos do C oficial */}
+      <div className="absolute top-1/4 -left-20 w-80 h-80 rounded-full border border-[#06B6D4]/15 pointer-events-none" />
+      <div className="absolute top-1/4 -left-12 w-64 h-64 rounded-full border border-[#22C55E]/15 pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-80 h-80 rounded-full border border-[#1E3A8A]/25 pointer-events-none" />
 
       {/* Topo com navegação sutil de volta ao portal */}
       <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-between py-2">
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors py-1 px-2 rounded-lg hover:bg-slate-900/60"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-300 hover:text-white transition-colors py-1.5 px-3 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-[#06B6D4]/40"
         >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Voltar ao login principal</span>
+          <ArrowLeft className="w-3.5 h-3.5 text-[#06B6D4]" />
+          <span>Voltar ao login dos produtos</span>
         </Link>
-        <span className="text-[11px] text-slate-500 font-mono tracking-wider uppercase">
+        <span className="text-[11px] text-slate-400 font-mono tracking-wider uppercase flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
           Ambiente Corporativo Contek
         </span>
       </header>
 
       {/* Conteúdo Central */}
       <main className="relative z-10 w-full max-w-md mx-auto my-auto py-8">
-        {/* Identidade Contek Sóbria */}
+        {/* Identidade Contek Oficial com Símbolo C Real */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-700/80 shadow-xl flex items-center justify-center mb-4">
-            <span className="text-2xl font-black tracking-tight text-white">C</span>
+          <div className="relative mb-4 group">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-b from-[#0D1B2A] to-slate-900 border border-slate-700/80 shadow-[0_10px_30px_rgba(6,182,212,0.25)] flex items-center justify-center p-2.5 transition-transform duration-300 group-hover:scale-105">
+              <ContekSymbol size={64} glow />
+            </div>
+            {/* Anel de destaque tecnológico */}
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-[#1E3A8A] via-[#06B6D4] to-[#22C55E] opacity-30 blur-sm -z-10 group-hover:opacity-50 transition-opacity" />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-[11px] font-medium text-slate-400 mb-2">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-[#06B6D4]/30 text-[11px] font-semibold text-[#06B6D4] mb-2 tracking-wide uppercase">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#22C55E]" />
             <span>Acesso Interno Contek</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">CONTEK</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Tecnologia e Consultoria • Gestão de Sistemas
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            GRUPO CONTEK
+          </h1>
+          <p className="text-xs text-slate-300 mt-1 font-medium tracking-wide">
+            TECNOLOGIA E CONSULTORIA • GESTÃO DE SISTEMAS
           </p>
         </div>
 
-        {/* Card de Login Contek */}
-        <Card className="bg-slate-900/90 border border-slate-800 shadow-2xl rounded-2xl backdrop-blur-md">
+        {/* Card de Login Contek com visual corporativo moderno */}
+        <Card className="bg-[#0D1B2A]/90 border border-slate-800/90 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-2xl backdrop-blur-md">
           {showForgotPassword ? (
             /* Sub-fluxo: Recuperação de Senha */
             <form onSubmit={handleForgotPassword}>
@@ -305,13 +321,13 @@ export const LoginContek: React.FC = () => {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-slate-100 hover:bg-white text-slate-950 font-semibold h-11 rounded-xl transition-all shadow-md"
+                  className="w-full bg-gradient-to-r from-[#1E3A8A] via-[#06B6D4] to-[#22C55E] hover:opacity-95 text-white font-semibold h-11 rounded-xl transition-all shadow-lg shadow-cyan-500/20"
                 >
                   {loading ? 'Acessando Central...' : 'Entrar na Central Contek'}
                   <ArrowRight className="w-4 h-4 ml-1.5" />
                 </Button>
 
-                <p className="text-[11px] text-center text-slate-500">
+                <p className="text-[11px] text-center text-slate-400">
                   Uso exclusivo da equipe técnica e administrativa Contek
                 </p>
               </CardFooter>
@@ -320,9 +336,16 @@ export const LoginContek: React.FC = () => {
         </Card>
       </main>
 
-      {/* Rodapé Sóbrio */}
-      <footer className="relative z-10 max-w-5xl w-full mx-auto py-3 text-center text-[11px] text-slate-500">
-        <p>Contek Tecnologia e Consultoria • Todos os direitos reservados.</p>
+      {/* Rodapé Oficial Contek */}
+      <footer className="relative z-10 max-w-5xl w-full mx-auto py-3 text-center text-[11px] text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <ContekSymbol size={16} />
+          <span className="font-semibold text-slate-200">
+            Grupo CONTEK — Tecnologia e Consultoria
+          </span>
+        </div>
+        <span className="hidden sm:inline text-slate-600">•</span>
+        <span>Todos os direitos reservados.</span>
       </footer>
     </div>
   )

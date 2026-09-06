@@ -203,18 +203,36 @@ export const ConfirmacaoPublica: React.FC = () => {
               </p>
             </CardContent>
 
-            <CardFooter className="pt-2 pb-4 flex justify-center border-t border-slate-800">
+            <CardFooter className="pt-3 pb-4 flex flex-col sm:flex-row items-center justify-center gap-2 border-t border-slate-800 text-xs text-slate-400">
               {result.appointment?.organization_product === 'markaly' ? (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <MarkalyEmblem size={14} />
-                  <span>MARKALY • Organizar hoje, crescer sempre. Uma solução Contek</span>
+                <div className="flex items-center gap-1.5">
+                  <MarkalyEmblem size={16} />
+                  <span>
+                    Powered by <strong className="text-white font-semibold">MARKALY</strong>
+                  </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <AgyliEmblem size={14} />
-                  <span>AGYLI • Agendar ficou simples. Uma solução Contek</span>
+                <div className="flex items-center gap-1.5">
+                  <AgyliEmblem size={16} />
+                  <span>
+                    Powered by <strong className="text-white font-semibold">AGYLI</strong>
+                  </span>
                 </div>
               )}
+              <span className="hidden sm:inline text-slate-600">•</span>
+              <div className="flex items-center gap-1.5">
+                <img
+                  src="/contek-symbol.png"
+                  alt="Grupo CONTEK"
+                  className="w-3.5 h-3.5 object-contain"
+                />
+                <span>
+                  Uma solução{' '}
+                  <span className="font-semibold text-slate-200">
+                    Grupo CONTEK — Tecnologia e Consultoria
+                  </span>
+                </span>
+              </div>
             </CardFooter>
           </Card>
         )}

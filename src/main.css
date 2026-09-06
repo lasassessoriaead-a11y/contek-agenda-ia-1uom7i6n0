@@ -17,6 +17,25 @@
       Roboto,
       sans-serif;
 
+    /* CONTEK Identidade Visual Oficial (Marca-Mãe)
+       Azul-marinho principal: #0D1B2A (Base)
+       Azul tecnológico: #1E3A8A
+       Ciano inovação: #06B6D4
+       Verde institucional: #22C55E
+       Verde-lima destaque: #84CC16 (moderação)
+       Laranja ação: #F59E0B (reservado alertas/CTA)
+       Cinza apoio: #64748B
+       Branco: #FFFFFF (Base)
+    */
+    --contek-navy: #0d1b2a;
+    --contek-blue: #1e3a8a;
+    --contek-cyan: #06b6d4;
+    --contek-green: #22c55e;
+    --contek-lime: #84cc16;
+    --contek-orange: #f59e0b;
+    --contek-slate: #64748b;
+    --contek-white: #ffffff;
+
     /* AGYLI Design System Colors:
        Azul principal: #3B82F6 (hsl 217.2 91.2% 59.8%)
        Violeta: #8B5CF6 (hsl 258.3 89.5% 66.3%)

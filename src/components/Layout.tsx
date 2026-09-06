@@ -223,9 +223,13 @@ export const Layout: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => navigate('/contek')}
-              className="border-purple-300 text-purple-800 bg-purple-50/70 hover:bg-purple-100 text-xs font-semibold"
+              className="border-cyan-300 text-[#0D1B2A] bg-cyan-50/70 hover:bg-cyan-100 text-xs font-semibold"
             >
-              <Sparkles className="w-3.5 h-3.5 mr-1 text-purple-600" />
+              <img
+                src="/contek-symbol.png"
+                alt="Contek"
+                className="w-3.5 h-3.5 mr-1 object-contain"
+              />
               <span className="hidden sm:inline">Central Contek</span>
               <span className="sm:hidden">Contek</span>
             </Button>
@@ -336,12 +340,16 @@ export const Layout: React.FC = () => {
               {isSuperAdmin && (
                 <DropdownMenuItem
                   onClick={() => navigate('/contek')}
-                  className="text-purple-700 focus:text-purple-800 focus:bg-purple-50"
+                  className="text-[#0D1B2A] focus:text-[#06B6D4] focus:bg-cyan-50 font-medium"
                 >
-                  <Sparkles className="w-4 h-4 mr-2 text-purple-600" />
+                  <img
+                    src="/contek-symbol.png"
+                    alt="Contek"
+                    className="w-4 h-4 mr-2 object-contain"
+                  />
                   Central Contek (Sistemas)
                 </DropdownMenuItem>
-              )}
+              )}{' '}
               {isSuperAdmin && (
                 <DropdownMenuItem
                   onClick={() => navigate('/admin')}
@@ -549,20 +557,27 @@ export const Layout: React.FC = () => {
                 </p>
                 <p
                   className={cn(
-                    'text-[9px] mt-0.5',
+                    'text-[9px] mt-0.5 flex items-center gap-1',
                     currentProduct === 'markaly' ? 'text-purple-400' : 'text-slate-400',
                   )}
                 >
-                  Uma solução{' '}
-                  <span
-                    className={cn(
-                      'font-medium',
-                      currentProduct === 'markaly' ? 'text-orange-400' : 'text-[#3B82F6]',
-                    )}
-                  >
-                    Contek
+                  <img
+                    src="/contek-symbol.png"
+                    alt="Contek"
+                    className="w-2.5 h-2.5 object-contain inline"
+                  />
+                  <span>
+                    Uma solução{' '}
+                    <span
+                      className={cn(
+                        'font-semibold',
+                        currentProduct === 'markaly' ? 'text-orange-400' : 'text-[#3B82F6]',
+                      )}
+                    >
+                      Grupo CONTEK
+                    </span>
                   </span>
-                </p>
+                </p>{' '}
               </div>
             </div>
             {/* Install Button inside desktop sidebar */}

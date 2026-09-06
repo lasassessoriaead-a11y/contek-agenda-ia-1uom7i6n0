@@ -1,8 +1,8 @@
 {
-  "name": "skip-react-template",
-  "description": "A frontend React Vite TypeScript Shadcn UI template for Skip projects",
+  "name": "contek-agenda",
+  "description": "Plataforma corporativa Contek Agenda IA — Grupo CONTEK Tecnologia e Consultoria",
   "private": true,
-  "version": "0.0.48",
+  "version": "0.0.49",
   "type": "module",
   "scripts": {
     "start": "vite dev",

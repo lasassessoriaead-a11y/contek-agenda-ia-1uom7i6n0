@@ -597,31 +597,37 @@ export const AgendamentoPublico: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 mt-6">
-          {isMarkaly ? (
-            <>
-              <MarkalyEmblem size={20} />
-              <p className="text-[11px] text-slate-400">
-                Powered by <b>MARKALY</b> • Organizar hoje, crescer sempre. Uma solução{' '}
-                <span className="text-orange-400">Contek</span>
-              </p>
-            </>
-          ) : (
-            <>
-              <AgyliEmblem size={20} />
-              <p className="text-[11px] text-slate-400">
-                Powered by <b>AGYLI</b> • Agendar ficou simples. Uma solução{' '}
-                <span className="text-[#3B82F6]">Contek</span>
-              </p>
-            </>
-          )}
+        <div className="mt-8 pt-4 border-t border-slate-800/80 w-full flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-1.5">
+            {isMarkaly ? <MarkalyEmblem size={18} /> : <AgyliEmblem size={18} />}
+            <span>
+              Powered by{' '}
+              <strong className="text-white font-semibold">
+                {isMarkaly ? 'MARKALY' : 'AGYLI'}
+              </strong>
+            </span>
+          </div>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <div className="flex items-center gap-1.5">
+            <img
+              src="/contek-symbol.png"
+              alt="Grupo CONTEK"
+              className="w-3.5 h-3.5 object-contain"
+            />
+            <span>
+              Uma solução{' '}
+              <span className="font-semibold text-slate-200">
+                Grupo CONTEK — Tecnologia e Consultoria
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-x-hidden font-['Poppins',sans-serif]">
+    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col items-center py-8 px-4 sm:px-6 relative overflow-x-hidden font-poppins">
       {/* Background accents */}
       <div
         className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 rounded-full blur-3xl pointer-events-none ${
@@ -1226,6 +1232,33 @@ export const AgendamentoPublico: React.FC = () => {
             </>
           )}
         </Card>
+
+        {/* Rodapé Institucional Contek na página de agendamento */}
+        <footer className="pt-6 pb-2 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center gap-1.5">
+            {isMarkaly ? <MarkalyEmblem size={18} /> : <AgyliEmblem size={18} />}
+            <span>
+              Powered by{' '}
+              <strong className="text-white font-semibold">
+                {isMarkaly ? 'MARKALY' : 'AGYLI'}
+              </strong>
+            </span>
+          </div>
+          <span className="hidden sm:inline text-slate-600">•</span>
+          <div className="flex items-center gap-1.5">
+            <img
+              src="/contek-symbol.png"
+              alt="Grupo CONTEK"
+              className="w-3.5 h-3.5 object-contain"
+            />
+            <span>
+              Uma solução{' '}
+              <span className="font-semibold text-slate-200">
+                Grupo CONTEK — Tecnologia e Consultoria
+              </span>
+            </span>
+          </div>
+        </footer>
       </div>
     </div>
   )

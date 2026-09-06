@@ -27,10 +27,21 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Inter var', 'SF Pro Display', 'system-ui', 'sans-serif'],
-        display: ['SF Pro Display', 'Inter var', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'Inter var', 'system-ui', 'sans-serif'],
+        poppins: ['Poppins', 'sans-serif'],
+        display: ['Poppins', 'SF Pro Display', 'system-ui', 'sans-serif'],
       },
       colors: {
+        contek: {
+          navy: '#0D1B2A', // Azul-marinho principal (base)
+          blue: '#1E3A8A', // Azul tecnológico
+          cyan: '#06B6D4', // Ciano inovação
+          green: '#22C55E', // Verde institucional
+          lime: '#84CC16', // Verde-lima destaque (uso com moderação)
+          orange: '#F59E0B', // Laranja ação (reservado p/ chamadas e alertas)
+          slate: '#64748B', // Cinza apoio
+          white: '#FFFFFF', // Branco base
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

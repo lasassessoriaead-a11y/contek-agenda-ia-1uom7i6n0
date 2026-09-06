@@ -1008,13 +1008,14 @@ export const Login: React.FC = () => {
             </>
           )}
 
-          {/* Link discreto e neutro no rodapé para a equipe interna Contek */}
-          <div className="pt-2">
+          {/* Link discreto no rodapé para a equipe interna Contek com o símbolo oficial */}
+          <div className="pt-2 flex items-center justify-center">
             <Link
               to="/acesso-contek"
-              className="text-[11px] text-slate-400/60 hover:text-slate-400 transition-colors inline-flex items-center gap-1 opacity-70 hover:opacity-100 font-normal"
+              className="text-[11px] text-slate-400/80 hover:text-white transition-colors inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 font-medium"
             >
-              <span>Acesso interno Contek</span>
+              <img src="/contek-symbol.png" alt="Contek" className="w-3.5 h-3.5 object-contain" />
+              <span>Acesso Corporativo Contek</span>
             </Link>
           </div>
         </div>
