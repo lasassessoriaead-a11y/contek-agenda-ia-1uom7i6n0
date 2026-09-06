@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 
 interface ConfirmationResult {
   success: boolean
@@ -221,11 +222,7 @@ export const ConfirmacaoPublica: React.FC = () => {
               )}
               <span className="hidden sm:inline text-slate-600">•</span>
               <div className="flex items-center gap-1.5">
-                <img
-                  src="/contek-symbol.png"
-                  alt="Grupo CONTEK"
-                  className="w-3.5 h-3.5 object-contain"
-                />
+                <ContekSymbol size={14} alt="Grupo CONTEK" />
                 <span>
                   Uma solução{' '}
                   <span className="font-semibold text-slate-200">

@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
+import contekSymbolBundled from '@/assets/c-da-contek-23a2f.png'
+import contekFullLogoBundled from '@/assets/logo-contek-correto-25856.png'
 
 /**
  * Identidade Visual Oficial do Grupo CONTEK — Tecnologia e Consultoria
@@ -33,8 +35,8 @@ export const CONTEK_PALETTE = {
 } as const
 
 export const CONTEK_ASSETS = {
-  fullLogo: '/contek-logo-full.png',
-  symbol: '/contek-symbol.png',
+  fullLogo: contekFullLogoBundled || '/contek-logo-full.png',
+  symbol: contekSymbolBundled || '/contek-symbol.png',
 } as const
 
 export interface ContekSymbolProps {
@@ -55,6 +57,16 @@ export const ContekSymbol: React.FC<ContekSymbolProps> = ({
   glow = false,
 }) => {
   const dimension = typeof size === 'number' ? `${size}px` : size
+  const [imgSrc, setImgSrc] = useState<string>(contekSymbolBundled || '/contek-symbol.png')
+  const [hasError, setHasError] = useState(false)
+
+  const handleImageError = () => {
+    if (imgSrc !== '/contek-symbol.png') {
+      setImgSrc('/contek-symbol.png')
+    } else {
+      setHasError(true)
+    }
+  }
 
   return (
     <div
@@ -69,12 +81,49 @@ export const ContekSymbol: React.FC<ContekSymbolProps> = ({
           }}
         />
       )}
-      <img
-        src={CONTEK_ASSETS.symbol}
-        alt={alt}
-        className="w-full h-full object-contain relative z-10"
-        loading="eager"
-      />
+      {!hasError ? (
+        <img
+          src={imgSrc}
+          alt={alt}
+          onError={handleImageError}
+          className="w-full h-full object-contain relative z-10"
+          loading="eager"
+        />
+      ) : (
+        /* Fallback vetorial fiel e nítido do Símbolo C Oficial da Contek */
+        <svg
+          viewBox="0 0 100 100"
+          className="w-full h-full relative z-10 select-none drop-shadow-sm"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id="contek-c-grad-outer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1E3A8A" />
+              <stop offset="50%" stopColor="#06B6D4" />
+              <stop offset="100%" stopColor="#22C55E" />
+            </linearGradient>
+            <linearGradient id="contek-c-grad-inner" x1="0%" y1="100%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#06B6D4" />
+              <stop offset="100%" stopColor="#84CC16" />
+            </linearGradient>
+          </defs>
+          {/* Arco externo do C com extremidades arredondadas */}
+          <path
+            d="M 68 22 C 55 12 36 14 24 26 C 10 40 10 60 24 74 C 36 86 55 88 68 78"
+            stroke="url(#contek-c-grad-outer)"
+            strokeWidth="13"
+            strokeLinecap="round"
+          />
+          {/* Arco interno sobreposto característico do símbolo C Contek */}
+          <path
+            d="M 58 36 C 48 28 38 30 32 38 C 24 46 24 54 32 62 C 38 70 48 72 58 64"
+            stroke="url(#contek-c-grad-inner)"
+            strokeWidth="8"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
     </div>
   )
 }
@@ -97,18 +146,51 @@ export const ContekFullLogo: React.FC<ContekFullLogoProps> = ({
   theme = 'auto',
 }) => {
   const h = typeof height === 'number' ? `${height}px` : height
+  const [imgSrc, setImgSrc] = useState<string>(contekFullLogoBundled || '/contek-logo-full.png')
+  const [hasError, setHasError] = useState(false)
+
+  const handleImageError = () => {
+    if (imgSrc !== '/contek-logo-full.png') {
+      setImgSrc('/contek-logo-full.png')
+    } else {
+      setHasError(true)
+    }
+  }
 
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
-      <img
-        src={CONTEK_ASSETS.fullLogo}
-        alt={alt}
-        style={{ height: h, width: 'auto' }}
-        className={`object-contain max-w-full ${
-          theme === 'dark' ? 'drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)]' : ''
-        }`}
-        loading="eager"
-      />
+      {!hasError ? (
+        <img
+          src={imgSrc}
+          alt={alt}
+          onError={handleImageError}
+          style={{ height: h, width: 'auto' }}
+          className={`object-contain max-w-full ${
+            theme === 'dark' ? 'drop-shadow-[0_2px_12px_rgba(6,182,212,0.25)]' : ''
+          }`}
+          loading="eager"
+        />
+      ) : (
+        <div className="flex items-center gap-2.5">
+          <ContekSymbol size={typeof height === 'number' ? height : 36} />
+          <div className="flex flex-col text-left">
+            <span
+              className={`font-black text-lg tracking-tight uppercase leading-tight font-poppins ${
+                theme === 'light' ? 'text-slate-900' : 'text-white'
+              }`}
+            >
+              GRUPO CONTEK
+            </span>
+            <span
+              className={`text-[9px] font-semibold tracking-wider uppercase font-poppins ${
+                theme === 'light' ? 'text-slate-500' : 'text-cyan-400'
+              }`}
+            >
+              Tecnologia e Consultoria
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

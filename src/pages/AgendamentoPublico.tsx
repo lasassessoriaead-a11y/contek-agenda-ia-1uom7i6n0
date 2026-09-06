@@ -45,6 +45,7 @@ import { format, addDays, isBefore, startOfToday, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 
 export const AgendamentoPublico: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -609,11 +610,7 @@ export const AgendamentoPublico: React.FC = () => {
           </div>
           <span className="hidden sm:inline text-slate-600">•</span>
           <div className="flex items-center gap-1.5">
-            <img
-              src="/contek-symbol.png"
-              alt="Grupo CONTEK"
-              className="w-3.5 h-3.5 object-contain"
-            />
+            <ContekSymbol size={14} alt="Grupo CONTEK" />
             <span>
               Uma solução{' '}
               <span className="font-semibold text-slate-200">
@@ -1246,11 +1243,7 @@ export const AgendamentoPublico: React.FC = () => {
           </div>
           <span className="hidden sm:inline text-slate-600">•</span>
           <div className="flex items-center gap-1.5">
-            <img
-              src="/contek-symbol.png"
-              alt="Grupo CONTEK"
-              className="w-3.5 h-3.5 object-contain"
-            />
+            <ContekSymbol size={14} alt="Grupo CONTEK" />
             <span>
               Uma solução{' '}
               <span className="font-semibold text-slate-200">

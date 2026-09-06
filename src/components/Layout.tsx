@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils'
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 
 export const Layout: React.FC = () => {
   const { user, organization, logout, isSuperAdmin, hasFeature, branding, currentProduct } =
@@ -226,11 +227,7 @@ export const Layout: React.FC = () => {
               className="border-cyan-300 text-[#0D1B2A] bg-cyan-50/70 hover:bg-cyan-100 text-xs font-semibold"
               data-testid="superadmin-central-contek-btn"
             >
-              <img
-                src="/contek-symbol.png"
-                alt="Contek"
-                className="w-3.5 h-3.5 mr-1 object-contain"
-              />
+              <ContekSymbol size={14} className="mr-1" />
               <span className="hidden sm:inline">Central Contek</span>
               <span className="sm:hidden">Contek</span>
             </Button>
@@ -344,11 +341,7 @@ export const Layout: React.FC = () => {
                   className="text-[#0D1B2A] focus:text-[#06B6D4] focus:bg-cyan-50 font-medium"
                   data-testid="dropdown-central-contek"
                 >
-                  <img
-                    src="/contek-symbol.png"
-                    alt="Contek"
-                    className="w-4 h-4 mr-2 object-contain"
-                  />
+                  <ContekSymbol size={16} className="mr-2" />
                   Central Contek (Sistemas)
                 </DropdownMenuItem>
               )}
@@ -567,11 +560,7 @@ export const Layout: React.FC = () => {
                     currentProduct === 'markaly' ? 'text-purple-400' : 'text-slate-400',
                   )}
                 >
-                  <img
-                    src="/contek-symbol.png"
-                    alt="Contek"
-                    className="w-2.5 h-2.5 object-contain inline"
-                  />
+                  <ContekSymbol size={10} className="inline mr-1" />
                   <span>
                     Uma solução{' '}
                     <span

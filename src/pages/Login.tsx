@@ -29,6 +29,7 @@ import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 import { resolveProductByDomain } from '@/lib/branding'
 
 export const Login: React.FC = () => {
@@ -1014,7 +1015,7 @@ export const Login: React.FC = () => {
               to="/acesso-contek"
               className="text-[11px] text-slate-400/80 hover:text-white transition-colors inline-flex items-center gap-1.5 opacity-80 hover:opacity-100 font-medium"
             >
-              <img src="/contek-symbol.png" alt="Contek" className="w-3.5 h-3.5 object-contain" />
+              <ContekSymbol size={14} alt="Contek" />
               <span>Acesso Corporativo Contek</span>
             </Link>
           </div>

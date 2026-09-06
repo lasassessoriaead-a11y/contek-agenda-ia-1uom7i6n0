@@ -26,6 +26,7 @@ import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { ContekSymbol } from '@/components/ContekBranding'
 import { resolveProductByDomain } from '@/lib/branding'
 
 export const RedefinirSenha: React.FC = () => {
@@ -401,11 +402,7 @@ export const RedefinirSenha: React.FC = () => {
                 MARKALY • Organizar hoje, crescer sempre.
               </p>
               <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                <img
-                  src="/contek-symbol.png"
-                  alt="Contek"
-                  className="w-3 h-3 object-contain inline"
-                />
+                <ContekSymbol size={12} className="inline mr-1" />
                 <span>
                   Uma solução{' '}
                   <span className="text-[#3B0764] font-semibold">
@@ -419,11 +416,7 @@ export const RedefinirSenha: React.FC = () => {
             <>
               <p className="text-xs text-slate-400 font-medium">AGYLI • Agendar ficou simples.</p>
               <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                <img
-                  src="/contek-symbol.png"
-                  alt="Contek"
-                  className="w-3 h-3 object-contain inline"
-                />
+                <ContekSymbol size={12} className="inline mr-1" />
                 <span>
                   Uma solução{' '}
                   <span className="text-blue-400 font-medium">
