@@ -5,6 +5,7 @@ import superAdminSource from '../pages/SuperAdmin.tsx?raw'
 import appSource from '../App.tsx?raw'
 import authContextSource from '../context/AuthContext.tsx?raw'
 import loginContekSource from '../pages/LoginContek.tsx?raw'
+import centralContekSource from '../pages/CentralContek.tsx?raw'
 
 describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin', () => {
   describe('1. Verificação Estrita de isSuperAdmin no AuthContext', () => {
@@ -229,30 +230,47 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
       expect(performLogoutForUser(anonymousUser)).toBe('/login')
     })
 
-    it('(c) SuperAdmin logado que abre "/" vai automaticamente para a Central Contek (/contek)', () => {
-      // Simulação do comportamento da rota raiz "/"
-      const resolveRootRoute = (user: { is_super_admin?: boolean; role?: string } | null) => {
+    it('(c) SuperAdmin logado que abre "/" sem tenant ativo vai para a Central Contek (/contek); com tenant ativo vê Dashboard', () => {
+      // Simulação do comportamento da rota raiz "/" (RootRoute)
+      const resolveRootRoute = (
+        user: { is_super_admin?: boolean; role?: string } | null,
+        activeOrg: { id: string; name: string } | null = null,
+      ) => {
         if (!user) {
           return { destination: '/login', replace: true }
         }
         const isSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
         if (isSuper) {
+          if (activeOrg) {
+            return { destination: 'DASHBOARD_TENANT', replace: false }
+          }
           return { destination: '/contek', replace: true }
         }
         return { destination: 'DASHBOARD_TENANT', replace: false }
       }
 
       const superAdminUser = { is_super_admin: true, role: 'SUPERADMIN' }
-      expect(resolveRootRoute(superAdminUser)).toEqual({ destination: '/contek', replace: true })
+      // Sem tenant selecionado -> /contek
+      expect(resolveRootRoute(superAdminUser, null)).toEqual({ destination: '/contek', replace: true })
+
+      // Com tenant selecionado (ex: CAMILA / LUIS via contek_active_org_id) -> Dashboard
+      const camilaOrg = { id: 'org_camila_123', name: 'CAMILA' }
+      expect(resolveRootRoute(superAdminUser, camilaOrg)).toEqual({ destination: 'DASHBOARD_TENANT', replace: false })
     })
 
     it('(d) cliente logado que abre "/" continua no painel da própria empresa (Dashboard do tenant)', () => {
-      const resolveRootRoute = (user: { is_super_admin?: boolean; role?: string } | null) => {
+      const resolveRootRoute = (
+        user: { is_super_admin?: boolean; role?: string } | null,
+        activeOrg: { id: string; name: string } | null = null,
+      ) => {
         if (!user) {
           return { destination: '/login', replace: true }
         }
         const isSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
         if (isSuper) {
+          if (activeOrg) {
+            return { destination: 'DASHBOARD_TENANT', replace: false }
+          }
           return { destination: '/contek', replace: true }
         }
         return { destination: 'DASHBOARD_TENANT', replace: false }
@@ -263,6 +281,14 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
 
       const profClient = { is_super_admin: false, role: 'PROFISSIONAL' }
       expect(resolveRootRoute(profClient)).toEqual({ destination: 'DASHBOARD_TENANT', replace: false })
+    })
+
+    it('(e) SuperAdmin navegando da Central Contek para o painel de uma empresa (CAMILA / LUIS) exibe badge conectada e link de retorno', () => {
+      // Validação de que Layout.tsx tem data-testid="superadmin-central-contek-btn" e "header-connected-org-badge"
+      expect(layoutSource).toContain('data-testid="header-connected-org-badge"')
+      expect(layoutSource).toContain('data-testid="superadmin-central-contek-btn"')
+      expect(layoutSource).toContain('Conectada a:')
+      expect(centralContekSource).toContain('data-testid={`enter-org-${org.slug}`}')
     })
 
     it('implementação real do AuthContext.tsx, Layout.tsx, CentralContek.tsx e SuperAdminLayout.tsx redireciona SuperAdmin para /acesso-contek no logout', () => {

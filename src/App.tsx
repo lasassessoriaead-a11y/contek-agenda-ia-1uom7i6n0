@@ -52,10 +52,16 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 }
 
 const RootRoute: React.FC = () => {
-  const { isSuperAdmin } = useAuth()
+  const { isSuperAdmin, organization } = useAuth()
 
-  // Se o usuário logado for SuperAdmin (ex.: Luciana da Contek), vai direto para a Central Contek (/contek)
+  // Se o usuário logado for SuperAdmin (ex.: Luciana da Contek):
+  // Se tiver selecionado uma empresa ativa (organization carregada via contek_active_org_id),
+  // exibe o painel operacional daquela empresa (Dashboard).
+  // Caso contrário, sem empresa ativa selecionada, vai para a Central Contek (/contek).
   if (isSuperAdmin) {
+    if (organization) {
+      return <Dashboard />
+    }
     return <Navigate to="/contek" replace />
   }
 

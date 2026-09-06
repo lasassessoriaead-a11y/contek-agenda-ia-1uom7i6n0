@@ -220,17 +220,43 @@ export const Layout: React.FC = () => {
           <PwaInstallPrompt variant="button" />
 
           {Boolean(isSuperAdmin) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/contek')}
-              className="border-cyan-300 text-[#0D1B2A] bg-cyan-50/70 hover:bg-cyan-100 text-xs font-semibold"
-              data-testid="superadmin-central-contek-btn"
-            >
-              <ContekSymbol size={14} className="mr-1" />
-              <span className="hidden sm:inline">Central Contek</span>
-              <span className="sm:hidden">Contek</span>
-            </Button>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {organization && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 font-medium hidden md:inline-flex items-center gap-1.5',
+                    currentProduct === 'markaly'
+                      ? 'bg-[#FEF3E2] text-[#3B0764] border-orange-300'
+                      : 'bg-blue-50 text-blue-700 border-blue-200',
+                  )}
+                  data-testid="header-connected-org-badge"
+                >
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      currentProduct === 'markaly' ? 'bg-[#F97316]' : 'bg-blue-600',
+                    )}
+                  />
+                  <span>
+                    Conectada a: <strong className="font-bold uppercase">{currentProduct}</strong> •{' '}
+                    {organization.name}
+                  </span>
+                </Badge>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/contek')}
+                className="border-cyan-300 text-[#0D1B2A] bg-cyan-50/70 hover:bg-cyan-100 text-xs font-semibold"
+                data-testid="superadmin-central-contek-btn"
+              >
+                <ContekSymbol size={14} className="mr-1" />
+                <span className="hidden sm:inline">Central Contek</span>
+                <span className="sm:hidden">Central</span>
+              </Button>
+            </div>
           )}
 
           {publicUrl && (

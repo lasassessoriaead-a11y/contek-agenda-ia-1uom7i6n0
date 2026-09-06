@@ -408,6 +408,7 @@ export const CentralContek: React.FC = () => {
                   {/* Se houver empresa AGYLI cadastrada (ex.: LUIS ou Contek Estética), atalho direto em destaque */}
                   {agyliOrgs.length > 0 && (
                     <Button
+                      type="button"
                       size="sm"
                       variant="outline"
                       onClick={() => handleEnterOrg(agyliOrgs[0])}
@@ -519,9 +520,11 @@ export const CentralContek: React.FC = () => {
 
                             {/* Entrar no painel da empresa */}
                             <Button
+                              type="button"
                               size="sm"
                               onClick={() => handleEnterOrg(org)}
                               disabled={isEntering}
+                              data-testid={`enter-org-${org.slug}`}
                               className={`h-8 px-2.5 text-xs font-semibold shadow-xs ${
                                 isCurrent
                                   ? 'bg-blue-700 hover:bg-blue-800 text-white'
@@ -585,6 +588,23 @@ export const CentralContek: React.FC = () => {
                       <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
                     </Link>
                   </Button>
+
+                  {/* Se houver empresa MARKALY cadastrada (ex.: CAMILA), atalho direto em destaque */}
+                  {markalyOrgs.length > 0 && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEnterOrg(markalyOrgs[0])}
+                      disabled={enteringOrgId === markalyOrgs[0].id}
+                      className="text-xs font-semibold border-orange-300 text-orange-800 bg-white hover:bg-orange-50 shadow-xs"
+                    >
+                      <LogIn
+                        className={`w-3.5 h-3.5 mr-1.5 text-orange-600 ${enteringOrgId === markalyOrgs[0].id ? 'animate-spin' : ''}`}
+                      />
+                      <span>Ir direto para {markalyOrgs[0].name}</span>
+                    </Button>
+                  )}
 
                   <Badge
                     variant="secondary"
@@ -687,9 +707,11 @@ export const CentralContek: React.FC = () => {
 
                             {/* Entrar no painel da empresa via switchOrganization oficial */}
                             <Button
+                              type="button"
                               size="sm"
                               onClick={() => handleEnterOrg(org)}
                               disabled={isEntering}
+                              data-testid={`enter-org-${org.slug}`}
                               className={`h-8 px-2.5 text-xs font-semibold shadow-xs ${
                                 isCurrent
                                   ? 'bg-[#3B0764] hover:bg-[#4C0D80] text-white'
