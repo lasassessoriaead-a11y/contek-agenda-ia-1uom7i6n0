@@ -84,9 +84,17 @@ export const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ child
     )
   }
 
-  // Se não estiver logado, redireciona ao login
+  // Se não estiver logado, redireciona ao login (ou para o destino do logout caso registrado)
   if (!user) {
-    return <Navigate to="/login" replace />
+    let target = '/login'
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('logout_redirect_to')
+      if (stored) {
+        sessionStorage.removeItem('logout_redirect_to')
+        target = stored
+      }
+    }
+    return <Navigate to={target} replace />
   }
 
   // Se o usuário estiver logado mas NÃO for SuperAdmin (ex: dono da empresa, cliente comum),

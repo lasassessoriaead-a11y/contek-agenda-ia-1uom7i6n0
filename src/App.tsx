@@ -37,7 +37,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />
+    let target = '/login'
+    if (typeof window !== 'undefined') {
+      const stored = sessionStorage.getItem('logout_redirect_to')
+      if (stored) {
+        sessionStorage.removeItem('logout_redirect_to')
+        target = stored
+      }
+    }
+    return <Navigate to={target} replace />
   }
 
   return <>{children}</>

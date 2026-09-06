@@ -881,6 +881,7 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
       // Cenário de teste solicitado:
       // SuperAdmin que inspecionou empresa MARKALY (ex.: Lulu) e deslogou volta à Central Contek (não ao painel MARKALY)
       const mockStorage: Record<string, string> = {}
+      const mockSession: Record<string, string> = {}
       const superAdminUser: MockUser = {
         id: 'usr_super_luciana',
         email: 'luciana@contek.com.br',
@@ -904,10 +905,16 @@ describe('Jornada Comercial Completa AGYLI — Suíte de Homologação Oficial',
 
       // 2. SuperAdmin faz logout do sistema
       const performLogout = () => {
+        const wasSuper = Boolean(superAdminUser.is_super_admin || superAdminUser.role === 'SUPERADMIN')
+        const target = wasSuper ? '/acesso-contek' : '/login'
         delete mockStorage['contek_active_org_id']
+        mockSession['logout_redirect_to'] = target
+        return target
       }
-      performLogout()
+      const logoutTarget = performLogout()
+      expect(logoutTarget).toBe('/acesso-contek')
       expect(mockStorage['contek_active_org_id']).toBeUndefined()
+      expect(mockSession['logout_redirect_to']).toBe('/acesso-contek')
 
       // 3. SuperAdmin faz login novamente
       // Como o storage foi limpo no logout e o organization_id no banco é vazio,

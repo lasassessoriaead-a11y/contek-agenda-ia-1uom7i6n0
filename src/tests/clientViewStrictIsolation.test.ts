@@ -267,17 +267,84 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
 
     it('implementação real do AuthContext.tsx, Layout.tsx, CentralContek.tsx e SuperAdminLayout.tsx redireciona SuperAdmin para /acesso-contek no logout', () => {
       expect(authContextSource).toContain("wasSuper ? '/acesso-contek' : '/login'")
+      expect(authContextSource).toContain('window.location.replace(targetPath)')
+      expect(authContextSource).toContain("sessionStorage.setItem('logout_redirect_to', targetPath)")
       expect(layoutSource).toContain('const redirectPath = logout()')
       expect(layoutSource).toContain('navigate(redirectPath)')
       expect(superAdminLayoutSource).toContain('const redirectPath = logout()')
       expect(superAdminLayoutSource).toContain('navigate(redirectPath)')
     })
 
-    it('implementação real do App.tsx possui RootRoute protegendo "/" com redirecionamento de SuperAdmin para /contek', () => {
+    it('implementação real do App.tsx e FeatureGate.tsx possui guarda contra corrida com logout_redirect_to em sessionStorage', () => {
+      expect(appSource).toContain('logout_redirect_to')
       expect(appSource).toContain('RootRoute')
       expect(appSource).toContain('if (isSuperAdmin) {')
       expect(appSource).toContain('to="/contek"')
       expect(appSource).toContain('<Route index element={<RootRoute />} />')
+    })
+
+    it('(e) simulação completa do logout() com window.location.replace e sessionStorage contra corrida de rotas', () => {
+      // Mock de ambiente
+      const mockStorage: Record<string, string> = {
+        contek_active_org_id: 'org_inspected_123',
+      }
+      const mockSession: Record<string, string> = {}
+      let replacedUrl = ''
+
+      const simulateLogout = (
+        user: { is_super_admin?: boolean; role?: string } | null,
+        pbRecord: { is_super_admin?: boolean; role?: string } | null,
+      ) => {
+        const wasSuper = Boolean(
+          user?.is_super_admin ||
+          user?.role === 'SUPERADMIN' ||
+          pbRecord?.is_super_admin ||
+          pbRecord?.role === 'SUPERADMIN',
+        )
+        const targetPath = wasSuper ? '/acesso-contek' : '/login'
+
+        delete mockStorage['contek_active_org_id']
+        mockSession['logout_redirect_to'] = targetPath
+
+        replacedUrl = targetPath
+        return targetPath
+      }
+
+      const simulateGuardWhenLoggedOut = () => {
+        let target = '/login'
+        const stored = mockSession['logout_redirect_to']
+        if (stored) {
+          delete mockSession['logout_redirect_to']
+          target = stored
+        }
+        return target
+      }
+
+      // Teste 1: Luciana SuperAdmin desloga de /contek ou /admin
+      const luciana = { is_super_admin: true, role: 'SUPERADMIN' }
+      const res1 = simulateLogout(luciana, luciana)
+      expect(res1).toBe('/acesso-contek')
+      expect(replacedUrl).toBe('/acesso-contek')
+      expect(mockStorage['contek_active_org_id']).toBeUndefined()
+      expect(mockSession['logout_redirect_to']).toBe('/acesso-contek')
+
+      // Se a rota protegida renderizar antes do redirect de window, consome sessionStorage
+      const guardResult1 = simulateGuardWhenLoggedOut()
+      expect(guardResult1).toBe('/acesso-contek')
+      expect(mockSession['logout_redirect_to']).toBeUndefined()
+
+      // Teste 2: SuperAdmin inspecionando clínica de cliente (com active_org no storage)
+      mockStorage['contek_active_org_id'] = 'org_lulu_markaly'
+      const res2 = simulateLogout({ is_super_admin: true, role: 'ADMINISTRADOR' }, null)
+      expect(res2).toBe('/acesso-contek')
+      expect(mockStorage['contek_active_org_id']).toBeUndefined()
+      expect(simulateGuardWhenLoggedOut()).toBe('/acesso-contek')
+
+      // Teste 3: Cliente comum desloga
+      const regularClient = { is_super_admin: false, role: 'ADMINISTRADOR' }
+      const res3 = simulateLogout(regularClient, null)
+      expect(res3).toBe('/login')
+      expect(simulateGuardWhenLoggedOut()).toBe('/login')
     })
   })
 })

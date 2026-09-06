@@ -258,15 +258,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = () => {
-    const wasSuper = Boolean(user && (user.is_super_admin === true || user.role === 'SUPERADMIN'))
+    const wasSuper = Boolean(
+      user?.is_super_admin ||
+      user?.role === 'SUPERADMIN' ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (pb.authStore.record as any)?.is_super_admin ||
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (pb.authStore.record as any)?.role === 'SUPERADMIN',
+    )
+    const targetPath = wasSuper ? '/acesso-contek' : '/login'
+
     if (typeof window !== 'undefined') {
       localStorage.removeItem('contek_active_org_id')
+      sessionStorage.setItem('logout_redirect_to', targetPath)
     }
+
     pb.authStore.clear()
     setUser(null)
     setOrganization(null)
     setSettings(null)
-    return wasSuper ? '/acesso-contek' : '/login'
+
+    if (typeof window !== 'undefined') {
+      window.location.replace(targetPath)
+    }
+
+    return targetPath
   }
 
   const updateSettings = async (newSettings: Partial<BusinessSettings>) => {
