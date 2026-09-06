@@ -51,18 +51,20 @@ export const PwaInstallPrompt: React.FC<PwaInstallPromptProps> = ({
           type="button"
           size="sm"
           onClick={handleInstallClick}
-          className={`text-xs font-semibold shadow-sm flex items-center gap-1.5 h-9 ${
+          className={`text-xs font-semibold shadow-sm flex items-center gap-1.5 h-9 shrink-0 whitespace-nowrap ${
             isMarkaly
               ? 'bg-[#3B0764] hover:bg-purple-950 text-orange-300 border border-orange-400/30'
               : 'bg-slate-900 hover:bg-slate-800 text-blue-400 border border-blue-500/30'
           } ${className}`}
+          data-testid="pwa-install-button"
         >
           <Smartphone
-            className={`w-3.5 h-3.5 animate-pulse ${
+            className={`w-3.5 h-3.5 animate-pulse shrink-0 ${
               isMarkaly ? 'text-[#F97316]' : 'text-[#3B82F6]'
             }`}
           />
-          <span>Instalar App</span>
+          <span className="hidden xl:inline">Instalar App</span>
+          <span className="xl:hidden">Instalar</span>
         </Button>
 
         <Dialog open={showIosModal} onOpenChange={setShowIosModal}>

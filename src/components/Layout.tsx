@@ -136,42 +136,49 @@ export const Layout: React.FC = () => {
           currentProduct === 'markaly' ? 'border-purple-100' : 'border-slate-200',
         )}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             type="button"
-            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+            className="md:hidden p-1.5 sm:p-2 rounded-lg text-slate-600 hover:bg-slate-100 shrink-0"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
-          <Link to="/" className="flex items-center gap-2.5 group">
+          <Link
+            to="/"
+            className="flex items-center gap-2 sm:gap-2.5 group shrink-0"
+            data-testid="header-brand-link"
+          >
             {currentProduct === 'agyli' ? (
               <div className="flex items-center gap-2">
                 <AgyliEmblem
                   size={36}
-                  className="shadow-md group-hover:scale-105 transition-transform"
+                  className="shadow-md group-hover:scale-105 transition-transform shrink-0"
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-lg tracking-tight text-slate-900 font-['Poppins',sans-serif]">
+                    <span className="font-extrabold text-lg tracking-tight text-slate-900 font-['Poppins',sans-serif] shrink-0">
                       agyli
                     </span>
-                    <span className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700">
+                    <span
+                      data-testid="header-plan-badge"
+                      className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-blue-100 text-blue-700 shrink-0 whitespace-nowrap"
+                    >
                       PRO
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[140px]">
+                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[90px] sm:max-w-[140px]">
                       {organization?.name || 'Carregando empresa...'}
                     </p>
                     {organization?.slug === 'contek-demo' && (
-                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
+                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold shrink-0 whitespace-nowrap">
                         DEMO
                       </span>
                     )}
                     {Boolean(isSuperAdmin) && (
-                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
+                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold shrink-0 whitespace-nowrap">
                         SUPERADMIN
                       </span>
                     )}
@@ -182,28 +189,31 @@ export const Layout: React.FC = () => {
               <div className="flex items-center gap-2">
                 <MarkalyEmblem
                   size={36}
-                  className="shadow-md group-hover:scale-105 transition-transform"
+                  className="shadow-md group-hover:scale-105 transition-transform shrink-0"
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-black text-lg tracking-tight text-[#3B0764] font-['Poppins',sans-serif] lowercase">
+                    <span className="font-black text-lg tracking-tight text-[#3B0764] font-['Poppins',sans-serif] lowercase shrink-0">
                       markaly
                     </span>
-                    <span className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#FEF3E2] text-[#3B0764] border border-orange-200">
+                    <span
+                      data-testid="header-plan-badge"
+                      className="font-semibold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider bg-[#FEF3E2] text-[#3B0764] border border-orange-200 shrink-0 whitespace-nowrap"
+                    >
                       ESSENCIAL
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[140px]">
+                    <p className="text-[10px] text-slate-500 font-medium leading-none truncate max-w-[90px] sm:max-w-[140px]">
                       {organization?.name || 'Carregando empresa...'}
                     </p>
                     {organization?.slug === 'contek-demo' && (
-                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold">
+                      <span className="px-1 py-0.2 rounded bg-amber-100 text-amber-800 text-[8px] font-bold shrink-0 whitespace-nowrap">
                         DEMO
                       </span>
                     )}
                     {Boolean(isSuperAdmin) && (
-                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold">
+                      <span className="px-1 py-0.2 rounded bg-purple-100 text-purple-800 text-[8px] font-bold shrink-0 whitespace-nowrap">
                         SUPERADMIN
                       </span>
                     )}
@@ -215,9 +225,9 @@ export const Layout: React.FC = () => {
         </div>
 
         {/* Action Header Items */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0 ml-auto pl-2">
           {/* PWA Install Button */}
-          <PwaInstallPrompt variant="button" />
+          <PwaInstallPrompt variant="button" className="hidden sm:inline-flex" />
 
           {Boolean(isSuperAdmin) && (
             <div className="flex items-center gap-1.5 sm:gap-2">
