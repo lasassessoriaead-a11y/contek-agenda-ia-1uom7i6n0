@@ -16,7 +16,7 @@ import { TestimonialsCarousel } from '@/components/TestimonialsCarousel'
 import { AgyliLogo } from '@/components/AgyliBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
 import { resolveBrandDomainContext, type BrandDomainContext } from '@/lib/branding'
-import { pb } from '@/lib/pocketbase/client'
+import pb from '@/lib/pocketbase/client'
 import type { Plan } from '@/types'
 
 interface IndexProps {

@@ -69,7 +69,7 @@ const RootRoute: React.FC = () => {
   }
 
   // 1. Visitante deslogado na raiz (/): exibe a Landing Page de vendas pública
-  // Apresentação dos dois produtos (AGYLI e MARKALY), preços, 7 dias grátis e chancela Grupo CONTEK.
+  // Apresentação dos planos AGYLI (Essencial e Pro), preços, 7 dias grátis e chancela Grupo CONTEK.
   if (!user) {
     return <Index />
   }
@@ -151,8 +151,8 @@ export function App() {
               element={
                 <FeatureGate
                   feature="financeiro"
-                  fallbackTitle="Financeiro indisponível no plano MARKALY"
-                  fallbackMessage="O módulo de fluxo de caixa e gestão financeira completa faz parte exclusivamente da solução AGYLI. Entre em contato ou acesse o plano AGYLI para habilitar."
+                  fallbackTitle="Financeiro indisponível no plano Essencial"
+                  fallbackMessage="O módulo de fluxo de caixa e gestão financeira completa faz parte exclusivamente do plano AGYLI Pro. Faça o upgrade para habilitar."
                 >
                   <Financeiro />
                 </FeatureGate>
@@ -164,7 +164,7 @@ export function App() {
                 <FeatureGate
                   feature="assistente_ia"
                   fallbackTitle="Disponível no AGYLI Pro"
-                  fallbackMessage="O Assistente IA inteligente com memória de negócios e insights analíticos é exclusivo do plano AGYLI Pro. No MARKALY Essencial, a inteligência artificial não está habilitada."
+                  fallbackMessage="O Assistente IA inteligente com memória de negócios e insights analíticos é exclusivo do plano AGYLI Pro. No plano Essencial, a inteligência artificial não está habilitada."
                 >
                   <AssistenteIa />
                 </FeatureGate>

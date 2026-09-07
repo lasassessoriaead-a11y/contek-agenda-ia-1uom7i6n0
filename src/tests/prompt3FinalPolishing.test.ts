@@ -12,11 +12,12 @@ describe('Public Sales Landing Page & End-to-End Consistency (Prompt 3)', () => 
     expect(indexSource).toContain('Começar 7 dias grátis')
   })
 
-  it('Index.tsx contains MARKALY Essencial with exact pricing and 7 days free', () => {
-    // MARKALY Essencial: R$ 19,90/mês
-    expect(indexSource).toContain('MARKALY Essencial')
+  it('Index.tsx contains AGYLI Essencial with exact pricing and 7 days free (MARKALY aposentado)', () => {
+    // AGYLI Essencial: R$ 19,90/mês (substituiu o MARKALY aposentado)
+    expect(indexSource).toContain('AGYLI Essencial')
     expect(indexSource).toContain('19,90')
     expect(indexSource).toContain('7 dias')
+    expect(indexSource).not.toContain('MARKALY Essencial')
   })
 
   it('Index.tsx displays Grupo CONTEK endorsement signature', () => {
