@@ -4,6 +4,9 @@ import carouselSource from '../components/TestimonialsCarousel.tsx?raw'
 import brandingSource from '../components/ContekBranding.tsx?raw'
 import { TESTIMONIALS_DATA } from '@/components/TestimonialsCarousel'
 
+/**
+ * Suíte de testes: Landings de Vendas, Carrossel de Depoimentos e CNPJ no Rodapé
+ */
 describe('Landings de Vendas: Carrossel de Depoimentos e CNPJ no Rodapé', () => {
   it('possui de 5 a 6 depoimentos realistas em português com nome, negócio, cidade e 5 estrelas', () => {
     expect(TESTIMONIALS_DATA.length).toBeGreaterThanOrEqual(5)
