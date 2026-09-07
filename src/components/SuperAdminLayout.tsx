@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext'
 import {
   Sparkles,
   Settings,
+  DollarSign,
   LogOut,
   Menu,
   X,
@@ -58,6 +59,13 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
       path: '/admin',
       icon: Settings,
       description: 'Organizações, produtos e planos',
+      exact: true,
+    },
+    {
+      name: 'Financeiro Contek',
+      path: '/admin/financeiro',
+      icon: DollarSign,
+      description: 'Mensalidades e cobranças',
     },
     {
       name: 'Central Contek (Hub)',
@@ -172,6 +180,13 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
                 <Settings className="w-4 h-4 mr-2 text-slate-500" />
                 Painel SuperAdmin (/admin)
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate('/admin/financeiro')}
+                className="text-emerald-700 focus:text-emerald-900 focus:bg-emerald-50"
+              >
+                <DollarSign className="w-4 h-4 mr-2 text-emerald-600" />
+                Financeiro Contek
+              </DropdownMenuItem>
               {currentActiveOrg && (
                 <DropdownMenuItem
                   onClick={() => navigate('/')}
@@ -239,6 +254,7 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
 
             <NavLink
               to="/admin"
+              end
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all group',
@@ -256,6 +272,30 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
                   Todas as Empresas
                 </span>
               </div>
+            </NavLink>
+
+            <NavLink
+              to="/admin/financeiro"
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-all group',
+                  isActive
+                    ? 'bg-gradient-to-r from-[#1E3A8A] to-[#06B6D4] text-white shadow-md shadow-cyan-500/20'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white',
+                )
+              }
+              data-testid="sidebar-financeiro-contek-link"
+            >
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <div className="flex flex-col text-left">
+                <span>Financeiro Contek</span>
+                <span className="text-[10px] font-normal text-slate-400 group-hover:text-slate-300">
+                  Cobrança de Mensalidades
+                </span>
+              </div>
+              <span className="ml-auto text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono border border-emerald-500/30">
+                B$
+              </span>
             </NavLink>
 
             <NavLink
@@ -381,6 +421,19 @@ export const SuperAdminLayout: React.FC<SuperAdminLayoutProps> = ({ onRefresh, o
                   >
                     <Settings className="w-4 h-4" />
                     <span>Painel SuperAdmin (/admin)</span>
+                  </Link>
+                  <Link
+                    to="/admin/financeiro"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold',
+                      location.pathname.startsWith('/admin/financeiro')
+                        ? 'bg-gradient-to-r from-[#1E3A8A] to-[#06B6D4] text-white'
+                        : 'text-slate-300 hover:bg-slate-800',
+                    )}
+                  >
+                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    <span>Financeiro Contek</span>
                   </Link>
                   <Link
                     to="/contek"

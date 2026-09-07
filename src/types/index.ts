@@ -253,6 +253,87 @@ export interface NotificationLog {
 
 export type PaymentMethod = 'PIX' | 'Dinheiro' | 'Cartão' | 'Outro'
 
+export type ContekChargeStatus = 'PENDENTE' | 'PAGA' | 'ATRASADA' | 'CANCELADA'
+export type ContekPaymentMethod = 'PIX' | 'Dinheiro' | 'Cartão' | 'Transferência' | 'Outro'
+
+export interface ContekCharge {
+  id: string
+  organization_id: string
+  organization_name?: string
+  organization_slug?: string
+  subscription_id?: string
+  product?: ProductType
+  plan_name?: string
+  description?: string
+  amount: number
+  due_date: string
+  status: ContekChargeStatus
+  payment_method?: ContekPaymentMethod
+  paid_at?: string
+  notes?: string
+  created: string
+  updated: string
+}
+
+export interface ContekSubscriptionItem {
+  id: string
+  organization_id: string
+  organization_name: string
+  organization_slug: string
+  organization_status: 'active' | 'trial' | 'suspended'
+  product: ProductType
+  plan_id: string
+  plan_name: string
+  plan_price: number
+  status: SubscriptionStatus
+  starts_at?: string
+  trial_ends_at?: string
+  current_period_ends_at?: string
+  canceled_at?: string
+  notes?: string
+  history?: Array<{
+    date: string
+    action: string
+    note?: string
+    changed_by?: string
+  }>
+  created: string
+  updated: string
+}
+
+export interface ContekFinanceOverviewResponse {
+  summary: {
+    expected_monthly_revenue: number
+    received_this_month: number
+    overdue_amount: number
+    pending_amount: number
+    subscriptions_active: number
+    subscriptions_trial: number
+    subscriptions_overdue: number
+    total_subscriptions: number
+    total_charges: number
+  }
+  charges: ContekCharge[]
+  subscriptions: ContekSubscriptionItem[]
+  plans: Array<{
+    id: string
+    name: string
+    slug: string
+    product: ProductType
+    price_monthly: number
+    trial_days: number
+  }>
+  organizations: Array<{
+    id: string
+    name: string
+    slug: string
+    product: ProductType
+    status: 'active' | 'trial' | 'suspended'
+    email?: string
+    phone?: string
+  }>
+}
+
 export interface Payment {
   id: string
   organization_id: string

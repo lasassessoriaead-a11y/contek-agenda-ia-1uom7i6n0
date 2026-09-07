@@ -53,6 +53,7 @@ import {
   AlertCircle,
   CheckCircle2,
   AlertTriangle,
+  DollarSign,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProductType } from '@/types'
@@ -566,6 +567,25 @@ export const SuperAdmin: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="border-emerald-500/40 text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 text-xs font-semibold"
+                >
+                  <Link to="/admin/financeiro">
+                    <DollarSign className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />
+                    Financeiro Contek
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Abrir módulo de cobrança de mensalidades e faturamento</p>
+              </TooltipContent>
+            </Tooltip>
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

@@ -13,6 +13,7 @@ import Financeiro from '@/pages/Financeiro'
 import AssistenteIa from '@/pages/AssistenteIa'
 import Configuracoes from '@/pages/Configuracoes'
 import SuperAdmin from '@/pages/SuperAdmin'
+import FinanceiroContek from '@/pages/FinanceiroContek'
 import CentralContek from '@/pages/CentralContek'
 import LoginContek from '@/pages/LoginContek'
 import AgendamentoPublico from '@/pages/AgendamentoPublico'
@@ -152,6 +153,7 @@ export function App() {
             }
           >
             <Route index element={<SuperAdmin />} />
+            <Route path="financeiro" element={<FinanceiroContek />} />
           </Route>
 
           {/* 404 Route */}

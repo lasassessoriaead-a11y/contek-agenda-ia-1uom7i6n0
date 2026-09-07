@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-06T23:24:58.547Z",
+  "generatedAt": "2026-09-07T00:57:43.355Z",
   "collections": [
     {
       "name": "users",
@@ -1213,6 +1213,97 @@
       "indexes": [
         "CREATE INDEX idx_subscriptions_org ON subscriptions (organization_id)",
         "CREATE INDEX idx_subscriptions_status ON subscriptions (status)"
+      ]
+    },
+    {
+      "name": "contek_charges",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && @request.auth.is_super_admin = true",
+        "view": "@request.auth.id != '' && @request.auth.is_super_admin = true",
+        "create": "@request.auth.id != '' && @request.auth.is_super_admin = true",
+        "update": "@request.auth.id != '' && @request.auth.is_super_admin = true",
+        "delete": "@request.auth.id != '' && @request.auth.is_super_admin = true"
+      },
+      "fields": [
+        {
+          "name": "organization_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "organizations"
+        },
+        {
+          "name": "subscription_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "subscriptions"
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "due_date",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["PENDENTE", "PAGA", "ATRASADA", "CANCELADA"]
+        },
+        {
+          "name": "payment_method",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["PIX", "Dinheiro", "Cartão", "Transferência", "Outro"]
+        },
+        {
+          "name": "paid_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_contek_charges_org ON contek_charges (organization_id)",
+        "CREATE INDEX idx_contek_charges_status ON contek_charges (status)",
+        "CREATE INDEX idx_contek_charges_due_date ON contek_charges (due_date)",
+        "CREATE INDEX idx_contek_charges_sub ON contek_charges (subscription_id)"
       ]
     }
   ]
