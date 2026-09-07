@@ -1291,26 +1291,29 @@ export const AgendamentoPublico: React.FC = () => {
         </Card>
 
         {/* Rodapé Institucional Contek na página de agendamento */}
-        <footer className="pt-6 pb-2 text-center flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-slate-400">
-          <div className="flex items-center gap-1.5">
-            {isMarkaly ? <MarkalyEmblem size={18} /> : <AgyliEmblem size={18} />}
-            <span>
-              Powered by{' '}
-              <strong className="text-white font-semibold">
-                {isMarkaly ? 'MARKALY' : 'AGYLI'}
-              </strong>
-            </span>
-          </div>
-          <span className="hidden sm:inline text-slate-600">•</span>
-          <div className="flex items-center gap-1.5">
-            <ContekSymbol size={14} alt="Grupo CONTEK" />
-            <span>
-              Uma solução{' '}
-              <span className="font-semibold text-slate-200">
-                Grupo CONTEK — Tecnologia e Consultoria
+        <footer className="pt-6 pb-2 text-center flex flex-col items-center justify-center gap-1 text-xs text-slate-400">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {isMarkaly ? <MarkalyEmblem size={18} /> : <AgyliEmblem size={18} />}
+              <span>
+                Powered by{' '}
+                <strong className="text-white font-semibold">
+                  {isMarkaly ? 'MARKALY' : 'AGYLI'}
+                </strong>
               </span>
-            </span>
+            </div>
+            <span className="hidden sm:inline text-slate-600">•</span>
+            <div className="flex items-center gap-1.5">
+              <ContekSymbol size={14} alt="Grupo CONTEK" />
+              <span>
+                Uma solução oficial do{' '}
+                <span className="font-semibold text-slate-200">
+                  Grupo CONTEK — Tecnologia e Consultoria
+                </span>
+              </span>
+            </div>
           </div>
+          <span className="text-[11px] text-slate-500 font-mono">CNPJ 47.769.566/0001-46</span>
         </footer>
       </div>
     </div>

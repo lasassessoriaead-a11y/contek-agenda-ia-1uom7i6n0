@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T21:44:23.429Z",
+  "generatedAt": "2026-09-07T21:56:17.642Z",
   "collections": [
     {
       "name": "users",
@@ -642,6 +642,12 @@
         {
           "name": "notifications_sent",
           "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_overlap",
+          "type": "bool",
           "required": false,
           "system": false
         }

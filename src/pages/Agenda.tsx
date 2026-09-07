@@ -35,6 +35,8 @@ import {
   Copy,
   ExternalLink,
   BellRing,
+  AlertTriangle,
+  Layers,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -131,6 +133,10 @@ export const Agenda: React.FC = () => {
   const [formStatus, setFormStatus] = useState<AppointmentStatus>('AGENDADO')
   const [formNotes, setFormNotes] = useState('')
   const [savingAppt, setSavingAppt] = useState(false)
+
+  // Sobreposição / Encaixe de Horário
+  const [overlapConfirmed, setOverlapConfirmed] = useState(false)
+  const [conflictWarningDismissed, setConflictWarningDismissed] = useState(false)
 
   const orgId = organization?.id
 
@@ -239,6 +245,8 @@ export const Agenda: React.FC = () => {
     setFormStartTime(defaultTime || '09:00')
     setFormStatus('AGENDADO')
     setFormNotes('')
+    setOverlapConfirmed(false)
+    setConflictWarningDismissed(false)
     if (selectedProfFilter !== 'all') {
       setFormProfId(selectedProfFilter)
     } else if (professionals.length > 0) {
@@ -265,9 +273,38 @@ export const Agenda: React.FC = () => {
     setFormPrice(appt.price)
     setFormStatus(appt.status)
     setFormNotes(appt.notes || '')
+    setOverlapConfirmed(Boolean(appt.is_overlap))
+    setConflictWarningDismissed(false)
     setDetailsSheetOpen(false)
     setModalOpen(true)
   }
+
+  // Helper para converter HH:mm para minutos desde 00:00
+  const timeToMinutes = (t: string) => {
+    if (!t || typeof t !== 'string') return 0
+    const [h, m] = t.split(':').map(Number)
+    return (h || 0) * 60 + (m || 0)
+  }
+
+  // Detecta agendamentos conflitantes no mesmo intervalo e mesma profissional
+  const overlappingAppointments = useMemo(() => {
+    if (!formProfId || !formDate || !formStartTime || !formDuration) return []
+    const newStart = timeToMinutes(formStartTime)
+    const newEnd = newStart + formDuration
+    const cleanDate = formDate.slice(0, 10)
+
+    return appointments.filter((a) => {
+      if (editApptId && a.id === editApptId) return false
+      if (a.professional_id !== formProfId) return false
+      if (a.status === 'CANCELADO') return false
+      const aDate = (a.date || '').slice(0, 10)
+      if (aDate !== cleanDate) return false
+
+      const aStart = timeToMinutes(a.start_time)
+      const aEnd = timeToMinutes(a.end_time)
+      return newStart < aEnd && newEnd > aStart
+    })
+  }, [appointments, formProfId, formDate, formStartTime, formDuration, editApptId])
 
   // Save Appointment (Create or Update)
   const handleSaveAppointment = async (e: React.FormEvent) => {
@@ -343,6 +380,9 @@ export const Agenda: React.FC = () => {
       const cName = trimmedInputName || clients.find((c) => c.id === targetClientId)?.name || ''
       const cPhone = trimmedInputPhone || clients.find((c) => c.id === targetClientId)?.phone || ''
 
+      const hasConflict = overlappingAppointments.length > 0
+      const isOverlapBooking = hasConflict || overlapConfirmed
+
       const apptData = {
         organization_id: orgId,
         client_id: targetClientId,
@@ -357,16 +397,26 @@ export const Agenda: React.FC = () => {
         notes: formNotes,
         client_name_snapshot: cName,
         client_phone_snapshot: cPhone,
+        allow_overlap: isOverlapBooking,
+        is_overlap: isOverlapBooking,
       }
 
       if (isEditing && editApptId) {
         await pb.collection('appointments').update(editApptId, apptData)
         // A sincronização financeira é realizada centralizada e transacionalmente pelo hook backend (appointment_payment_sync.js)
-        toast.success('Agendamento atualizado com sucesso!')
+        toast.success(
+          isOverlapBooking
+            ? 'Agendamento atualizado com encaixe confirmado!'
+            : 'Agendamento atualizado com sucesso!',
+        )
       } else {
         await pb.collection('appointments').create<Appointment>(apptData)
         // A criação do lançamento financeiro correspondente é tratada exclusivamente no backend pelo hook appointment_payment_sync.js
-        toast.success('Agendamento cadastrado com sucesso!')
+        toast.success(
+          isOverlapBooking
+            ? 'Agendamento com encaixe de horário cadastrado com sucesso!'
+            : 'Agendamento cadastrado com sucesso!',
+        )
       }
 
       setModalOpen(false)
@@ -1112,6 +1162,15 @@ export const Agenda: React.FC = () => {
                                     <span className="font-semibold text-xs text-slate-900 truncate">
                                       {clientName}
                                     </span>
+                                    {appt.is_overlap && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] bg-amber-50 text-amber-800 border-amber-300 font-semibold flex items-center gap-1 shrink-0"
+                                      >
+                                        <Layers className="w-3 h-3 text-amber-600" />
+                                        Encaixe
+                                      </Badge>
+                                    )}
                                     <span className="text-[10px] text-slate-400 font-mono shrink-0">
                                       {appt.start_time} - {appt.end_time} ({appt.duration}min)
                                     </span>
@@ -1185,8 +1244,18 @@ export const Agenda: React.FC = () => {
                             style={{ borderLeftColor: servColor }}
                             className="p-2 rounded border-l-4 border bg-white shadow-xs text-xs cursor-pointer hover:shadow-md transition-all"
                           >
-                            <div className="font-mono text-[10px] font-bold text-slate-700">
-                              {appt.start_time} - {appt.end_time}
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-mono text-[10px] font-bold text-slate-700">
+                                {appt.start_time} - {appt.end_time}
+                              </span>
+                              {appt.is_overlap && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1 py-0 h-4 bg-amber-50 text-amber-800 border-amber-300 font-semibold"
+                                >
+                                  Encaixe
+                                </Badge>
+                              )}
                             </div>
                             <div className="font-semibold text-slate-900 truncate">
                               {clientName}
@@ -1360,7 +1429,18 @@ export const Agenda: React.FC = () => {
             <div className="space-y-6 pt-4">
               <SheetHeader>
                 <div className="flex items-center justify-between">
-                  {getStatusBadge(selectedAppointment.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(selectedAppointment.status)}
+                    {selectedAppointment.is_overlap && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-amber-50 text-amber-900 border-amber-300 font-bold flex items-center gap-1"
+                      >
+                        <Layers className="w-3.5 h-3.5 text-amber-600" />
+                        Encaixe de Horário
+                      </Badge>
+                    )}
+                  </div>
                   <span className="text-xs font-mono font-bold text-slate-600">
                     ID: {selectedAppointment.id.slice(0, 8)}
                   </span>
@@ -1817,6 +1897,62 @@ export const Agenda: React.FC = () => {
                   className="text-xs h-20 resize-none"
                 />
               </div>
+
+              {/* AVISO DE CONFLITO / ENCAIXE DE HORÁRIO */}
+              {overlappingAppointments.length > 0 && (
+                <div
+                  data-testid="appointment-conflict-alert"
+                  className="p-3.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 space-y-2.5 shadow-xs"
+                >
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs leading-relaxed">
+                      <p className="font-bold text-amber-950">
+                        Aviso de Sobreposição (Encaixe de Horário)
+                      </p>
+                      <p className="text-[11px] text-amber-800">
+                        A profissional selecionada já possui atendimento marcado neste mesmo
+                        intervalo:
+                      </p>
+                      <div className="space-y-1 pt-1">
+                        {overlappingAppointments.map((conflictAppt) => {
+                          const profName =
+                            conflictAppt.expand?.professional_id?.name ||
+                            professionals.find((p) => p.id === formProfId)?.name ||
+                            'Profissional'
+                          const conflictClient =
+                            conflictAppt.expand?.client_id?.name ||
+                            conflictAppt.client_name_snapshot ||
+                            'Outra cliente'
+                          const conflictService = conflictAppt.expand?.service_id?.name || 'Serviço'
+
+                          return (
+                            <div
+                              key={conflictAppt.id}
+                              className="text-[11px] font-medium bg-white/90 px-2 py-1 rounded border border-amber-200 text-amber-950 flex items-center justify-between gap-2"
+                            >
+                              <span>
+                                <strong>{profName}</strong> já tem{' '}
+                                <strong>{conflictService}</strong> com {conflictClient}
+                              </span>
+                              <Badge
+                                variant="outline"
+                                className="font-mono text-[10px] bg-amber-100 text-amber-900 border-amber-300 shrink-0"
+                              >
+                                {conflictAppt.start_time} às {conflictAppt.end_time}
+                              </Badge>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <p className="text-[11px] text-amber-900 pt-1 font-semibold">
+                        Deseja agendar mesmo assim como um <strong>Encaixe</strong>? Os dois
+                        horários ficarão ativos simultaneamente na sua agenda interna.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="gap-2">

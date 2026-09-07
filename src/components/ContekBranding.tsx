@@ -239,9 +239,9 @@ export const ContekFullLogo: React.FC<ContekFullLogoProps> = ({
 export interface ContekFooterSignatureProps {
   productName?: string
   className?: string
-  variant?: 'subtle' | 'card' | 'badge'
+  variant?: 'subtle' | 'badge'
+  showCnpj?: boolean
 }
-
 /**
  * Assinatura institucional Contek padronizada para rodapés de telas públicas e clientes
  * "Powered by AGYLI • Uma solução Grupo CONTEK"
@@ -250,44 +250,57 @@ export const ContekFooterSignature: React.FC<ContekFooterSignatureProps> = ({
   productName = 'AGYLI',
   className = '',
   variant = 'subtle',
+  showCnpj = true,
 }) => {
   if (variant === 'badge') {
     return (
-      <div
-        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium font-poppins border shadow-sm ${className}`}
-        style={{
-          backgroundColor: '#0D1B2A',
-          borderColor: 'rgba(6, 182, 212, 0.3)',
-          color: '#FFFFFF',
-        }}
-      >
-        <ContekSymbol size={16} />
-        <span className="tracking-wide">
-          <span className="font-semibold text-[#06B6D4]">{productName}</span>
-          <span className="opacity-60 mx-1.5">•</span>
-          <span className="opacity-90">Uma solução Grupo CONTEK</span>
-        </span>
+      <div className={`flex flex-col items-center gap-1.5 ${className}`}>
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium font-poppins border shadow-sm"
+          style={{
+            backgroundColor: '#0D1B2A',
+            borderColor: 'rgba(6, 182, 212, 0.3)',
+            color: '#FFFFFF',
+          }}
+        >
+          <ContekSymbol size={16} />
+          <span className="tracking-wide">
+            <span className="font-semibold text-[#06B6D4]">{productName}</span>
+            <span className="opacity-60 mx-1.5">•</span>
+            <span className="opacity-90">Uma solução oficial do Grupo CONTEK</span>
+          </span>
+        </div>
+        {showCnpj && (
+          <span className="text-[10px] text-slate-400 font-mono tracking-tight">
+            CNPJ 47.769.566/0001-46
+          </span>
+        )}
       </div>
     )
   }
 
   return (
     <div
-      className={`flex flex-col sm:flex-row items-center justify-center gap-2 text-xs font-poppins text-slate-500 ${className}`}
+      className={`flex flex-col items-center justify-center gap-1 text-xs font-poppins text-slate-500 ${className}`}
     >
-      <div className="flex items-center gap-1.5">
-        <ContekSymbol size={18} />
-        <span>
-          Powered by <strong className="text-slate-700 font-semibold">{productName}</strong>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <ContekSymbol size={18} />
+          <span>
+            Powered by <strong className="text-slate-700 font-semibold">{productName}</strong>
+          </span>
+        </div>
+        <span className="hidden sm:inline text-slate-300">•</span>
+        <span className="text-slate-500">
+          Uma solução oficial do{' '}
+          <span className="font-semibold text-[#0D1B2A] hover:text-[#06B6D4] transition-colors">
+            Grupo CONTEK — Tecnologia e Consultoria
+          </span>
         </span>
       </div>
-      <span className="hidden sm:inline text-slate-300">•</span>
-      <span className="text-slate-500">
-        Uma solução{' '}
-        <span className="font-semibold text-[#0D1B2A] hover:text-[#06B6D4] transition-colors">
-          Grupo CONTEK — Tecnologia e Consultoria
-        </span>
-      </span>
+      {showCnpj && (
+        <span className="text-[11px] text-slate-400 font-mono">CNPJ 47.769.566/0001-46</span>
+      )}
     </div>
   )
 }

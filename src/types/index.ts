@@ -218,6 +218,7 @@ export interface Appointment {
   client_phone_snapshot?: string
   confirmation_token?: string
   notifications_sent?: Record<string, string>
+  is_overlap?: boolean
   created: string
   updated: string
   expand?: {

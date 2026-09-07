@@ -229,6 +229,9 @@ onRecordCreateRequest((e) => {
     const filter = `professional_id = "${profId}" && status != "CANCELADO"`
     const existing = $app.findRecordsByFilter('appointments', filter, '', 200, 0)
 
+    let hasConflict = false
+    let conflictDetails = ''
+
     for (const appt of existing) {
       if (e.record && appt.id === e.record.id) continue
       const apptDateStr = (appt.getString('date') || '').slice(0, 10)
@@ -240,9 +243,25 @@ onRecordCreateRequest((e) => {
       const existEndMin = timeToMinutes(existEnd)
 
       if (newStartMin < existEndMin && newEndMin > existStartMin) {
-        throw new BadRequestError(
-          `Conflito de horário para este profissional: já existe agendamento das ${existStart} às ${existEnd}.`,
-        )
+        hasConflict = true
+        conflictDetails = `já existe agendamento das ${existStart} às ${existEnd}`
+        break
+      }
+    }
+
+    if (hasConflict) {
+      const allowOverlap =
+        data.allow_overlap === true ||
+        data.allow_overlap === 'true' ||
+        data.is_overlap === true ||
+        data.is_overlap === 'true'
+
+      if (allowOverlap) {
+        if (e.record) {
+          e.record.set('is_overlap', true)
+        }
+      } else {
+        throw new BadRequestError(`Conflito de horário para este profissional: ${conflictDetails}.`)
       }
     }
   } catch (err) {
@@ -409,6 +428,9 @@ onRecordUpdateRequest((e) => {
     const filter = `professional_id = "${profId}" && status != "CANCELADO"`
     const existing = $app.findRecordsByFilter('appointments', filter, '', 200, 0)
 
+    let hasConflict = false
+    let conflictDetails = ''
+
     for (const appt of existing) {
       if (e.record && appt.id === e.record.id) continue
       const apptDateStr = (appt.getString('date') || '').slice(0, 10)
@@ -420,9 +442,25 @@ onRecordUpdateRequest((e) => {
       const existEndMin = timeToMinutes(existEnd)
 
       if (newStartMin < existEndMin && newEndMin > existStartMin) {
-        throw new BadRequestError(
-          `Conflito de horário para este profissional: já existe agendamento das ${existStart} às ${existEnd}.`,
-        )
+        hasConflict = true
+        conflictDetails = `já existe agendamento das ${existStart} às ${existEnd}`
+        break
+      }
+    }
+
+    if (hasConflict) {
+      const allowOverlap =
+        data.allow_overlap === true ||
+        data.allow_overlap === 'true' ||
+        data.is_overlap === true ||
+        data.is_overlap === 'true'
+
+      if (allowOverlap) {
+        if (e.record) {
+          e.record.set('is_overlap', true)
+        }
+      } else {
+        throw new BadRequestError(`Conflito de horário para este profissional: ${conflictDetails}.`)
       }
     }
   } catch (err) {

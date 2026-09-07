@@ -12,6 +12,7 @@ import {
   Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TestimonialsCarousel } from '@/components/TestimonialsCarousel'
 import { AgyliLogo } from '@/components/AgyliBranding'
 import { MarkalyLogo } from '@/components/MarkalyBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
@@ -448,6 +449,13 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
         </div>
       </section>
 
+      {/* CARROSSEL DE DEPOIMENTOS DE CLIENTES REAIS */}
+      <TestimonialsCarousel
+        productName={
+          isAgyliDomain ? 'AGYLI Pro' : isContekDomain ? 'Grupo CONTEK' : 'CONTEK AGENDA'
+        }
+      />
+
       {/* DIFERENCIAIS EM PORTUGUÊS CLARO */}
       <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="text-center space-y-3 mb-12">
@@ -581,7 +589,11 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
           </div>
 
           <div className="pt-4 border-t border-slate-800/80 w-full flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
-            <div>© {new Date().getFullYear()} Grupo CONTEK. Todos os direitos reservados.</div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-center sm:text-left">
+              <span>© {new Date().getFullYear()} Grupo CONTEK. Todos os direitos reservados.</span>
+              <span className="hidden sm:inline text-slate-700">•</span>
+              <span className="text-slate-400 font-medium font-mono">CNPJ 47.769.566/0001-46</span>
+            </div>
             <div className="flex items-center gap-2">
               {isAgyliDomain ? (
                 <span className="text-slate-400 font-medium">AGYLI — Uma solução Grupo CONTEK</span>
