@@ -33,11 +33,11 @@ import {
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
-import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
-import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
-import { ContekSymbol } from '@/components/ContekBranding'
+import { AgyliLogo } from '@/components/AgyliBranding'
+import { MarkalyLogo } from '@/components/MarkalyBranding'
+import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
 
-import { resolveProductByDomain } from '@/lib/branding'
+import { resolveProductByDomain, resolveBrandDomainContext } from '@/lib/branding'
 
 export const Login: React.FC = () => {
   const { user, isSuperAdmin, login } = useAuth()
@@ -63,19 +63,27 @@ export const Login: React.FC = () => {
     }
   }, [user, isSuperAdmin, navigate, hasCredentialParams])
 
+  // Detecta o contexto de domínio da aplicação: 'agyli' (agyli.com.br), 'contek' (grupocontek.com.br), ou 'default'
+  const domainContext =
+    typeof window !== 'undefined' ? resolveBrandDomainContext(window.location.hostname) : 'default'
+
   // Detect initial product preference from query param, then domain, or fallback to agyli
   const initialDetectedProduct =
     brandParam === 'markaly' || brandParam === 'agyli'
       ? (brandParam as 'agyli' | 'markaly')
-      : typeof window !== 'undefined'
-        ? resolveProductByDomain(window.location.hostname, 'agyli')
-        : 'agyli'
+      : domainContext === 'agyli'
+        ? 'agyli'
+        : typeof window !== 'undefined'
+          ? resolveProductByDomain(window.location.hostname, 'agyli')
+          : 'agyli'
 
   const tabParam = searchParams.get('tab')?.toLowerCase()
+  // A aba 'manual' (Cadastro Contek) só é ativada se for explicitamente solicitada via URL (?tab=contek ou ?tab=manual)
+  const isContekTabRequested = tabParam === 'contek' || tabParam === 'manual'
   const initialTab =
     tabParam === 'signup' || tabParam === 'criar-empresa' || tabParam === 'cadastro'
       ? 'signup'
-      : tabParam === 'manual'
+      : isContekTabRequested
         ? 'manual'
         : 'login'
 
@@ -84,7 +92,7 @@ export const Login: React.FC = () => {
   useEffect(() => {
     if (tabParam === 'signup' || tabParam === 'criar-empresa' || tabParam === 'cadastro') {
       setActiveTab('signup')
-    } else if (tabParam === 'manual') {
+    } else if (tabParam === 'manual' || tabParam === 'contek') {
       setActiveTab('manual')
     } else if (tabParam === 'login') {
       setActiveTab('login')
@@ -497,51 +505,25 @@ export const Login: React.FC = () => {
         </>
       )}
 
-      {/* Seletor Rápido de Marca no Topo do Login (permite alternar e testar ambas perfeitamente) */}
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex justify-center mb-4">
-        <div
-          className={`inline-flex items-center gap-1 p-1 rounded-full border shadow-sm text-xs font-semibold ${
-            activeBrand === 'markaly'
-              ? 'bg-[#2D0B52] border-purple-700/60 text-purple-200'
-              : 'bg-[#1E293B] border-slate-700 text-slate-300'
-          }`}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setActiveBrand('agyli')
-              setSignupProduct('agyli')
-            }}
-            className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all ${
-              activeBrand === 'agyli'
-                ? 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <AgyliEmblem size={14} />
-            <span>AGYLI</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveBrand('markaly')
-              setSignupProduct('markaly')
-            }}
-            className={`px-3 py-1 rounded-full flex items-center gap-1.5 transition-all ${
-              activeBrand === 'markaly'
-                ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] text-white shadow-sm'
-                : 'text-purple-300 hover:text-white'
-            }`}
-          >
-            <MarkalyEmblem size={14} />
-            <span>MARKALY</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Cabeçalho Oficial Conforme Marca Selecionada */}
+      {/* Cabeçalho Oficial Conforme Marca / Domínio (sem seletor confuso de produtos) */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 flex flex-col items-center text-center px-4">
-        {activeBrand === 'markaly' ? (
+        {domainContext === 'contek' && activeBrand !== 'markaly' ? (
+          <>
+            {/* Identidade Institucional Grupo Contek */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1E293B]/90 border border-blue-500/30 text-blue-300 text-xs font-medium mb-4 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-[#3B82F6]" />
+              <span>Grupo Contek • Tecnologia e Consultoria</span>
+            </div>
+
+            <div className="flex items-center justify-center p-3.5 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 shadow-xl mb-3">
+              <ContekFullLogo height={44} theme="dark" />
+            </div>
+
+            <p className="text-xs text-slate-300 max-w-sm mt-1">
+              Acesse a plataforma de agendamento e gestão inteligente do Grupo Contek.
+            </p>
+          </>
+        ) : activeBrand === 'markaly' ? (
           <>
             {/* Badge Institucional MARKALY */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2D0B52]/90 border border-orange-500/40 text-orange-200 text-xs font-medium mb-4 shadow-sm">
@@ -596,7 +578,9 @@ export const Login: React.FC = () => {
           >
             <CardHeader className="pb-3 pt-5">
               <TabsList
-                className={`grid w-full grid-cols-3 p-1 rounded-xl border ${
+                className={`grid w-full ${
+                  isContekTabRequested ? 'grid-cols-3' : 'grid-cols-2'
+                } p-1 rounded-xl border ${
                   activeBrand === 'markaly'
                     ? 'bg-[#150228]/80 border-purple-800/60 text-purple-200'
                     : 'bg-[#0F172A]/80 border-slate-700/60 text-slate-300'
@@ -620,18 +604,20 @@ export const Login: React.FC = () => {
                       : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
                   }`}
                 >
-                  Criar Empresa
+                  Criar conta
                 </TabsTrigger>
-                <TabsTrigger
-                  value="manual"
-                  className={`text-xs sm:text-sm font-medium rounded-lg ${
-                    activeBrand === 'markaly'
-                      ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#F97316] data-[state=active]:via-[#EC4899] data-[state=active]:to-[#7C3AED] data-[state=active]:text-white data-[state=active]:shadow-md'
-                      : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
-                  }`}
-                >
-                  Cadastro Contek
-                </TabsTrigger>
+                {isContekTabRequested && (
+                  <TabsTrigger
+                    value="manual"
+                    className={`text-xs sm:text-sm font-medium rounded-lg ${
+                      activeBrand === 'markaly'
+                        ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#F97316] data-[state=active]:via-[#EC4899] data-[state=active]:to-[#7C3AED] data-[state=active]:text-white data-[state=active]:shadow-md'
+                        : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#3B82F6] data-[state=active]:to-[#8B5CF6] data-[state=active]:text-white data-[state=active]:shadow-md'
+                    }`}
+                  >
+                    Cadastro Contek
+                  </TabsTrigger>
+                )}
               </TabsList>
             </CardHeader>
 

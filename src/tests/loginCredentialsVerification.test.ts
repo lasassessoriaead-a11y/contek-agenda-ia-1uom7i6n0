@@ -29,13 +29,16 @@ describe('Login Credentials and Form Pre-fill Verification', () => {
     expect(loginSource).toMatch(/id="login-password"[^>]*autoComplete="current-password"/s)
   })
 
-  it('ensures all 3 tabs and brand features remain intact', () => {
-    // As 3 abas ("Entrar", "Criar Empresa", "Cadastro Contek") continuam presentes
+  it('ensures simplified public tabs (Entrar, Criar conta) and hidden Contek manual registration', () => {
+    // 2 abas públicas ("Entrar" e "Criar conta")
     expect(loginSource).toContain('value="login"')
     expect(loginSource).toContain('value="signup"')
     expect(loginSource).toContain('value="manual"')
     expect(loginSource).toContain('Entrar')
-    expect(loginSource).toContain('Criar Empresa')
+    expect(loginSource).toContain('Criar conta')
+
+    // Aba "Cadastro Contek" é oculta do público e só aparece sob demanda (?tab=contek ou ?tab=manual)
+    expect(loginSource).toContain('isContekTabRequested')
     expect(loginSource).toContain('Cadastro Contek')
 
     // Link e fluxo "Esqueci minha senha"

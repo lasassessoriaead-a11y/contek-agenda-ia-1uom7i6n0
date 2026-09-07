@@ -140,6 +140,15 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
       expect(loginSource).toContain('handleSelfServiceSignup')
     })
 
+    it('tela de login tem abas simplificadas para o cliente (Entrar e Criar conta) e sem seletor de topo confuso', () => {
+      expect(loginSource).toContain('Entrar')
+      expect(loginSource).toContain('Criar conta')
+      // Não exibe os chips interativos de troca AGYLI/MARKALY no topo do login
+      expect(loginSource).not.toContain('Seletor Rápido de Marca no Topo do Login')
+      // Cadastro Contek fica restrito e condicional a tab=contek ou tab=manual
+      expect(loginSource).toContain('isContekTabRequested')
+    })
+
     it('rotas protegidas e painéis internos em App.tsx permanecem idênticos', () => {
       expect(appSource).toContain('path="/painel"')
       expect(appSource).toContain('path="agenda"')
