@@ -24,6 +24,12 @@ import {
   KeyRound,
   ArrowLeft,
   AlertCircle,
+  Phone,
+  Check,
+  Calendar,
+  ShieldCheck,
+  ChevronRight,
+  Globe,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { toast } from 'sonner'
@@ -34,9 +40,20 @@ import { ContekSymbol } from '@/components/ContekBranding'
 import { resolveProductByDomain } from '@/lib/branding'
 
 export const Login: React.FC = () => {
-  const { login } = useAuth()
+  const { user, isSuperAdmin, login } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  // Se o usuário já estiver autenticado, redireciona para o destino padrão dele
+  useEffect(() => {
+    if (user) {
+      if (isSuperAdmin) {
+        navigate('/contek', { replace: true })
+      } else {
+        navigate('/', { replace: true })
+      }
+    }
+  }, [user, isSuperAdmin, navigate])
 
   const brandParam = searchParams.get('brand')?.toLowerCase()
   const orgParam = searchParams.get('org')?.trim()
@@ -99,14 +116,30 @@ export const Login: React.FC = () => {
   const [forgotSuccessEmail, setForgotSuccessEmail] = useState<string | null>(null)
   const [forgotErrorMessage, setForgotErrorMessage] = useState<string | null>(null)
 
-  // Self-service signup state
-  const [signupOrgName, setSignupOrgName] = useState('')
+  // Self-service signup state (etapas 1, 2, 3)
+  const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1)
   const [signupName, setSignupName] = useState('')
   const [signupEmail, setSignupEmail] = useState('')
   const [signupPassword, setSignupPassword] = useState('')
+  const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('')
   const [signupPhone, setSignupPhone] = useState('')
+
+  const [signupOrgName, setSignupOrgName] = useState('')
+  const [signupSlug, setSignupSlug] = useState('')
+  const [isSlugEditedManually, setIsSlugEditedManually] = useState(false)
   const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
+  const [signupPlanSlug, setSignupPlanSlug] = useState<string>(
+    initialDetectedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
+  )
+  const [signupCreateExampleService, setSignupCreateExampleService] = useState(true)
   const [loadingSignup, setLoadingSignup] = useState(false)
+  const [signupSuccessData, setSignupSuccessData] = useState<{
+    orgName: string
+    slug: string
+    planName: string
+    product: 'agyli' | 'markaly'
+    email: string
+  } | null>(null)
 
   // Pre-fill email from query param if provided (prevents browser autofill from inserting wrong admin email)
   useEffect(() => {
@@ -197,14 +230,83 @@ export const Login: React.FC = () => {
     }
   }
 
+  // Gerador automático de slug a partir do nome
+  const generateSlugFromName = (val: string) => {
+    return val
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '')
+  }
+
+  const handleOrgNameChange = (val: string) => {
+    setSignupOrgName(val)
+    if (!isSlugEditedManually) {
+      setSignupSlug(generateSlugFromName(val))
+    }
+  }
+
+  const handleSlugChange = (val: string) => {
+    setIsSlugEditedManually(true)
+    setSignupSlug(
+      val
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9-]/g, ''),
+    )
+  }
+
+  const validateStep1 = () => {
+    const cleanName = signupName.trim()
+    const cleanMail = signupEmail.trim().toLowerCase()
+
+    if (!cleanName) {
+      toast.error('Informe seu nome completo.')
+      return false
+    }
+    if (!cleanMail || !cleanMail.includes('@') || !cleanMail.includes('.')) {
+      toast.error('Informe um e-mail válido.')
+      return false
+    }
+    if (!signupPassword || signupPassword.length < 8) {
+      toast.error('A senha deve ter no mínimo 8 caracteres.')
+      return false
+    }
+    if (signupPassword !== signupPasswordConfirm) {
+      toast.error('A confirmação de senha não coincide com a senha digitada.')
+      return false
+    }
+    return true
+  }
+
+  const validateStep2 = () => {
+    const cleanOrg = signupOrgName.trim()
+    if (!cleanOrg) {
+      toast.error('Informe o nome da sua empresa.')
+      return false
+    }
+    return true
+  }
+
+  const handleNextToStep2 = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateStep1()) {
+      setSignupStep(2)
+    }
+  }
+
+  const handleNextToStep3 = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validateStep2()) {
+      setSignupStep(3)
+    }
+  }
+
   const handleSelfServiceSignup = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!signupOrgName || !signupName || !signupEmail || !signupPassword) {
-      toast.error('Preencha todos os campos obrigatórios.')
-      return
-    }
-    if (signupPassword.length < 8) {
-      toast.error('A senha deve ter pelo menos 8 caracteres.')
+    if (!validateStep1() || !validateStep2()) {
       return
     }
 
@@ -220,16 +322,22 @@ export const Login: React.FC = () => {
         success: boolean
         message?: string
         error?: string
-        organization?: { id: string; name: string; slug: string }
+        email_sent?: boolean
+        organization?: { id: string; name: string; slug: string; product?: string }
+        subscription?: { id: string; status: string; trial_ends_at: string }
+        user?: { id: string; email: string; name: string }
       }>('/backend/v1/onboarding/self-service', {
         method: 'POST',
         body: {
-          org_name: signupOrgName.trim(),
           name: signupName.trim(),
-          phone: signupPhone.trim(),
-          email: signupEmail.trim(),
+          email: signupEmail.trim().toLowerCase(),
           password: signupPassword,
+          phone: signupPhone.trim(),
+          org_name: signupOrgName.trim(),
+          slug: signupSlug.trim() || generateSlugFromName(signupOrgName.trim()),
           product: signupProduct,
+          plan_slug: signupPlanSlug,
+          create_example_service: signupCreateExampleService,
         },
       })
 
@@ -237,17 +345,54 @@ export const Login: React.FC = () => {
         throw new Error(res.error || 'Erro ao cadastrar empresa.')
       }
 
+      toast.success(
+        res.email_sent
+          ? 'Conta e empresa criadas com sucesso! E-mail de boas-vindas enviado.'
+          : 'Conta e empresa criadas com sucesso!',
+      )
+
+      // Salva dados para exibir confirmação amigável
+      setSignupSuccessData({
+        orgName: res.organization?.name || signupOrgName.trim(),
+        slug: res.organization?.slug || signupSlug.trim() || generateSlugFromName(signupOrgName),
+        planName: signupPlanSlug === 'markaly-start' ? 'MARKALY Essencial' : 'AGYLI Pro',
+        product: signupProduct,
+        email: signupEmail.trim().toLowerCase(),
+      })
+
       // Auto login na conta recém criada
-      await login(signupEmail.trim(), signupPassword)
-      toast.success('Empresa e conta criadas com sucesso!')
-      navigate('/')
+      try {
+        await login(signupEmail.trim().toLowerCase(), signupPassword)
+        // Redireciona para o painel principal após pequeno delay de celebração
+        setTimeout(() => {
+          navigate('/')
+        }, 1800)
+      } catch (loginErr) {
+        console.error('Auto login fallback:', loginErr)
+        // Se auto login falhar por qualquer motivo de rede, navega para a aba de entrar preenchida
+        setEmail(signupEmail.trim().toLowerCase())
+      }
     } catch (err: unknown) {
       console.error(err)
-      const message =
-        (err as { response?: { error?: string }; message?: string })?.response?.error ||
-        (err as { message?: string })?.message ||
+      const dataErr = (err as { data?: { error?: string } })?.data?.error
+      const responseErr = (err as { response?: { error?: string } })?.response?.error
+      const messageErr = (err as { message?: string })?.message
+
+      const finalMsg =
+        dataErr ||
+        responseErr ||
+        messageErr ||
         'Erro ao cadastrar empresa. Verifique os dados informados.'
-      toast.error(message)
+
+      if (
+        finalMsg.toLowerCase().includes('já está cadastrado') ||
+        finalMsg.toLowerCase().includes('already') ||
+        finalMsg.toLowerCase().includes('email')
+      ) {
+        toast.error('Este e-mail já está cadastrado no sistema. Faça login com suas credenciais.')
+      } else {
+        toast.error(finalMsg)
+      }
     } finally {
       setLoadingSignup(false)
     }
@@ -747,149 +892,560 @@ export const Login: React.FC = () => {
               )}
             </TabsContent>
 
-            {/* TAB 2: SELF-SERVICE SIGNUP */}
+            {/* TAB 2: SELF-SERVICE SIGNUP (WIZARD 3 ETAPAS) */}
             <TabsContent value="signup">
-              <form onSubmit={handleSelfServiceSignup}>
-                <CardContent className="space-y-3.5 pt-2">
-                  <CardDescription className="text-slate-400 text-xs">
-                    Cadastre seu estabelecimento (clínica, salão, consultório, barbearia) e comece a
-                    gerenciar hoje mesmo com isolamento total de dados.
-                  </CardDescription>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-blue-400" />
-                      Nome do Estabelecimento / Empresa *
-                    </Label>
-                    <Input
-                      value={signupOrgName}
-                      onChange={(e) => setSignupOrgName(e.target.value)}
-                      placeholder="Ex: Clínica Bella Estética, Barbearia Silva..."
-                      required
-                      className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
-                    />
+              {signupSuccessData ? (
+                /* Tela de Sucesso Pós-Cadastro */
+                <CardContent className="space-y-4 pt-4 pb-6 text-center">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 mb-1">
+                    <CheckCircle2 className="w-8 h-8" />
                   </div>
+                  <h3 className="text-xl font-bold text-white">
+                    Parabéns! Empresa Criada com Sucesso
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-md mx-auto">
+                    Seu período de{' '}
+                    <span className="text-emerald-400 font-semibold">7 dias grátis</span> no plano{' '}
+                    <span className="font-semibold text-white">{signupSuccessData.planName}</span>{' '}
+                    já começou. Enviamos um e-mail de boas-vindas para{' '}
+                    <span className="font-semibold text-cyan-300">{signupSuccessData.email}</span>.
+                  </p>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                      Escolha a Solução / Produto Desejado *
-                    </Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSignupProduct('agyli')}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          signupProduct === 'agyli'
-                            ? 'border-[#3B82F6] bg-blue-950/60 text-white shadow-sm'
-                            : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
-                        }`}
+                  <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800 text-left text-xs space-y-2.5 max-w-md mx-auto">
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                      <span className="text-slate-400">Empresa:</span>
+                      <span className="text-white font-bold">{signupSuccessData.orgName}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-2 border-b border-slate-800">
+                      <span className="text-slate-400">Página Pública:</span>
+                      <a
+                        href={`/agendar/${signupSuccessData.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-cyan-400 font-semibold hover:underline"
                       >
-                        <p className="text-xs font-bold text-[#3B82F6]">AGYLI (Completo)</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          Agenda + Financeiro + Assistente IA
-                        </p>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setSignupProduct('markaly')}
-                        className={`p-2.5 rounded-xl border text-left transition-all ${
-                          signupProduct === 'markaly'
-                            ? 'border-[#F97316] bg-orange-950/40 text-white shadow-sm'
-                            : activeBrand === 'markaly'
-                              ? 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-                              : 'border-slate-800 bg-[#0F172A]/60 text-slate-400 hover:border-slate-700'
-                        }`}
-                      >
-                        <p className="text-xs font-bold text-[#F97316]">MARKALY (Essencial)</p>
-                        <p className="text-[10px] opacity-80 mt-0.5">
-                          Agenda ágil + Clientes + Serviços
-                        </p>
-                      </button>
+                        /agendar/{signupSuccessData.slug}
+                      </a>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400">Status:</span>
+                      <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
+                        <Check className="w-3.5 h-3.5" /> Trial Ativo (7 dias)
+                      </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        Seu Nome Completo *
-                      </Label>
-                      <Input
-                        value={signupName}
-                        onChange={(e) => setSignupName(e.target.value)}
-                        placeholder="Dra. Ana Paula"
-                        required
-                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300">
-                        WhatsApp / Telefone
-                      </Label>
-                      <Input
-                        value={signupPhone}
-                        onChange={(e) => setSignupPhone(e.target.value)}
-                        placeholder="(11) 99999-8888"
-                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        E-mail de Acesso *
-                      </Label>
-                      <Input
-                        type="email"
-                        name="signup-email"
-                        value={signupEmail}
-                        onChange={(e) => setSignupEmail(e.target.value)}
-                        placeholder="contato@empresa.com"
-                        autoComplete="email"
-                        required
-                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                        Senha (mín. 8 caracteres) *
-                      </Label>
-                      <Input
-                        type="password"
-                        name="signup-password"
-                        value={signupPassword}
-                        onChange={(e) => setSignupPassword(e.target.value)}
-                        placeholder="••••••••"
-                        autoComplete="new-password"
-                        required
-                        className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
-                      />
-                    </div>
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      onClick={() => navigate('/')}
+                      className={`w-full max-w-md text-white font-semibold h-11 rounded-xl shadow-lg ${
+                        signupSuccessData.product === 'markaly' || activeBrand === 'markaly'
+                          ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED]'
+                          : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]'
+                      }`}
+                    >
+                      Acessar Meu Painel Agora
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
                   </div>
                 </CardContent>
+              ) : (
+                <div className="pt-2">
+                  {/* Stepper Minimalista no Topo */}
+                  <div className="px-6 pb-4">
+                    <div className="flex items-center justify-between relative">
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 bg-slate-800 w-full z-0" />
+                      <div
+                        className={`absolute left-0 top-1/2 -translate-y-1/2 h-0.5 transition-all duration-300 z-0 ${
+                          activeBrand === 'markaly'
+                            ? 'bg-gradient-to-r from-[#F97316] to-[#EC4899]'
+                            : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6]'
+                        }`}
+                        style={{
+                          width: signupStep === 1 ? '0%' : signupStep === 2 ? '50%' : '100%',
+                        }}
+                      />
 
-                <CardFooter className="pt-2">
-                  <Button
-                    type="submit"
-                    disabled={loadingSignup}
-                    className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl ${
-                      signupProduct === 'markaly' || activeBrand === 'markaly'
-                        ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
-                        : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
-                    }`}
-                  >
-                    {loadingSignup ? 'Criando sua conta SaaS...' : 'Cadastrar Empresa e Começar'}
-                    <CheckCircle2 className="w-4 h-4 ml-2" />
-                  </Button>
-                </CardFooter>
-              </form>
+                      {/* Step 1 */}
+                      <div className="relative z-10 flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => setSignupStep(1)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                            signupStep === 1
+                              ? activeBrand === 'markaly'
+                                ? 'bg-[#F97316] text-white ring-4 ring-[#F97316]/20'
+                                : 'bg-[#3B82F6] text-white ring-4 ring-[#3B82F6]/20'
+                              : signupStep > 1
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {signupStep > 1 ? <Check className="w-4 h-4" /> : '1'}
+                        </button>
+                        <span className="text-[11px] font-medium text-slate-300 mt-1">Você</span>
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="relative z-10 flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (validateStep1()) setSignupStep(2)
+                          }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                            signupStep === 2
+                              ? activeBrand === 'markaly'
+                                ? 'bg-[#F97316] text-white ring-4 ring-[#F97316]/20'
+                                : 'bg-[#3B82F6] text-white ring-4 ring-[#3B82F6]/20'
+                              : signupStep > 2
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {signupStep > 2 ? <Check className="w-4 h-4" /> : '2'}
+                        </button>
+                        <span className="text-[11px] font-medium text-slate-300 mt-1">
+                          Empresa & Plano
+                        </span>
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="relative z-10 flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (validateStep1() && validateStep2()) setSignupStep(3)
+                          }}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                            signupStep === 3
+                              ? activeBrand === 'markaly'
+                                ? 'bg-[#F97316] text-white ring-4 ring-[#F97316]/20'
+                                : 'bg-[#3B82F6] text-white ring-4 ring-[#3B82F6]/20'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          3
+                        </button>
+                        <span className="text-[11px] font-medium text-slate-300 mt-1">Revisão</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ETAPA 1: DADOS DA PESSOA */}
+                  {signupStep === 1 && (
+                    <form onSubmit={handleNextToStep2}>
+                      <CardContent className="space-y-3.5 pt-1">
+                        <div className="pb-1">
+                          <h3 className="text-sm font-semibold text-white">
+                            Etapa 1 de 3 — Seus Dados Pessoais
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Crie seu acesso administrativo de dona(o) da conta para gerenciar seu
+                            espaço.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-blue-400" />
+                            Nome Completo *
+                          </Label>
+                          <Input
+                            value={signupName}
+                            onChange={(e) => setSignupName(e.target.value)}
+                            placeholder="Ex: Dra. Luciana Silva ou Roberto Neves"
+                            required
+                            autoFocus
+                            className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5 text-blue-400" />
+                              E-mail de Acesso *
+                            </Label>
+                            <Input
+                              type="email"
+                              value={signupEmail}
+                              onChange={(e) => setSignupEmail(e.target.value)}
+                              placeholder="seu@email.com"
+                              autoComplete="email"
+                              required
+                              className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                              <Phone className="w-3.5 h-3.5 text-slate-400" />
+                              WhatsApp (opcional)
+                            </Label>
+                            <Input
+                              value={signupPhone}
+                              onChange={(e) => setSignupPhone(e.target.value)}
+                              placeholder="(11) 99999-8888"
+                              className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                              <Lock className="w-3.5 h-3.5 text-blue-400" />
+                              Senha (mínimo 8 dígitos) *
+                            </Label>
+                            <Input
+                              type="password"
+                              value={signupPassword}
+                              onChange={(e) => setSignupPassword(e.target.value)}
+                              placeholder="••••••••"
+                              autoComplete="new-password"
+                              required
+                              className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                              <Lock className="w-3.5 h-3.5 text-blue-400" />
+                              Confirmar Senha *
+                            </Label>
+                            <Input
+                              type="password"
+                              value={signupPasswordConfirm}
+                              onChange={(e) => setSignupPasswordConfirm(e.target.value)}
+                              placeholder="••••••••"
+                              autoComplete="new-password"
+                              required
+                              className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="pt-2">
+                        <Button
+                          type="submit"
+                          className={`w-full text-white font-semibold shadow-lg h-11 rounded-xl ${
+                            activeBrand === 'markaly'
+                              ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                              : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                          }`}
+                        >
+                          Continuar para Dados da Empresa
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  )}
+
+                  {/* ETAPA 2: DADOS DA EMPRESA E ESCOLHA DO PLANO */}
+                  {signupStep === 2 && (
+                    <form onSubmit={handleNextToStep3}>
+                      <CardContent className="space-y-4 pt-1">
+                        <div className="pb-1">
+                          <h3 className="text-sm font-semibold text-white">
+                            Etapa 2 de 3 — Sua Empresa & Plano
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Defina o nome comercial, seu link público de agendamento e o plano
+                            ideal.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-blue-400" />
+                            Nome da Empresa ou Estabelecimento *
+                          </Label>
+                          <Input
+                            value={signupOrgName}
+                            onChange={(e) => handleOrgNameChange(e.target.value)}
+                            placeholder="Ex: Clínica Bella Estética, Barbearia Silva, Consultório Dr. Neves..."
+                            required
+                            autoFocus
+                            className="bg-[#0F172A] border-slate-700 text-white focus-visible:ring-[#3B82F6]"
+                          />
+                        </div>
+
+                        {/* Slug gerado automaticamente / editável */}
+                        <div className="space-y-1.5">
+                          <Label className="text-xs font-medium text-slate-300 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                              Link da Sua Página Pública de Agendamento
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              Gerado do nome (editável)
+                            </span>
+                          </Label>
+                          <div className="flex items-center rounded-xl bg-[#0F172A] border border-slate-700 px-3 py-2 text-xs">
+                            <span className="text-slate-500 font-mono select-none">/agendar/</span>
+                            <input
+                              type="text"
+                              value={signupSlug}
+                              onChange={(e) => handleSlugChange(e.target.value)}
+                              placeholder="sua-empresa"
+                              className="bg-transparent border-0 outline-none text-cyan-300 font-mono flex-1 ml-0.5"
+                            />
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Seus clientes acessarão este link exclusivo para marcar horários online.
+                          </p>
+                        </div>
+
+                        {/* Cartões Comparativos de Planos */}
+                        <div className="space-y-2 pt-1">
+                          <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            Escolha o Plano Ideal (Ambos com 7 dias grátis) *
+                          </Label>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Card AGYLI PRO */}
+                            <div
+                              onClick={() => {
+                                setSignupProduct('agyli')
+                                setSignupPlanSlug('agyli-pro')
+                              }}
+                              className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
+                                signupProduct === 'agyli' && signupPlanSlug === 'agyli-pro'
+                                  ? 'border-[#3B82F6] bg-blue-950/70 shadow-lg ring-1 ring-[#3B82F6]'
+                                  : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-blue-400 bg-blue-950 px-2 py-0.5 rounded-full border border-blue-800/60 mb-1">
+                                    Mais Completo
+                                  </span>
+                                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                                    AGYLI Pro
+                                  </h4>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-bold text-cyan-300">R$ 129,90</div>
+                                  <div className="text-[10px] text-slate-400">/mês</div>
+                                </div>
+                              </div>
+
+                              <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
+                                <Calendar className="w-3 h-3" /> 7 dias grátis de teste
+                              </div>
+
+                              <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                                  <span>Agenda inteligente multi-profissional</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                                  <span>Módulo Financeiro completo + comissões</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                                  <span>Assistente de IA & Recepção WhatsApp</span>
+                                </li>
+                              </ul>
+                            </div>
+
+                            {/* Card MARKALY ESSENCIAL */}
+                            <div
+                              onClick={() => {
+                                setSignupProduct('markaly')
+                                setSignupPlanSlug('markaly-start')
+                              }}
+                              className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
+                                signupProduct === 'markaly' && signupPlanSlug === 'markaly-start'
+                                  ? 'border-[#F97316] bg-orange-950/40 shadow-lg ring-1 ring-[#F97316]'
+                                  : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded-full border border-orange-800/60 mb-1">
+                                    Essencial & Ágil
+                                  </span>
+                                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                                    MARKALY Essencial
+                                  </h4>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-bold text-orange-300">R$ 59,90</div>
+                                  <div className="text-[10px] text-slate-400">/mês</div>
+                                </div>
+                              </div>
+
+                              <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
+                                <Calendar className="w-3 h-3" /> 7 dias grátis de teste
+                              </div>
+
+                              <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                                  <span>Agendamento ágil online & presencial</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                                  <span>Gestão de clientes & catálogo de serviços</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
+                                  <span>Página pública /agendar/slug personalizada</span>
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Checkbox serviço de exemplo opcional */}
+                        <div className="pt-1">
+                          <label className="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 cursor-pointer text-xs text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={signupCreateExampleService}
+                              onChange={(e) => setSignupCreateExampleService(e.target.checked)}
+                              className="mt-0.5 rounded border-slate-700 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>
+                              Criar automaticamente um serviço de exemplo (Atendimento Inicial / R$
+                              150) para testar a agenda de imediato.
+                            </span>
+                          </label>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="flex items-center gap-2.5 pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setSignupStep(1)}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800 h-11 px-4 rounded-xl"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar
+                        </Button>
+                        <Button
+                          type="submit"
+                          className={`flex-1 text-white font-semibold shadow-lg h-11 rounded-xl ${
+                            signupProduct === 'markaly' || activeBrand === 'markaly'
+                              ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95'
+                              : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED]'
+                          }`}
+                        >
+                          Avançar para Revisão
+                          <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  )}
+
+                  {/* ETAPA 3: REVISÃO DOS DADOS E FINALIZAÇÃO */}
+                  {signupStep === 3 && (
+                    <form onSubmit={handleSelfServiceSignup}>
+                      <CardContent className="space-y-4 pt-1">
+                        <div className="pb-1">
+                          <h3 className="text-sm font-semibold text-white">
+                            Etapa 3 de 3 — Revisão dos Dados
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            Confirme os dados antes de ativar seu período gratuito de 7 dias.
+                          </p>
+                        </div>
+
+                        {/* Card com resumo */}
+                        <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-4 space-y-3 text-xs">
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span className="text-slate-400">Responsável:</span>
+                            <span className="text-white font-semibold">{signupName || '—'}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span className="text-slate-400">E-mail de acesso:</span>
+                            <span className="text-cyan-300 font-mono font-medium">
+                              {signupEmail || '—'}
+                            </span>
+                          </div>
+
+                          {signupPhone && (
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                              <span className="text-slate-400">WhatsApp:</span>
+                              <span className="text-white font-medium">{signupPhone}</span>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span className="text-slate-400">Nome da Empresa:</span>
+                            <span className="text-white font-bold">{signupOrgName || '—'}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span className="text-slate-400">Link público da página:</span>
+                            <span className="text-cyan-400 font-mono font-medium">
+                              /agendar/
+                              {signupSlug || generateSlugFromName(signupOrgName) || 'empresa'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                            <span className="text-slate-400">Plano escolhido:</span>
+                            <span className="font-bold text-white">
+                              {signupPlanSlug === 'markaly-start'
+                                ? 'MARKALY Essencial (R$ 59,90/mês)'
+                                : 'AGYLI Pro (R$ 129,90/mês)'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-slate-400">Período de avaliação:</span>
+                            <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
+                              <ShieldCheck className="w-4 h-4 text-emerald-400" /> 7 dias grátis sem
+                              cobrança imediata
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Aviso amigável sobre e-mail de boas-vindas */}
+                        <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/40 text-xs text-blue-200 flex items-start gap-2">
+                          <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                          <p className="leading-relaxed">
+                            Ao clicar em criar, sua conta e empresa são ativadas instantaneamente.
+                            Você receberá um e-mail de boas-vindas com o resumo e o link público de
+                            agendamento.
+                          </p>
+                        </div>
+                      </CardContent>
+
+                      <CardFooter className="flex items-center gap-2.5 pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setSignupStep(2)}
+                          className="border-slate-700 text-slate-300 hover:bg-slate-800 h-11 px-4 rounded-xl"
+                        >
+                          <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={loadingSignup}
+                          className={`flex-1 text-white font-semibold shadow-lg h-11 rounded-xl ${
+                            signupProduct === 'markaly' || activeBrand === 'markaly'
+                              ? 'bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 shadow-orange-500/25'
+                              : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] shadow-blue-500/25'
+                          }`}
+                        >
+                          {loadingSignup ? 'Criando sua conta...' : 'Criar minha conta grátis'}
+                          <CheckCircle2 className="w-4 h-4 ml-2" />
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  )}
+                </div>
+              )}
             </TabsContent>
 
             {/* TAB 3: CONTEK ADMIN MANUAL ONBOARDING */}
