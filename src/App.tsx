@@ -133,8 +133,8 @@ export function App() {
               element={
                 <FeatureGate
                   feature="assistente_ia"
-                  fallbackTitle="Assistente IA indisponível no plano MARKALY"
-                  fallbackMessage="A inteligência artificial com análise de dados de atendimento e respostas automáticas faz parte exclusivamente da solução AGYLI."
+                  fallbackTitle="Disponível no AGYLI Pro"
+                  fallbackMessage="O Assistente IA inteligente com memória de negócios e insights analíticos é exclusivo do plano AGYLI Pro. No MARKALY Essencial, a inteligência artificial não está habilitada."
                 >
                   <AssistenteIa />
                 </FeatureGate>

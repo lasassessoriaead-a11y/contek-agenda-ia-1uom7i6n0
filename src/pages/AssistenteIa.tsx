@@ -14,12 +14,12 @@ interface Message {
 }
 
 export const AssistenteIa: React.FC = () => {
-  const { organization, user } = useAuth()
+  const { organization, user, currentProduct, branding } = useAuth()
 
   const defaultWelcomeMessage: Message = {
     id: '1',
     sender: 'assistant',
-    text: `Olá, ${user?.name || 'Doutor(a)'}! Eu sou o Contek Assistant IA da Contek Tecnologia e Consultoria. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
+    text: `Olá, ${user?.name || 'Gestor(a)'}! Eu sou o Assistente IA do Contek Agenda (${branding.name}). Como posso apoiar a gestão de ${organization?.name || 'sua empresa'} hoje?`,
     time: 'Agora',
   }
 
@@ -81,11 +81,11 @@ export const AssistenteIa: React.FC = () => {
       {
         id: '1',
         sender: 'assistant',
-        text: `Olá, ${user?.name || 'Doutor(a)'}! Eu sou o Contek Assistant IA da Contek Tecnologia e Consultoria. Como posso apoiar a gestão de ${organization?.name || 'sua clínica/estabelecimento'} hoje?`,
+        text: `Olá, ${user?.name || 'Gestor(a)'}! Eu sou o Assistente IA do Contek Agenda (${branding.name}). Como posso apoiar a gestão de ${organization?.name || 'sua empresa'} hoje?`,
         time: 'Agora',
       },
     ])
-  }, [user?.id, organization?.id])
+  }, [user?.id, organization?.id, branding.name])
 
   // Auto-scroll to bottom of messages whenever list changes
   useEffect(() => {
@@ -137,11 +137,16 @@ export const AssistenteIa: React.FC = () => {
     toast.success('Histórico da conversa reiniciado.')
   }
 
+  const isMarkaly = currentProduct === 'markaly'
+
+  // Sugestões solicitadas na especificação:
+  // "Meus horários livres", "Resumo da semana", "Clientes que não voltam há 60 dias"
   const quickPrompts = [
-    'Qual é o meu resumo de agendamentos para hoje?',
-    'Quem são meus clientes mais frequentes?',
-    'Como posso reduzir faltas e no-shows na minha agenda?',
-    'Resuma o faturamento acumulado deste mês.',
+    'Meus horários livres',
+    'Resumo da semana',
+    'Clientes que não voltam há 60 dias',
+    'Quem são meus melhores clientes?',
+    'Quanto faturei semana passada?',
   ]
 
   const handleSendMessage = async (customText?: string) => {
@@ -215,22 +220,47 @@ export const AssistenteIa: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pb-2 border-b border-slate-200 flex-shrink-0">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <Bot className="w-6 h-6 text-indigo-600 flex-shrink-0" />
-            Assistente IA Contek
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-sm ${
+                isMarkaly ? 'bg-purple-600 shadow-purple-600/30' : 'bg-blue-600 shadow-blue-600/30'
+              }`}
+            >
+              <Bot className="w-5 h-5" />
+            </div>
+            <span>Assistente IA</span>
+            <Badge
+              variant="outline"
+              className={
+                isMarkaly
+                  ? 'border-purple-300 text-purple-700 bg-purple-50 text-[11px]'
+                  : 'border-blue-300 text-blue-700 bg-blue-50 text-[11px]'
+              }
+            >
+              {isMarkaly ? 'MARKALY IA' : 'AGYLI Pro'}
+            </Badge>
           </h1>
           <p className="text-xs text-slate-500 line-clamp-1 sm:line-clamp-none">
-            Módulo inteligente estruturado para consultoria de negócios, insights de agenda e
-            suporte ao prestador de serviços.
+            Consultoria de negócios com memória própria e isolamento exclusivo para{' '}
+            <span className="font-semibold text-slate-700">
+              {organization?.name || 'sua empresa'}
+            </span>
+            .
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <Badge
             variant="outline"
-            className="border-indigo-300 text-indigo-800 bg-indigo-50 text-xs shrink-0"
+            className={
+              isMarkaly
+                ? 'border-purple-300 text-purple-800 bg-purple-50 text-xs shrink-0'
+                : 'border-blue-300 text-blue-800 bg-blue-50 text-xs shrink-0'
+            }
           >
-            <Sparkles className="w-3.5 h-3.5 mr-1 text-indigo-600" />
-            Contek AI Engine V1
+            <Sparkles
+              className={`w-3.5 h-3.5 mr-1 ${isMarkaly ? 'text-purple-600' : 'text-blue-600'}`}
+            />
+            Skip Cloud AI Agent
           </Badge>
           <Button
             variant="outline"
@@ -271,7 +301,13 @@ export const AssistenteIa: React.FC = () => {
                 className={`flex gap-2.5 sm:gap-3 ${isMe ? 'justify-end' : 'justify-start'}`}
               >
                 {!isMe && (
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm shadow-indigo-600/30 mt-0.5">
+                  <div
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-white flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm mt-0.5 ${
+                      isMarkaly
+                        ? 'bg-purple-600 shadow-purple-600/30'
+                        : 'bg-blue-600 shadow-blue-600/30'
+                    }`}
+                  >
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
@@ -279,14 +315,16 @@ export const AssistenteIa: React.FC = () => {
                 <div
                   className={`max-w-[85%] sm:max-w-lg rounded-2xl p-3 sm:p-4 text-xs leading-relaxed ${
                     isMe
-                      ? 'bg-emerald-600 text-white rounded-tr-none shadow-sm'
+                      ? isMarkaly
+                        ? 'bg-purple-600 text-white rounded-tr-none shadow-sm'
+                        : 'bg-blue-600 text-white rounded-tr-none shadow-sm'
                       : 'bg-slate-100 text-slate-800 border border-slate-200/80 rounded-tl-none'
                   }`}
                 >
                   <p className="whitespace-pre-line break-words">{m.text}</p>
                   <span
                     className={`block text-[9px] mt-1.5 text-right ${
-                      isMe ? 'text-emerald-100' : 'text-slate-400'
+                      isMe ? (isMarkaly ? 'text-purple-100' : 'text-blue-100') : 'text-slate-400'
                     }`}
                   >
                     {m.time}
@@ -298,10 +336,14 @@ export const AssistenteIa: React.FC = () => {
 
           {loading && (
             <div className="flex gap-2.5 sm:gap-3 justify-start items-center text-xs text-slate-400 py-1">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center animate-pulse flex-shrink-0">
+              <div
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl text-white flex items-center justify-center animate-pulse flex-shrink-0 ${
+                  isMarkaly ? 'bg-purple-600' : 'bg-blue-600'
+                }`}
+              >
                 <Bot className="w-4 h-4" />
               </div>
-              <span className="italic">Contek Assistant está analisando os dados...</span>
+              <span className="italic">Assistente IA está analisando os dados da empresa...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -314,7 +356,11 @@ export const AssistenteIa: React.FC = () => {
               key={idx}
               type="button"
               onClick={() => handleSendMessage(q)}
-              className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] text-slate-600 hover:border-indigo-400 hover:text-indigo-700 hover:bg-indigo-50/50 transition-colors whitespace-nowrap flex-shrink-0"
+              className={`px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] text-slate-600 transition-colors whitespace-nowrap flex-shrink-0 ${
+                isMarkaly
+                  ? 'hover:border-purple-400 hover:text-purple-700 hover:bg-purple-50/50'
+                  : 'hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50/50'
+              }`}
             >
               {q}
             </button>
@@ -335,15 +381,21 @@ export const AssistenteIa: React.FC = () => {
                   handleSendMessage()
                 }
               }}
-              placeholder="Pergunte ao Contek Assistant sobre agendamentos, clientes ou finanças..."
-              className="w-full text-xs py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none max-h-24 leading-normal text-slate-900 placeholder:text-slate-400 transition-all"
+              placeholder="Pergunte ao Assistente IA sobre horários livres, resumo da semana, clientes..."
+              className={`w-full text-xs py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:bg-white resize-none max-h-24 leading-normal text-slate-900 placeholder:text-slate-400 transition-all ${
+                isMarkaly ? 'focus:ring-purple-500' : 'focus:ring-blue-500'
+              }`}
             />
           </div>
           <Button
             type="button"
             disabled={loading || !inputMessage.trim()}
             onClick={() => handleSendMessage()}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs h-9 sm:h-10 px-3.5 sm:px-4 shrink-0 transition-colors shadow-sm shadow-indigo-600/20"
+            className={`font-semibold text-xs h-9 sm:h-10 px-3.5 sm:px-4 shrink-0 transition-colors shadow-sm text-white ${
+              isMarkaly
+                ? 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/20'
+                : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+            }`}
             title="Enviar mensagem (Enter)"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

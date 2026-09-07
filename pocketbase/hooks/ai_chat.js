@@ -59,7 +59,7 @@ routerAdd(
         'clients',
         'organization_id = "' + orgId + '"',
         '-created',
-        100,
+        200,
         0,
       )
 
@@ -67,7 +67,7 @@ routerAdd(
         'appointments',
         'organization_id = "' + orgId + '"',
         '-date,-start_time',
-        100,
+        300,
         0,
       )
 
@@ -83,7 +83,7 @@ routerAdd(
         'payments',
         'organization_id = "' + orgId + '"',
         '-created',
-        100,
+        200,
         0,
       )
 
@@ -138,14 +138,87 @@ routerAdd(
 
       let totalRevenue = 0
       let paidPaymentsCount = 0
+      let lastWeekRevenue = 0
+      let lastWeekPaymentsCount = 0
+
+      // Calcular faturamento da última semana (últimos 7 a 14 dias ou últimos 7 dias)
+      const nowTs = Date.now()
+      const sevenDaysAgoIso = new Date(nowTs - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const fourteenDaysAgoIso = new Date(nowTs - 14 * 24 * 60 * 60 * 1000).toISOString()
+
       for (const p of payments) {
         const pApptId = p.getString('appointment_id')
         if (pApptId && invalidApptIds[pApptId]) {
           continue
         }
         if (p.getBool('is_paid')) {
-          totalRevenue += p.getInt('amount') || 0
+          const amount = p.getInt('amount') || 0
+          totalRevenue += amount
           paidPaymentsCount++
+
+          const paidAt = p.getString('paid_at') || p.getString('created')
+          if (paidAt >= sevenDaysAgoIso) {
+            lastWeekRevenue += amount
+            lastWeekPaymentsCount++
+          }
+        }
+      }
+
+      // Clientes inativos (sem agendamento nos últimos 60 dias)
+      const sixtyDaysAgoIso = new Date(nowTs - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      const clientsWithRecentAppts = new Set()
+      const lastApptByClient = {}
+
+      for (const a of appointments) {
+        const cId = a.getString('client_id')
+        const aDate = a.getString('date') ? a.getString('date').slice(0, 10) : ''
+        if (cId) {
+          if (!lastApptByClient[cId] || aDate > lastApptByClient[cId]) {
+            lastApptByClient[cId] = aDate
+          }
+          if (aDate >= sixtyDaysAgoIso) {
+            clientsWithRecentAppts.add(cId)
+          }
+        }
+      }
+
+      const inactiveClients60Days = []
+      for (const c of clients) {
+        if (!clientsWithRecentAppts.has(c.id)) {
+          const lastDate = lastApptByClient[c.id] || 'Nunca agendou'
+          const cPhone = c.getString('phone') || c.getString('whatsapp') || ''
+          inactiveClients60Days.push({
+            name: c.getString('name'),
+            phone: cPhone,
+            lastDate: lastDate,
+          })
+        }
+      }
+
+      // Horários ocupados hoje e amanhã para cálculo de horários livres
+      const todayDateStr = new Date().toISOString().slice(0, 10)
+      const tomorrowDate = new Date(nowTs + 24 * 60 * 60 * 1000)
+      const tomorrowDateStr = tomorrowDate.toISOString().slice(0, 10)
+
+      const busyTomorrow = []
+      const busyToday = []
+      for (const a of appointments) {
+        const d = a.getString('date') ? a.getString('date').slice(0, 10) : ''
+        const st = a.getString('status')
+        if (st === 'CANCELADO') continue
+        const timeSlot = `${a.getString('start_time')} - ${a.getString('end_time')}`
+        const prof = a.getString('professional_id')
+        let pName = 'Geral'
+        for (const pr of professionals) {
+          if (pr.id === prof) {
+            pName = pr.getString('name')
+            break
+          }
+        }
+        if (d === todayDateStr) {
+          busyToday.push(`${timeSlot} (${pName})`)
+        } else if (d === tomorrowDateStr) {
+          busyTomorrow.push(`${timeSlot} (${pName})`)
         }
       }
 
@@ -205,6 +278,40 @@ routerAdd(
         ' (' +
         paidPaymentsCount +
         ' pagamentos confirmados)\n'
+      tenantContext +=
+        'Faturamento dos últimos 7 dias: R$ ' +
+        lastWeekRevenue.toFixed(2) +
+        ' (' +
+        lastWeekPaymentsCount +
+        ' pagamentos recebidos)\n'
+
+      tenantContext +=
+        'Clientes sem retorno há 60 dias ou mais: ' +
+        inactiveClients60Days.length +
+        ' clientes identificados. Exemplos: ' +
+        (inactiveClients60Days.length > 0
+          ? inactiveClients60Days
+              .slice(0, 8)
+              .map((ic) => `${ic.name} (último: ${ic.lastDate}${ic.phone ? ', ' + ic.phone : ''})`)
+              .join('; ')
+          : 'Nenhum no momento') +
+        '\n'
+
+      tenantContext +=
+        'Horários ocupados hoje (' +
+        todayDateStr +
+        '): ' +
+        (busyToday.length > 0 ? busyToday.join(', ') : 'Agenda totalmente livre hoje') +
+        '\n'
+
+      tenantContext +=
+        'Horários ocupados amanhã (' +
+        tomorrowDateStr +
+        '): ' +
+        (busyTomorrow.length > 0 ? busyTomorrow.join(', ') : 'Agenda totalmente livre amanhã') +
+        '\n'
+      tenantContext +=
+        'Dica de horários livres: O horário comercial padrão da empresa opera tipicamente das 08:00 às 18:00. Use os horários ocupados acima para indicar onde há brechas e disponibilidade exata por profissional.\n'
       tenantContext +=
         'Serviços cadastrados: ' + (serviceNames.length ? serviceNames.join(', ') : 'Nenhum') + '\n'
       tenantContext +=

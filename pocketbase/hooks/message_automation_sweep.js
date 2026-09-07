@@ -1,8 +1,9 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Cron job running every 15 minutes to sweep upcoming appointments and send automated messages
-// 1. D-1 (Tomorrow): send confirmation request with public link
+// Cron job running every 15 minutes to sweep upcoming appointments and send automated messages:
+// 1. D-1 (Tomorrow / 24h antes): send confirmation request with public link
 // 2. D-0 (Today): send day reminder
+// 3. Post-service feedback: send feedback/evaluation message to completed appointments
 cronAdd('message_automation_sweep', '*/15 * * * *', () => {
   try {
     const siteUrl = $os.getenv('SITE_URL') || 'https://contekagenda.com.br'
@@ -45,6 +46,10 @@ cronAdd('message_automation_sweep', '*/15 * * * *', () => {
       const templateReminder =
         bs.getString('template_day_reminder') ||
         'Olá, {{nome_paciente}}! Passando para lembrar do seu atendimento de {{servico}} HOJE, às {{hora}}, na {{empresa}} com {{nome_profissional}}. Qualquer dúvida, estamos à disposição!'
+
+      const templateFeedback =
+        bs.getString('template_feedback_request') ||
+        'Olá, {{nome_paciente}}! Agradecemos por ter estado conosco na {{empresa}} hoje no atendimento de {{servico}} com {{nome_profissional}}. Conte para nós como foi sua experiência! Sua avaliação é fundamental para nós.'
 
       // 1. Process D-1 (Tomorrow's appointments for CONFIRMATION_REQUEST)
       // Must be status AGENDADO and not yet sent CONFIRMATION_REQUEST
@@ -304,6 +309,128 @@ cronAdd('message_automation_sweep', '*/15 * * * *', () => {
         }
       } catch (errToday) {
         console.error('[Sweep Cron D-0] Error querying today appointments:', errToday)
+      }
+
+      // 3. Process Completed Appointments for FEEDBACK_REQUEST (pós-atendimento)
+      try {
+        const completedFilter = `organization_id = "${orgId}" && status = "CONCLUÍDO" && date <= "${todayStr} 23:59:59.999Z"`
+        const completedAppts = $app.findRecordsByFilter(
+          'appointments',
+          completedFilter,
+          '-date,-end_time',
+          50,
+          0,
+        )
+
+        for (const appt of completedAppts) {
+          let sentMap = {}
+          try {
+            const raw = appt.get('notifications_sent')
+            if (raw && typeof raw === 'object') sentMap = raw
+          } catch (_) {}
+
+          if (sentMap['FEEDBACK_REQUEST']) continue
+
+          let cName = appt.getString('client_name_snapshot')
+          let cPhone = appt.getString('client_phone_snapshot')
+          const clientId = appt.getString('client_id')
+          if (clientId) {
+            try {
+              const client = $app.findRecordById('clients', clientId)
+              if (!cName) cName = client.getString('name')
+              if (!cPhone) cPhone = client.getString('phone') || client.getString('whatsapp')
+            } catch (_) {}
+          }
+
+          if (!cPhone) continue
+
+          let profName = ''
+          const profId = appt.getString('professional_id')
+          if (profId) {
+            try {
+              const prof = $app.findRecordById('professionals', profId)
+              profName = prof.getString('name')
+            } catch (_) {}
+          }
+
+          let servName = ''
+          const servId = appt.getString('service_id')
+          if (servId) {
+            try {
+              const serv = $app.findRecordById('services', servId)
+              servName = serv.getString('name')
+            } catch (_) {}
+          }
+
+          const rawDate = appt.getString('date')
+          let dateFormatted = todayStr
+          if (rawDate && rawDate.length >= 10) {
+            const parts = rawDate.slice(0, 10).split('-')
+            if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`
+          }
+
+          const messageText = templateFeedback
+            .replace(/{{nome_paciente}}/g, cName || 'Cliente')
+            .replace(/{{nome_profissional}}/g, profName || 'Profissional')
+            .replace(/{{servico}}/g, servName || 'Atendimento')
+            .replace(/{{data}}/g, dateFormatted)
+            .replace(/{{hora}}/g, appt.getString('start_time'))
+            .replace(/{{empresa}}/g, orgName)
+
+          const cleanPhone = (cPhone || '').replace(/\D/g, '')
+          let logStatus = 'PENDING_NO_CREDENTIALS'
+
+          if (defaultAccessToken && defaultPhoneId && cleanPhone) {
+            try {
+              const metaUrl = `https://graph.facebook.com/v21.0/${defaultPhoneId}/messages`
+              const metaRes = $http.send({
+                url: metaUrl,
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${defaultAccessToken}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  messaging_product: 'whatsapp',
+                  recipient_type: 'individual',
+                  to: cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`,
+                  type: 'text',
+                  text: { preview_url: false, body: messageText },
+                }),
+                timeout: 10,
+              })
+              if (metaRes.statusCode >= 200 && metaRes.statusCode < 300) {
+                logStatus = 'SENT'
+              } else {
+                logStatus = 'FAILED'
+              }
+            } catch (errSend) {
+              logStatus = 'FAILED'
+            }
+          }
+
+          try {
+            const notifLogsCol = $app.findCollectionByNameOrId('notification_logs')
+            const logRecord = new Record(notifLogsCol)
+            logRecord.set('organization_id', orgId)
+            logRecord.set('appointment_id', appt.id)
+            logRecord.set('type', 'FEEDBACK_REQUEST')
+            logRecord.set('channel', 'WHATSAPP_AUTO')
+            logRecord.set('status', logStatus)
+            logRecord.set('recipient_phone', cPhone)
+            logRecord.set('recipient_name', cName)
+            logRecord.set('message_text', messageText)
+            $app.save(logRecord)
+
+            sentMap['FEEDBACK_REQUEST'] = new Date().toISOString()
+            appt.set('notifications_sent', sentMap)
+            $app.save(appt)
+          } catch (errSave) {
+            console.error('[Sweep Cron Feedback] Error recording feedback log:', errSave)
+          }
+        }
+      } catch (errFeedback) {
+        console.error('[Sweep Cron Feedback] Error querying completed appointments:', errFeedback)
       }
     }
   } catch (errGlobal) {
