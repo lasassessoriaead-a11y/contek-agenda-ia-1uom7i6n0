@@ -134,6 +134,11 @@ export const FinanceiroContek: React.FC = () => {
   const [subActionNotes, setSubActionNotes] = useState<string>('')
   const [submittingSubAction, setSubmittingSubAction] = useState(false)
 
+  // Pix Automático Woovi
+  const [enrollingSubId, setEnrollingSubId] = useState<string | null>(null)
+  const [viewingPixAutoSub, setViewingPixAutoSub] = useState<ContekSubscriptionItem | null>(null)
+  const [copiedPixAutoLink, setCopiedPixAutoLink] = useState(false)
+
   // Executar sweep manual de vencimentos
   const [runningSweep, setRunningSweep] = useState(false)
 
@@ -506,6 +511,59 @@ export const FinanceiroContek: React.FC = () => {
     setCopiedPix(true)
     toast.success('Código Pix copiado!')
     setTimeout(() => setCopiedPix(false), 2500)
+  }
+
+  // Ativar / Inscrever empresa no Pix Automático da Woovi
+  const handleEnrollPixAutomatic = async (
+    sub: ContekSubscriptionItem,
+    journey: 'ONLY_RECURRENCY' | 'PAYMENT_ON_APPROVAL' = 'ONLY_RECURRENCY',
+  ) => {
+    setEnrollingSubId(sub.id)
+    try {
+      const res = await pb.send<{
+        success: boolean
+        message?: string
+        error?: string
+        subscription?: Partial<ContekSubscriptionItem>
+      }>('/backend/v1/superadmin/finance/subscription/enroll-pix-automatic', {
+        method: 'POST',
+        body: {
+          subscription_id: sub.id,
+          journey,
+        },
+      })
+
+      if (res.success) {
+        toast.success(res.message || 'Pix Automático gerado com sucesso!')
+        await loadData()
+
+        const updatedSub: ContekSubscriptionItem = {
+          ...sub,
+          recurring_status: 'PENDING_AUTHORIZATION',
+          recurring_journey: journey,
+          recurring_link: res.subscription?.recurring_link || sub.recurring_link,
+          recurring_emv: res.subscription?.recurring_emv || sub.recurring_emv,
+          recurring_correlation_id:
+            res.subscription?.recurring_correlation_id || sub.recurring_correlation_id,
+        }
+        setViewingPixAutoSub(updatedSub)
+      } else {
+        toast.error(res.error || 'Não foi possível gerar a autorização do Pix Automático.')
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      toast.error('Erro ao conectar com a Woovi para o Pix Automático.')
+    } finally {
+      setEnrollingSubId(null)
+    }
+  }
+
+  // Copiar link de autorização do Pix Automático
+  const handleCopyPixAutoLink = (link: string) => {
+    navigator.clipboard.writeText(link)
+    setCopiedPixAutoLink(true)
+    toast.success('Link de autorização copiado!')
+    setTimeout(() => setCopiedPixAutoLink(false), 2500)
   }
 
   // Conectar webhook da Woovi automaticamente
@@ -1180,6 +1238,140 @@ export const FinanceiroContek: React.FC = () => {
           </CardContent>
         </Card>
 
+        {/* MODAL: PIX AUTOMÁTICO (LINK & QR CODE DE AUTORIZAÇÃO) */}
+        <Dialog
+          open={Boolean(viewingPixAutoSub)}
+          onOpenChange={(open) => !open && setViewingPixAutoSub(null)}
+        >
+          <DialogContent className="max-w-md bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-[#0D1B2A] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-cyan-600" />
+                Autorização do Pix Automático
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600">
+                Empresa: <strong>{viewingPixAutoSub?.organization_name}</strong> • Valor mensal:{' '}
+                <strong className="text-emerald-700">
+                  {formatMoney(viewingPixAutoSub?.plan_price)}/mês
+                </strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 pt-2">
+              <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-xs text-cyan-950 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-cyan-600" />
+                  Como funciona a ativação:
+                </p>
+                <p className="text-[11px] text-cyan-800 leading-relaxed">
+                  O cliente (ou o administrador da conta bancária da empresa) abre o link ou lê o QR
+                  Code apenas <strong>UMA vez</strong> no celular/navegador para autorizar o débito
+                  recorrente. A partir da confirmação, as próximas cobranças mensais são debitadas
+                  automaticamente.
+                </p>
+              </div>
+
+              {/* QR Code de Autorização */}
+              {viewingPixAutoSub?.recurring_link && (
+                <div className="flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                  <div className="w-48 h-48 bg-white border border-slate-300 rounded-lg p-2 flex items-center justify-center shadow-xs">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                        viewingPixAutoSub.recurring_link,
+                      )}`}
+                      alt="QR Code de Autorização Pix Automático"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <span className="text-[11px] text-slate-500 mt-2 font-medium">
+                    Aponte a câmera para abrir o link de autorização
+                  </span>
+                </div>
+              )}
+
+              {/* Link de Autorização Copiável */}
+              {viewingPixAutoSub?.recurring_link && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Link Direto de Autorização</span>
+                    {copiedPixAutoLink && (
+                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Copiado!
+                      </span>
+                    )}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={viewingPixAutoSub.recurring_link}
+                      className="text-[11px] font-mono bg-slate-50 border-slate-200 h-9"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleCopyPixAutoLink(viewingPixAutoSub.recurring_link || '')}
+                      className={`shrink-0 ${
+                        copiedPixAutoLink
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          : 'bg-[#0D1B2A] hover:bg-[#1E3A8A] text-white'
+                      }`}
+                    >
+                      {copiedPixAutoLink ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Pix Copia e Cola (caso a Woovi retorne emv do mandato) */}
+              {viewingPixAutoSub?.recurring_emv && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700">
+                    Código Pix Copia e Cola do Mandato
+                  </Label>
+                  <Textarea
+                    readOnly
+                    value={viewingPixAutoSub.recurring_emv}
+                    rows={2}
+                    className="text-[10px] font-mono bg-slate-50 border-slate-200 resize-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingPixAutoSub(null)}
+                className="text-xs"
+              >
+                Fechar
+              </Button>
+              {viewingPixAutoSub?.recurring_link && (
+                <Button
+                  type="button"
+                  size="sm"
+                  asChild
+                  className="text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-semibold"
+                >
+                  <a
+                    href={viewingPixAutoSub.recurring_link}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    Abrir Autorização ↗
+                  </a>
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* MODAL: QR CODE E PIX COPIA E COLA */}
         <Dialog
           open={Boolean(viewingPixCharge)}
@@ -1682,6 +1874,9 @@ export const FinanceiroContek: React.FC = () => {
                   canceled: 'bg-slate-100 text-slate-600 border-slate-200',
                 }
 
+                const recStatus = sub.recurring_status || 'NOT_ENROLLED'
+                const isEnrolling = enrollingSubId === sub.id
+
                 return (
                   <Card
                     key={sub.id}
@@ -1710,11 +1905,25 @@ export const FinanceiroContek: React.FC = () => {
                           </CardDescription>
                         </div>
 
-                        <Badge
-                          className={`text-[10px] font-semibold ${subStatusBadge[sub.status] || ''}`}
-                        >
-                          {sub.status.toUpperCase()}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge
+                            className={`text-[10px] font-semibold ${subStatusBadge[sub.status] || ''}`}
+                          >
+                            {sub.status.toUpperCase()}
+                          </Badge>
+                          {recStatus === 'ACTIVE' && (
+                            <Badge className="bg-emerald-500 text-white text-[9px] font-bold py-0 px-1.5 flex items-center gap-0.5">
+                              <Sparkles className="w-2.5 h-2.5" />
+                              PIX AUTO ATIVO
+                            </Badge>
+                          )}
+                          {recStatus === 'PENDING_AUTHORIZATION' && (
+                            <Badge className="bg-amber-500 text-white text-[9px] font-bold py-0 px-1.5 flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              AGUARDANDO AUTORIZAÇÃO
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </CardHeader>
 
@@ -1763,6 +1972,94 @@ export const FinanceiroContek: React.FC = () => {
                           </Badge>
                         </div>
                       )}
+
+                      {/* Seção Pix Automático Woovi */}
+                      <div className="p-2.5 rounded-lg border bg-gradient-to-r from-slate-50 to-cyan-50/40 border-cyan-200/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-[#0D1B2A] flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-cyan-600" />
+                            Pix Automático Woovi (Recorrente)
+                          </span>
+                          {recStatus === 'ACTIVE' ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                              ● Ativa
+                            </span>
+                          ) : recStatus === 'PENDING_AUTHORIZATION' ? (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                              ● Aguardando autorização
+                            </span>
+                          ) : recStatus === 'REJECTED' ? (
+                            <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">
+                              ● Recusada
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded">
+                              Não inscrita
+                            </span>
+                          )}
+                        </div>
+
+                        {recStatus === 'ACTIVE' ? (
+                          <div className="text-[11px] text-emerald-800 space-y-1">
+                            <p>
+                              Cobrança mensal no débito programado no valor de{' '}
+                              <strong>{formatMoney(sub.plan_price)}</strong>.
+                            </p>
+                            {sub.recurring_authorized_at && (
+                              <p className="text-[10px] text-slate-500">
+                                Autorizado em: {formatDate(sub.recurring_authorized_at)}
+                              </p>
+                            )}
+                          </div>
+                        ) : recStatus === 'PENDING_AUTHORIZATION' ? (
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] text-amber-900 leading-tight">
+                              Mandato gerado! Envie o link ou abra para autorizar a recorrência
+                              mensal.
+                            </p>
+                            <div className="flex items-center gap-1.5 pt-0.5">
+                              {sub.recurring_link && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setViewingPixAutoSub(sub)}
+                                  className="h-6 px-2 text-[10px] border-amber-300 bg-amber-100/60 text-amber-950 font-semibold"
+                                >
+                                  <QrCode className="w-3 h-3 mr-1 text-amber-800" />
+                                  Ver Link / QR de Autorização
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={isEnrolling}
+                                onClick={() => handleEnrollPixAutomatic(sub)}
+                                className="h-6 px-2 text-[10px] text-slate-600 hover:text-slate-900"
+                              >
+                                {isEnrolling ? 'Regerando...' : 'Regerar Mandato'}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] text-slate-600 leading-tight">
+                              Gera o mandato de autorização na Woovi. O titular confirma uma vez e
+                              os débitos ocorrem automaticamente todo mês.
+                            </p>
+                            <Button
+                              size="sm"
+                              disabled={isEnrolling}
+                              onClick={() => handleEnrollPixAutomatic(sub)}
+                              className="h-7 px-2.5 text-[11px] bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 text-white font-bold shadow-xs"
+                            >
+                              <Sparkles
+                                className={`w-3 h-3 mr-1 ${isEnrolling ? 'animate-spin' : ''}`}
+                              />
+                              {isEnrolling ? 'Gerando na Woovi...' : 'Ativar Pix Automático'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Botões de Ação na Assinatura */}
                       <div className="pt-1 flex flex-wrap items-center gap-1.5">

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T23:19:54.252Z",
+  "generatedAt": "2026-09-07T23:33:46.897Z",
   "collections": [
     {
       "name": "users",
@@ -1228,11 +1228,62 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "recurring_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "NOT_ENROLLED",
+            "PENDING_AUTHORIZATION",
+            "ACTIVE",
+            "CANCELED",
+            "REJECTED"
+          ]
+        },
+        {
+          "name": "recurring_journey",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurring_link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurring_emv",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurring_correlation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurring_subscription_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurring_authorized_at",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_subscriptions_org ON subscriptions (organization_id)",
-        "CREATE INDEX idx_subscriptions_status ON subscriptions (status)"
+        "CREATE INDEX idx_subscriptions_status ON subscriptions (status)",
+        "CREATE INDEX `idx_subscriptions_rec_corr` ON `subscriptions` (recurring_correlation_id)",
+        "CREATE INDEX `idx_subscriptions_rec_status` ON `subscriptions` (recurring_status)"
       ]
     },
     {

@@ -56,6 +56,12 @@ export interface Plan {
 }
 
 export type SubscriptionStatus = 'trial' | 'active' | 'overdue' | 'canceled'
+export type PixAutomaticStatus =
+  | 'NOT_ENROLLED'
+  | 'PENDING_AUTHORIZATION'
+  | 'ACTIVE'
+  | 'CANCELED'
+  | 'REJECTED'
 
 export interface Subscription {
   id: string
@@ -67,6 +73,13 @@ export interface Subscription {
   current_period_ends_at?: string
   canceled_at?: string
   notes?: string
+  recurring_status?: PixAutomaticStatus
+  recurring_journey?: string
+  recurring_link?: string
+  recurring_emv?: string
+  recurring_correlation_id?: string
+  recurring_subscription_id?: string
+  recurring_authorized_at?: string
   history?: Array<{
     date: string
     action: string
@@ -296,6 +309,13 @@ export interface ContekSubscriptionItem {
   current_period_ends_at?: string
   canceled_at?: string
   notes?: string
+  recurring_status?: PixAutomaticStatus
+  recurring_journey?: string
+  recurring_link?: string
+  recurring_emv?: string
+  recurring_correlation_id?: string
+  recurring_subscription_id?: string
+  recurring_authorized_at?: string
   history?: Array<{
     date: string
     action: string
