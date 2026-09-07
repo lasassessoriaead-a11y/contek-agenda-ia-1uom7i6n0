@@ -1641,8 +1641,8 @@ export const Agenda: React.FC = () => {
                 {isEditing ? 'Editar / Remarcar Agendamento' : 'Novo Agendamento'}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500">
-                Preencha os detalhes do atendimento. Validação de conflitos e isolamento
-                multi-tenant são aplicados.
+                Preencha os dados do atendimento. O sistema verifica automaticamente a
+                disponibilidade de horários.
               </DialogDescription>
             </DialogHeader>
 

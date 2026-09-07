@@ -282,12 +282,11 @@ export const AssistenteIa: React.FC = () => {
           <div className="flex items-center gap-2 min-w-0">
             <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span className="truncate sm:whitespace-normal">
-              Arquitetura preparada para IA nativa Skip Cloud com RAG multi-tenant e ferramentas
-              analíticas.
+              Inteligência Artificial conectada em tempo real com os dados da sua empresa.
             </span>
           </div>
           <Badge className="bg-emerald-950 text-emerald-400 border-emerald-800 text-[10px] shrink-0">
-            Fast Tier
+            Ativo
           </Badge>
         </div>
 

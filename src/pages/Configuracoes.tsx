@@ -350,8 +350,8 @@ export const Configuracoes: React.FC = () => {
             Configurações da Empresa
           </h1>
           <p className="text-xs text-slate-500">
-            Gerencie os dados cadastrais, horários de funcionamento, mensagens automáticas e regras
-            multi-tenant.
+            Gerencie os dados cadastrais, horários de funcionamento, mensagens automáticas e
+            configurações da sua conta.
           </p>
         </div>
 
@@ -441,7 +441,7 @@ export const Configuracoes: React.FC = () => {
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-700">
-                      Slug da Página Pública (/agendar/:slug) *
+                      Identificador do Link Público (/agendar/seu-nome) *
                     </Label>
                     <Input
                       value={slug}

@@ -39,7 +39,7 @@ import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
 import { ContekSymbol } from '@/components/ContekBranding'
 
-export const Layout: React.FC = () => {
+export const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { user, organization, logout, isSuperAdmin, hasFeature, branding, currentProduct } =
     useAuth()
   const navigate = useNavigate()
@@ -771,7 +771,7 @@ export const Layout: React.FC = () => {
               : 'overflow-y-auto pb-20 md:pb-8 p-4 sm:p-6 lg:p-8',
           )}
         >
-          <Outlet />
+          {children ? children : <Outlet />}
         </main>
       </div>
 

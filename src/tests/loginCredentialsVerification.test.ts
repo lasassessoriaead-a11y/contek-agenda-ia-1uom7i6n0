@@ -63,4 +63,11 @@ describe('Login Credentials and Form Pre-fill Verification', () => {
     expect(loginSource).toContain('Entrar no MARKALY')
     expect(loginSource).toContain('Entrar no AGYLI')
   })
+
+  it('guarantees credential link from emails forces login screen even if user is logged in', () => {
+    // 1. Verifica flag hasCredentialParams
+    expect(loginSource).toContain('hasCredentialParams')
+    // 2. Garante que se user estiver logado mas hasCredentialParams for verdadeiro, NÃO pula direto
+    expect(loginSource).toContain('user && !hasCredentialParams')
+  })
 })

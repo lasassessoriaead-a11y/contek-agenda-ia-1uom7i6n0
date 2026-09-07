@@ -44,20 +44,24 @@ export const Login: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  // Se o usuário já estiver autenticado, redireciona para o destino padrão dele
+  const brandParam = searchParams.get('brand')?.toLowerCase()
+  const orgParam = searchParams.get('org')?.trim()
+  const emailParam = searchParams.get('email')?.trim()
+
+  // Se o link contiver parâmetros de credenciais/marca/e-mail de ativação (ex: vindos de e-mail),
+  // NUNCA pular direto para dentro: força a exibição da tela de login da marca certa.
+  // Somente se for acesso direto à rota /login sem nenhum desses parâmetros é que redireciona o usuário já logado.
+  const hasCredentialParams = Boolean(brandParam || orgParam || emailParam)
+
   useEffect(() => {
-    if (user) {
+    if (user && !hasCredentialParams) {
       if (isSuperAdmin) {
         navigate('/contek', { replace: true })
       } else {
         navigate('/', { replace: true })
       }
     }
-  }, [user, isSuperAdmin, navigate])
-
-  const brandParam = searchParams.get('brand')?.toLowerCase()
-  const orgParam = searchParams.get('org')?.trim()
-  const emailParam = searchParams.get('email')?.trim()
+  }, [user, isSuperAdmin, navigate, hasCredentialParams])
 
   // Detect initial product preference from query param, then domain, or fallback to agyli
   const initialDetectedProduct =
@@ -66,6 +70,26 @@ export const Login: React.FC = () => {
       : typeof window !== 'undefined'
         ? resolveProductByDomain(window.location.hostname, 'agyli')
         : 'agyli'
+
+  const tabParam = searchParams.get('tab')?.toLowerCase()
+  const initialTab =
+    tabParam === 'signup' || tabParam === 'criar-empresa' || tabParam === 'cadastro'
+      ? 'signup'
+      : tabParam === 'manual'
+        ? 'manual'
+        : 'login'
+
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'manual'>(initialTab)
+
+  useEffect(() => {
+    if (tabParam === 'signup' || tabParam === 'criar-empresa' || tabParam === 'cadastro') {
+      setActiveTab('signup')
+    } else if (tabParam === 'manual') {
+      setActiveTab('manual')
+    } else if (tabParam === 'login') {
+      setActiveTab('login')
+    }
+  }, [tabParam])
 
   const [activeBrand, setActiveBrand] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
 
@@ -564,7 +588,12 @@ export const Login: React.FC = () => {
               : 'border-slate-800 bg-[#1E293B]/95 text-slate-100'
           }`}
         >
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as 'login' | 'signup' | 'manual')}
+            defaultValue="login"
+            className="w-full"
+          >
             <CardHeader className="pb-3 pt-5">
               <TabsList
                 className={`grid w-full grid-cols-3 p-1 rounded-xl border ${

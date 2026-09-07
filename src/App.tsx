@@ -20,6 +20,7 @@ import AgendamentoPublico from '@/pages/AgendamentoPublico'
 import ConfirmacaoPublica from '@/pages/ConfirmacaoPublica'
 import { FeatureGate, SuperAdminRoute } from '@/components/FeatureGate'
 import SuperAdminLayout from '@/components/SuperAdminLayout'
+import Index from '@/pages/Index'
 import NotFound from '@/pages/NotFound'
 import { Toaster } from '@/components/ui/sonner'
 
@@ -53,21 +54,47 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 }
 
 const RootRoute: React.FC = () => {
-  const { isSuperAdmin, organization } = useAuth()
+  const { user, loading, isSuperAdmin, organization } = useAuth()
 
-  // Se o usuário logado for SuperAdmin (ex.: Luciana da Contek):
+  // Enquanto verifica o estado da sessão
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-slate-100 flex items-center justify-center p-4 font-['Poppins',sans-serif]">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-[#3B82F6] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs text-slate-400 font-medium">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // 1. Visitante deslogado na raiz (/): exibe a Landing Page de vendas pública
+  // Apresentação dos dois produtos (AGYLI e MARKALY), preços, 7 dias grátis e chancela Grupo CONTEK.
+  if (!user) {
+    return <Index />
+  }
+
+  // 2. Se o usuário logado for SuperAdmin (ex.: equipe Contek):
   // Se tiver selecionado uma empresa ativa (organization carregada via contek_active_org_id),
   // exibe o painel operacional daquela empresa (Dashboard).
   // Caso contrário, sem empresa ativa selecionada, vai para a Central Contek (/contek).
   if (isSuperAdmin) {
     if (organization) {
-      return <Dashboard />
+      return (
+        <Layout>
+          <Dashboard />
+        </Layout>
+      )
     }
     return <Navigate to="/contek" replace />
   }
 
-  // Clientes comuns logados: exibem o painel da própria empresa (Dashboard)
-  return <Dashboard />
+  // 3. Clientes comuns autenticados: exibem o painel da própria empresa (Dashboard dentro de Layout)
+  return (
+    <Layout>
+      <Dashboard />
+    </Layout>
+  )
 }
 
 export function App() {
@@ -102,16 +129,19 @@ export function App() {
             }
           />
 
+          {/* Rota Raiz (/) pública para visitantes deslogados (Landing Page de Vendas) e painel para logados */}
+          <Route path="/" element={<RootRoute />} />
+
           {/* Protected Internal Routes */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
                 <Layout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<RootRoute />} />
+            {/* Mantém compatibilidade com Route index de subrotas se acessado */}
+            <Route path="/painel" element={<Dashboard />} />
             <Route path="agenda" element={<Agenda />} />
             <Route path="clientes" element={<Clientes />} />
             <Route path="profissionais" element={<Profissionais />} />

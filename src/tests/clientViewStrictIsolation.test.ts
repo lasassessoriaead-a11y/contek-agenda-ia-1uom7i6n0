@@ -306,7 +306,7 @@ describe('Isolamento Estrito de Painel de Cliente vs Central Contek SuperAdmin',
       expect(appSource).toContain('RootRoute')
       expect(appSource).toContain('if (isSuperAdmin) {')
       expect(appSource).toContain('to="/contek"')
-      expect(appSource).toContain('<Route index element={<RootRoute />} />')
+      expect(appSource).toContain('<Route path="/" element={<RootRoute />} />')
     })
 
     it('(e) simulação completa do logout() com window.location.replace e sessionStorage contra corrida de rotas', () => {
