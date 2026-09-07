@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-07T16:41:16.546Z",
+  "generatedAt": "2026-09-07T18:30:03.074Z",
   "collections": [
     {
       "name": "users",
@@ -1311,13 +1311,38 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "pix_brcode",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pix_qrcode_image",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "correlation_id",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "woovi_charge_id",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_contek_charges_org ON contek_charges (organization_id)",
         "CREATE INDEX idx_contek_charges_status ON contek_charges (status)",
         "CREATE INDEX idx_contek_charges_due_date ON contek_charges (due_date)",
-        "CREATE INDEX idx_contek_charges_sub ON contek_charges (subscription_id)"
+        "CREATE INDEX idx_contek_charges_sub ON contek_charges (subscription_id)",
+        "CREATE INDEX `idx_contek_charges_correlation_id` ON `contek_charges` (correlation_id)"
       ]
     }
   ]

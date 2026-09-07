@@ -271,6 +271,10 @@ export interface ContekCharge {
   payment_method?: ContekPaymentMethod
   paid_at?: string
   notes?: string
+  pix_brcode?: string
+  pix_qrcode_image?: string
+  correlation_id?: string
+  woovi_charge_id?: string
   created: string
   updated: string
 }
@@ -312,6 +316,7 @@ export interface ContekFinanceOverviewResponse {
     subscriptions_overdue: number
     total_subscriptions: number
     total_charges: number
+    woovi_configured?: boolean
   }
   charges: ContekCharge[]
   subscriptions: ContekSubscriptionItem[]

@@ -62,6 +62,10 @@ import {
   Send,
   Zap,
   Users,
+  QrCode,
+  Copy,
+  Check,
+  ExternalLink,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -90,6 +94,14 @@ export const FinanceiroContek: React.FC = () => {
   const [generateTargetMonth, setGenerateTargetMonth] = useState(() => {
     return new Date().toISOString().slice(0, 7) // YYYY-MM
   })
+
+  // Modal de Visualização do Pix (QR Code + Copia e Cola)
+  const [viewingPixCharge, setViewingPixCharge] = useState<ContekCharge | null>(null)
+  const [copiedPix, setCopiedPix] = useState(false)
+  const [generatingPixId, setGeneratingPixId] = useState<string | null>(null)
+
+  // Auto setup do webhook da Woovi
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false)
 
   // Modal de Marcar como Paga
   const [payingCharge, setPayingCharge] = useState<ContekCharge | null>(null)
@@ -443,6 +455,80 @@ export const FinanceiroContek: React.FC = () => {
     }
   }
 
+  // Gerar Pix avulso por cobrança
+  const handleGeneratePixForCharge = async (charge: ContekCharge) => {
+    setGeneratingPixId(charge.id)
+    try {
+      const res = await pb.send<{
+        success: boolean
+        message?: string
+        error?: string
+        charge?: {
+          id: string
+          pix_brcode?: string
+          pix_qrcode_image?: string
+        }
+      }>('/backend/v1/superadmin/finance/charge/pix', {
+        method: 'POST',
+        body: { id: charge.id },
+      })
+
+      if (res.success) {
+        toast.success(res.message || 'Código Pix gerado com sucesso!')
+        await loadData()
+        // Abrir automaticamente o modal do Pix gerado
+        if (res.charge?.pix_brcode) {
+          setViewingPixCharge({
+            ...charge,
+            pix_brcode: res.charge.pix_brcode,
+            pix_qrcode_image: res.charge.pix_qrcode_image,
+          })
+        }
+      } else {
+        toast.error(
+          res.error ||
+            'Não foi possível gerar o Pix agora. A cobrança continua disponível em modo manual.',
+        )
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      toast.error(
+        'Não foi possível gerar o Pix agora — a cobrança segue em modo manual. Verifique a chave da Woovi caso necessário.',
+      )
+    } finally {
+      setGeneratingPixId(null)
+    }
+  }
+
+  // Copiar código Pix Copia e Cola
+  const handleCopyPixCode = (code: string) => {
+    navigator.clipboard.writeText(code)
+    setCopiedPix(true)
+    toast.success('Código Pix copiado!')
+    setTimeout(() => setCopiedPix(false), 2500)
+  }
+
+  // Conectar webhook da Woovi automaticamente
+  const handleSetupWebhook = async () => {
+    setSettingUpWebhook(true)
+    try {
+      const res = await pb.send<{ success: boolean; message?: string; error?: string }>(
+        '/backend/v1/superadmin/finance/woovi/setup-webhook',
+        { method: 'POST' },
+      )
+      if (res.success) {
+        toast.success(res.message || 'Webhook configurado na Woovi com sucesso!')
+      } else {
+        toast.error(res.error || 'Falha ao configurar webhook na Woovi.')
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      toast.error('Erro ao conectar webhook da Woovi.')
+    } finally {
+      setSettingUpWebhook(false)
+    }
+  }
+
   // Formatação de valores e datas
   const formatMoney = (val?: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
@@ -494,6 +580,29 @@ export const FinanceiroContek: React.FC = () => {
           </div>
 
           <div className="relative z-10 flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSetupWebhook}
+                  disabled={settingUpWebhook}
+                  className="border-emerald-600/40 text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/50 text-xs font-semibold"
+                >
+                  <Sparkles
+                    className={`w-3.5 h-3.5 mr-1.5 text-emerald-400 ${settingUpWebhook ? 'animate-spin' : ''}`}
+                  />
+                  {settingUpWebhook ? 'Conectando...' : 'Conectar Webhook Woovi'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  Registra automaticamente o endpoint de confirmação na Woovi para baixa automática
+                  quando o Pix cair.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+
             <Button
               variant="outline"
               size="sm"
@@ -924,7 +1033,7 @@ export const FinanceiroContek: React.FC = () => {
                           </Badge>
                         </TableCell>
 
-                        {/* Pagamento */}
+                        {/* Pagamento & Pix */}
                         <TableCell className="py-3 text-xs">
                           {charge.status === 'PAGA' ? (
                             <div>
@@ -936,8 +1045,23 @@ export const FinanceiroContek: React.FC = () => {
                                 em {formatDate(charge.paid_at)}
                               </div>
                             </div>
+                          ) : charge.pix_brcode ? (
+                            <div className="space-y-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setViewingPixCharge(charge)
+                                  setCopiedPix(false)
+                                }}
+                                className="h-6 px-2 text-[11px] border-cyan-300 text-cyan-800 bg-cyan-50 hover:bg-cyan-100 font-semibold"
+                              >
+                                <QrCode className="w-3 h-3 mr-1 text-cyan-700" />
+                                Ver QR Code Pix
+                              </Button>
+                            </div>
                           ) : (
-                            <span className="text-slate-400 text-[11px]">—</span>
+                            <span className="text-slate-400 text-[11px]">Modo manual</span>
                           )}
                         </TableCell>
 
@@ -945,24 +1069,71 @@ export const FinanceiroContek: React.FC = () => {
                         <TableCell className="py-3 text-right">
                           <div className="inline-flex items-center gap-1.5">
                             {charge.status !== 'PAGA' && charge.status !== 'CANCELADA' && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => handleOpenPayModal(charge)}
-                                    className="h-7 px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
-                                  >
-                                    <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-                                    Marcar como Paga
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    Registrar pagamento, forma de pagamento e atualizar vigência da
-                                    assinatura
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <>
+                                {/* Botão para Gerar ou Ver Pix */}
+                                {charge.pix_brcode ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setViewingPixCharge(charge)
+                                          setCopiedPix(false)
+                                        }}
+                                        className="h-7 px-2 text-xs font-semibold border-cyan-400 text-cyan-900 bg-cyan-50 hover:bg-cyan-100"
+                                      >
+                                        <QrCode className="w-3.5 h-3.5 mr-1 text-cyan-700" />
+                                        Pix
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Exibir QR Code e código Pix copia e cola</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={generatingPixId === charge.id}
+                                        onClick={() => handleGeneratePixForCharge(charge)}
+                                        className="h-7 px-2 text-xs font-semibold border-cyan-300 text-cyan-800 hover:bg-cyan-50"
+                                      >
+                                        <QrCode
+                                          className={`w-3.5 h-3.5 mr-1 text-cyan-600 ${generatingPixId === charge.id ? 'animate-spin' : ''}`}
+                                        />
+                                        {generatingPixId === charge.id ? 'Gerando...' : 'Gerar Pix'}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        Criar cobrança Pix via API da Woovi com QR Code e Copia e
+                                        Cola
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleOpenPayModal(charge)}
+                                      className="h-7 px-2.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                                    >
+                                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                      Marcar como Paga
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>
+                                      Registrar pagamento manual e atualizar vigência da assinatura
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
                             )}
 
                             <Tooltip>
@@ -1008,6 +1179,139 @@ export const FinanceiroContek: React.FC = () => {
             </Table>
           </CardContent>
         </Card>
+
+        {/* MODAL: QR CODE E PIX COPIA E COLA */}
+        <Dialog
+          open={Boolean(viewingPixCharge)}
+          onOpenChange={(open) => !open && setViewingPixCharge(null)}
+        >
+          <DialogContent className="max-w-md bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-base font-bold text-[#0D1B2A] flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-cyan-600" />
+                Cobrança Pix — Woovi
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-600">
+                Empresa: <strong>{viewingPixCharge?.organization_name}</strong> • Valor:{' '}
+                <strong className="text-emerald-700">
+                  {formatMoney(viewingPixCharge?.amount)}
+                </strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 pt-2">
+              {/* QR Code Imagem ou Renderizador */}
+              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                {viewingPixCharge?.pix_qrcode_image ? (
+                  <img
+                    src={viewingPixCharge.pix_qrcode_image}
+                    alt="QR Code Pix"
+                    className="w-48 h-48 object-contain rounded-lg border border-slate-300 bg-white p-2 shadow-xs"
+                  />
+                ) : viewingPixCharge?.pix_brcode ? (
+                  // Caso retorne brCode sem a URL da imagem da Woovi, usa gerador padrão do backend
+                  <div className="w-48 h-48 bg-white border border-slate-300 rounded-lg p-2 flex items-center justify-center shadow-xs">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                        viewingPixCharge.pix_brcode,
+                      )}`}
+                      alt="QR Code Pix"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-48 h-48 flex items-center justify-center text-xs text-slate-400">
+                    QR Code não disponível
+                  </div>
+                )}
+                <span className="text-[11px] text-slate-500 mt-2 font-medium">
+                  Aponte a câmera do aplicativo do banco para escanear
+                </span>
+              </div>
+
+              {/* Pix Copia e Cola */}
+              {viewingPixCharge?.pix_brcode && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Pix copia e cola</span>
+                    {copiedPix && (
+                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Copiado!
+                      </span>
+                    )}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Textarea
+                      readOnly
+                      value={viewingPixCharge.pix_brcode}
+                      rows={3}
+                      className="text-[11px] font-mono bg-slate-50 border-slate-200 resize-none"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => handleCopyPixCode(viewingPixCharge.pix_brcode || '')}
+                      className={`shrink-0 flex flex-col items-center justify-center h-auto px-3 ${
+                        copiedPix
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                          : 'bg-[#0D1B2A] hover:bg-[#1E3A8A] text-white'
+                      }`}
+                    >
+                      {copiedPix ? (
+                        <>
+                          <Check className="w-4 h-4 mb-0.5" />
+                          <span className="text-[10px] font-bold">Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4 mb-0.5" />
+                          <span className="text-[10px] font-bold">Copiar código</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Informações amigáveis de baixa automática */}
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Baixa Automática Integrada:
+                </p>
+                <p className="text-[11px] text-emerald-800 leading-relaxed">
+                  Assim que o cliente realizar o pagamento pelo Pix no banco, o sistema receberá a
+                  confirmação automática da Woovi e marcará a cobrança como <strong>
+                    Paga
+                  </strong>{' '}
+                  imediatamente, renovando a vigência da assinatura.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingPixCharge(null)}
+                className="text-xs"
+              >
+                Fechar
+              </Button>
+              {viewingPixCharge?.pix_brcode && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => handleCopyPixCode(viewingPixCharge.pix_brcode || '')}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                >
+                  <Copy className="w-3.5 h-3.5 mr-1" />
+                  Copiar código
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* MODAL: GERAR COBRANÇAS DO MÊS */}
         <Dialog open={isGenerateModalOpen} onOpenChange={setIsGenerateModalOpen}>

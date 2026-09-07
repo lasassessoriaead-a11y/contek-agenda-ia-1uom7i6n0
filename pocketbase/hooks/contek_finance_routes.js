@@ -2,15 +2,20 @@
 
 /**
  * Endpoints financeiros exclusivos do SuperAdmin da Contek.
- * Todas as rotas requerem is_super_admin = true.
+ * Todas as rotas de gerenciamento requerem is_super_admin = true.
  *
  * GET  /backend/v1/superadmin/finance/overview
- * POST /backend/v1/superadmin/finance/generate-month
+ * POST /backend/v1/superadmin/finance/generate-month (gera cobranças e cria Pix via Woovi se disponível)
+ * POST /backend/v1/superadmin/finance/charge/pix (gera ou regenera Pix via Woovi para uma cobrança específica)
  * POST /backend/v1/superadmin/finance/charge/save (criar ou editar valor, descrição, vencimento, notas)
- * POST /backend/v1/superadmin/finance/charge/pay (marcar como paga)
+ * POST /backend/v1/superadmin/finance/charge/pay (marcar como paga manualmente)
  * POST /backend/v1/superadmin/finance/charge/cancel (cancelar cobrança)
  * POST /backend/v1/superadmin/finance/subscription/action (ativar manual, estender trial, cancelar)
  * POST /backend/v1/superadmin/finance/run-check (executa manualmente o sweep de vencimentos)
+ * POST /backend/v1/superadmin/finance/woovi/setup-webhook (registra webhook na Woovi automaticamente)
+ *
+ * Rota pública para webhook da Woovi:
+ * POST /backend/v1/public/woovi/webhook (recebe evento de pagamento e marca cobrança como PAGA)
  */
 
 routerAdd(
@@ -131,13 +136,16 @@ routerAdd(
           payment_method: c.getString('payment_method'),
           paid_at: c.getString('paid_at'),
           notes: c.getString('notes'),
+          pix_brcode: c.getString('pix_brcode'),
+          pix_qrcode_image: c.getString('pix_qrcode_image'),
+          correlation_id: c.getString('correlation_id'),
+          woovi_charge_id: c.getString('woovi_charge_id'),
           created: c.getString('created'),
           updated: c.getString('updated'),
         })
       }
 
       // 5. Métricas de Resumo
-      // Receita mensal esperada: soma das mensalidades das assinaturas ativas
       let expectedMonthlyRevenue = 0
       let activeCount = 0
       let trialCount = 0
@@ -154,7 +162,6 @@ routerAdd(
         }
       }
 
-      // Mês corrente (ex.: 2026-09)
       const now = new Date()
       const currentYearMonth = now.toISOString().slice(0, 7) // YYYY-MM
 
@@ -167,7 +174,6 @@ routerAdd(
         const paidYm = (c.paid_at || '').slice(0, 7)
 
         if (c.status === 'PAGA') {
-          // Se foi paga neste mês ou seu vencimento era deste mês
           if (paidYm === currentYearMonth || (!c.paid_at && dueYm === currentYearMonth)) {
             receivedThisMonth += c.amount
           }
@@ -177,6 +183,10 @@ routerAdd(
           pendingChargesAmount += c.amount
         }
       }
+
+      // Checa se a integração Woovi está configurada (chave presente nos secrets)
+      const rawWooviKey = $os.getenv('WOOVI_APP_ID') || ''
+      const hasWooviConfigured = Boolean(rawWooviKey && rawWooviKey.trim().length > 10)
 
       return e.json(200, {
         summary: {
@@ -189,6 +199,7 @@ routerAdd(
           subscriptions_overdue: overdueSubsCount,
           total_subscriptions: subsList.length,
           total_charges: chargesList.length,
+          woovi_configured: hasWooviConfigured,
         },
         charges: chargesList,
         subscriptions: subsList,
@@ -215,12 +226,24 @@ routerAdd(
       }
 
       const body = e.requestInfo().body || {}
-      // target_month opcional no formato YYYY-MM. Se não enviado, usa o mês corrente.
       const now = new Date()
       const targetYearMonth = body.target_month || now.toISOString().slice(0, 7) // YYYY-MM
-      const [yearStr, monthStr] = targetYearMonth.split('-')
-      const targetYear = parseInt(yearStr, 10)
-      const targetMonth = parseInt(monthStr, 10) // 1-12
+      const parts = targetYearMonth.split('-')
+      const targetYear = parseInt(parts[0], 10)
+      const targetMonth = parseInt(parts[1], 10)
+
+      // Carregar organizações para obter dados de cliente/empresa
+      const orgs = $app.findRecordsByFilter('organizations', '1=1', 'name', 500, 0)
+      const orgsMap = {}
+      for (const o of orgs) {
+        orgsMap[o.id] = {
+          id: o.id,
+          name: o.getString('name'),
+          slug: o.getString('slug'),
+          email: o.getString('email'),
+          phone: o.getString('phone'),
+        }
+      }
 
       // Buscar planos para mapeamento de valores
       const plans = $app.findRecordsByFilter('plans', '1=1', 'name', 100, 0)
@@ -243,38 +266,40 @@ routerAdd(
       )
       const chargesCol = $app.findCollectionByNameOrId('contek_charges')
 
+      // Normalizar chave Woovi
+      let wooviKey = ($os.getenv('WOOVI_APP_ID') || '').trim()
+      if (wooviKey && wooviKey.length % 4 !== 0) {
+        const padNeeded = 4 - (wooviKey.length % 4)
+        for (let i = 0; i < padNeeded; i++) wooviKey += '='
+      }
+
       let createdCount = 0
-      let updatedCount = 0
       let skippedCount = 0
-      const generatedCharges = []
+      let pixCreatedCount = 0
+      let pixFailedCount = 0
 
       for (const sub of activeSubs) {
         const orgId = sub.getString('organization_id')
         const planId = sub.getString('plan_id')
         const planInfo = plansMap[planId] || { name: 'Mensalidade', price: 0, product: 'agyli' }
+        const orgInfo = orgsMap[orgId] || { name: 'Empresa', email: '', phone: '' }
 
-        // Resolver dia do aniversário a partir de starts_at (ou created da sub)
         const startsAtRaw =
           sub.getString('starts_at') || sub.getString('created') || now.toISOString()
         const startsAtDate = new Date(startsAtRaw)
         let anniversaryDay = startsAtDate.getUTCDate()
         if (isNaN(anniversaryDay) || anniversaryDay < 1) anniversaryDay = 10
 
-        // Calcular dia máximo válido no mês alvo (ex.: evitar 31 de fevereiro)
         const daysInTargetMonth = new Date(Date.UTC(targetYear, targetMonth, 0)).getUTCDate()
         const effectiveDay = Math.min(anniversaryDay, daysInTargetMonth)
 
-        // Data de vencimento no formato YYYY-MM-DD
         const monthPad = String(targetMonth).padStart(2, '0')
         const dayPad = String(effectiveDay).padStart(2, '0')
         const dueDateStr = `${targetYear}-${monthPad}-${dayPad}`
         const dueDateObj = new Date(Date.UTC(targetYear, targetMonth - 1, effectiveDay, 23, 59, 59))
-
-        // current_period_ends_at (+30 dias após o vencimento)
         const periodEndDate = new Date(dueDateObj.getTime() + 30 * 24 * 60 * 60 * 1000)
         const periodEndDateIso = periodEndDate.toISOString()
 
-        // Verificar se já existe cobrança para esta org/sub neste mês de vencimento
         const existingCharges = $app.findRecordsByFilter(
           'contek_charges',
           `organization_id = "${orgId}" && due_date >= "${targetYear}-${monthPad}-01" && due_date <= "${targetYear}-${monthPad}-${daysInTargetMonth}"`,
@@ -288,7 +313,6 @@ routerAdd(
         const initialStatus = isPastDue ? 'ATRASADA' : 'PENDENTE'
 
         if (existingCharges && existingCharges.length > 0) {
-          // Já existe cobrança neste mês. Apenas atualiza vigência se necessário
           chargeRecord = existingCharges[0]
           skippedCount++
         } else {
@@ -307,18 +331,85 @@ routerAdd(
             'notes',
             `Gerada automaticamente pelo SuperAdmin para o ciclo ${targetYearMonth}.`,
           )
+
+          // Gerar correlationID único e estável
+          const correlationId = `contek-${chargeRecord.id || $security.randomString(16)}-${targetYearMonth}`
+          chargeRecord.set('correlation_id', correlationId)
+
+          // Tentar criar Pix via Woovi caso haja chave configurada e valor positivo
+          const chargeValueCents = Math.round(planInfo.price * 100)
+          if (wooviKey && chargeValueCents > 0) {
+            try {
+              const wooviPayload = {
+                correlationID: correlationId,
+                value: chargeValueCents,
+                comment: `${orgInfo.name} - Ref. ${monthPad}/${targetYear}`.slice(0, 140),
+                customer: {
+                  name: orgInfo.name || 'Cliente Contek',
+                  email: orgInfo.email || undefined,
+                  phone: orgInfo.phone ? String(orgInfo.phone).replace(/\D/g, '') : undefined,
+                },
+              }
+
+              const res = $http.send({
+                url: 'https://api.woovi.com/api/v1/charge',
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Accept: 'application/json',
+                  Authorization: wooviKey,
+                },
+                body: JSON.stringify(wooviPayload),
+                timeout: 15,
+              })
+
+              if (res.statusCode >= 200 && res.statusCode < 300) {
+                const resData = res.json || {}
+                const chargeObj = resData.charge || resData
+                const brCode = chargeObj.brCode || resData.brCode || ''
+                const qrImage =
+                  chargeObj.qrCodeImage ||
+                  (chargeObj.paymentMethods && chargeObj.paymentMethods.pix
+                    ? chargeObj.paymentMethods.pix.qrCodeImage
+                    : '') ||
+                  ''
+                const wooviChargeId =
+                  chargeObj.identifier ||
+                  chargeObj.transactionID ||
+                  chargeObj.correlationID ||
+                  chargeObj.id ||
+                  ''
+
+                if (brCode) chargeRecord.set('pix_brcode', brCode)
+                if (qrImage) chargeRecord.set('pix_qrcode_image', qrImage)
+                if (wooviChargeId) chargeRecord.set('woovi_charge_id', String(wooviChargeId))
+                chargeRecord.set('payment_method', 'PIX')
+                pixCreatedCount++
+              } else {
+                pixFailedCount++
+                console.log(
+                  `[generate-month] Woovi API respondeu com status ${res.statusCode}:`,
+                  res.raw || '',
+                )
+              }
+            } catch (errWoovi) {
+              pixFailedCount++
+              console.log(
+                '[generate-month] Falha ao comunicar com Woovi API (mantendo modo manual):',
+                errWoovi.message || errWoovi,
+              )
+            }
+          }
+
           $app.save(chargeRecord)
           createdCount++
         }
 
-        // Atualizar current_period_ends_at na assinatura
+        // Atualizar vigência na assinatura
         sub.set('current_period_ends_at', periodEndDateIso)
 
-        // Se o vencimento já passou e a cobrança é ATRASADA, mudar status da assinatura para overdue
         if (chargeRecord.getString('status') === 'ATRASADA') {
           sub.set('status', 'overdue')
-
-          // Verificar atraso >= 15 dias para suspender organização
           const diffDays = Math.floor(
             (now.getTime() - dueDateObj.getTime()) / (24 * 60 * 60 * 1000),
           )
@@ -341,31 +432,35 @@ routerAdd(
           else if (typeof rawH === 'string' && rawH.trim()) historyList = JSON.parse(rawH)
         } catch (_) {}
 
+        const pixNote = chargeRecord.getString('pix_brcode')
+          ? ' Cobrança Pix via Woovi gerada com sucesso.'
+          : ''
         historyList.push({
           date: now.toISOString(),
           action: 'GENERATE_MONTH_CHARGE',
           changed_by: user.getString('email'),
-          note: `Cobrança do mês ${monthPad}/${targetYear} processada. Vencimento: ${dueDateStr}, Valor: R$ ${planInfo.price.toFixed(2)}. Nova vigência até ${periodEndDateIso.slice(0, 10)}.`,
+          note: `Cobrança do mês ${monthPad}/${targetYear} processada. Vencimento: ${dueDateStr}, Valor: R$ ${planInfo.price.toFixed(2)}. Nova vigência até ${periodEndDateIso.slice(0, 10)}.${pixNote}`,
         })
         sub.set('history', JSON.stringify(historyList))
-
         $app.save(sub)
+      }
 
-        generatedCharges.push({
-          id: chargeRecord.id,
-          organization_id: orgId,
-          amount: chargeRecord.getFloat('amount'),
-          due_date: chargeRecord.getString('due_date'),
-          status: chargeRecord.getString('status'),
-        })
+      let userMsg = `Geração de cobranças de ${targetYearMonth} concluída: ${createdCount} criadas, ${skippedCount} já existentes.`
+      if (pixCreatedCount > 0) {
+        userMsg += ` (${pixCreatedCount} com Pix Woovi gerado automaticamente).`
+      }
+      if (pixFailedCount > 0) {
+        userMsg += ` Observação: ${pixFailedCount} cobranças foram criadas em modo manual pois a API da Woovi não respondeu no momento.`
       }
 
       return e.json(200, {
         success: true,
-        message: `Geração de cobranças de ${targetYearMonth} concluída: ${createdCount} criadas, ${skippedCount} já existentes.`,
+        message: userMsg,
         target_month: targetYearMonth,
         created_count: createdCount,
         skipped_count: skippedCount,
+        pix_created_count: pixCreatedCount,
+        pix_failed_count: pixFailedCount,
         total_active_subs: activeSubs.length,
       })
     } catch (err) {
@@ -375,6 +470,419 @@ routerAdd(
   },
   $apis.requireAuth(),
 )
+
+/**
+ * POST /backend/v1/superadmin/finance/charge/pix
+ * Gera ou regenera cobrança Pix via Woovi para uma cobrança específica.
+ */
+routerAdd(
+  'POST',
+  '/backend/v1/superadmin/finance/charge/pix',
+  (e) => {
+    try {
+      const user = e.auth
+      if (!user) return e.unauthorizedError('Autenticação necessária.')
+      if (!user.getBool('is_super_admin')) {
+        return e.forbiddenError('Acesso restrito a Super Administradores da Contek.')
+      }
+
+      const body = e.requestInfo().body || {}
+      const chargeId = body.id
+      if (!chargeId) return e.badRequestError('ID da cobrança é obrigatório.')
+
+      const chargeRecord = $app.findRecordById('contek_charges', chargeId)
+      if (chargeRecord.getString('status') === 'PAGA') {
+        return e.badRequestError('Esta cobrança já está paga.')
+      }
+      if (chargeRecord.getString('status') === 'CANCELADA') {
+        return e.badRequestError('Cobrança cancelada não pode receber Pix.')
+      }
+
+      const orgId = chargeRecord.getString('organization_id')
+      let org = null
+      try {
+        org = $app.findRecordById('organizations', orgId)
+      } catch (_) {}
+
+      // Obter e normalizar chave Woovi
+      let wooviKey = ($os.getenv('WOOVI_APP_ID') || '').trim()
+      if (!wooviKey) {
+        return e.json(400, {
+          success: false,
+          error:
+            'Chave da Woovi (AppID) não está configurada no servidor. A cobrança permanece em modo manual.',
+        })
+      }
+      if (wooviKey.length % 4 !== 0) {
+        const padNeeded = 4 - (wooviKey.length % 4)
+        for (let i = 0; i < padNeeded; i++) wooviKey += '='
+      }
+
+      const amount = chargeRecord.getFloat('amount') || 0
+      const valueCents = Math.round(amount * 100)
+      if (valueCents <= 0) {
+        return e.badRequestError('O valor da cobrança precisa ser maior que zero para gerar Pix.')
+      }
+
+      let correlationId = chargeRecord.getString('correlation_id')
+      if (!correlationId) {
+        correlationId = `contek-${chargeRecord.id}-${$security.randomString(8)}`
+        chargeRecord.set('correlation_id', correlationId)
+      }
+
+      const orgName = org ? org.getString('name') : 'Empresa'
+      const orgEmail = org ? org.getString('email') : ''
+      const orgPhone = org ? org.getString('phone') : ''
+
+      const wooviPayload = {
+        correlationID: correlationId,
+        value: valueCents,
+        comment: `${orgName} - ${chargeRecord.getString('description') || 'Mensalidade'}`.slice(
+          0,
+          140,
+        ),
+        customer: {
+          name: orgName,
+          email: orgEmail || undefined,
+          phone: orgPhone ? String(orgPhone).replace(/\D/g, '') : undefined,
+        },
+      }
+
+      const res = $http.send({
+        url: 'https://api.woovi.com/api/v1/charge',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: wooviKey,
+        },
+        body: JSON.stringify(wooviPayload),
+        timeout: 15,
+      })
+
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        let errorMsg = `Erro na API da Woovi (código ${res.statusCode}). A cobrança segue em modo manual.`
+        if (res.statusCode === 401) {
+          errorMsg =
+            'A chave da Woovi retornou não autorizado (401). Verifique o AppID nas configurações. O modo manual continua ativo.'
+        }
+        return e.json(400, {
+          success: false,
+          error: errorMsg,
+          raw: res.raw,
+        })
+      }
+
+      const resData = res.json || {}
+      const chargeObj = resData.charge || resData
+      const brCode = chargeObj.brCode || resData.brCode || ''
+      const qrImage =
+        chargeObj.qrCodeImage ||
+        (chargeObj.paymentMethods && chargeObj.paymentMethods.pix
+          ? chargeObj.paymentMethods.pix.qrCodeImage
+          : '') ||
+        ''
+      const wooviChargeId =
+        chargeObj.identifier ||
+        chargeObj.transactionID ||
+        chargeObj.correlationID ||
+        chargeObj.id ||
+        ''
+
+      if (brCode) chargeRecord.set('pix_brcode', brCode)
+      if (qrImage) chargeRecord.set('pix_qrcode_image', qrImage)
+      if (wooviChargeId) chargeRecord.set('woovi_charge_id', String(wooviChargeId))
+      chargeRecord.set('payment_method', 'PIX')
+
+      $app.save(chargeRecord)
+
+      return e.json(200, {
+        success: true,
+        message: 'Cobrança Pix gerada com sucesso pela Woovi!',
+        charge: {
+          id: chargeRecord.id,
+          pix_brcode: chargeRecord.getString('pix_brcode'),
+          pix_qrcode_image: chargeRecord.getString('pix_qrcode_image'),
+          correlation_id: chargeRecord.getString('correlation_id'),
+          woovi_charge_id: chargeRecord.getString('woovi_charge_id'),
+        },
+      })
+    } catch (err) {
+      console.log('[superadmin/finance/charge/pix] error:', err.message || err)
+      return e.json(500, {
+        success: false,
+        error:
+          'Não foi possível gerar o Pix agora pela Woovi. A cobrança continua disponível em modo manual.',
+      })
+    }
+  },
+  $apis.requireAuth(),
+)
+
+/**
+ * POST /backend/v1/superadmin/finance/woovi/setup-webhook
+ * Configura automaticamente o webhook na Woovi apontando para a URL pública de produção do backend.
+ */
+routerAdd(
+  'POST',
+  '/backend/v1/superadmin/finance/woovi/setup-webhook',
+  (e) => {
+    try {
+      const user = e.auth
+      if (!user) return e.unauthorizedError('Autenticação necessária.')
+      if (!user.getBool('is_super_admin')) {
+        return e.forbiddenError('Acesso restrito a Super Administradores da Contek.')
+      }
+
+      let wooviKey = ($os.getenv('WOOVI_APP_ID') || '').trim()
+      if (!wooviKey) {
+        return e.json(400, {
+          success: false,
+          error: 'Chave da Woovi (AppID) não está configurada.',
+        })
+      }
+      if (wooviKey.length % 4 !== 0) {
+        const padNeeded = 4 - (wooviKey.length % 4)
+        for (let i = 0; i < padNeeded; i++) wooviKey += '='
+      }
+
+      // Resolver URL pública do backend
+      let backendUrl =
+        $os.getenv('PB_INSTANCE_URL') ||
+        $os.getenv('SITE_URL') ||
+        'https://contek-agenda-ia-479d4.shrd00.internal.goskip.dev'
+      if (backendUrl.endsWith('/')) backendUrl = backendUrl.slice(0, -1)
+
+      const webhookUrl = `${backendUrl}/backend/v1/public/woovi/webhook`
+
+      const payload = {
+        webhook: {
+          name: 'Contek Financeiro - Baixa Automática Pix',
+          event: 'OPENPIX:CHARGE_COMPLETED',
+          url: webhookUrl,
+          isActive: true,
+        },
+      }
+
+      const res = $http.send({
+        url: 'https://api.woovi.com/api/v1/webhook',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: wooviKey,
+        },
+        body: JSON.stringify(payload),
+        timeout: 15,
+      })
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        console.log('[woovi/setup-webhook] Webhook registrado com sucesso:', webhookUrl)
+        return e.json(200, {
+          success: true,
+          message: 'Webhook registrado na Woovi com sucesso!',
+          webhook_url: webhookUrl,
+          response: res.json,
+        })
+      } else {
+        console.log(`[woovi/setup-webhook] Woovi retornou código ${res.statusCode}:`, res.raw || '')
+        return e.json(400, {
+          success: false,
+          error: `Woovi retornou erro ${res.statusCode} ao registrar webhook.`,
+          raw: res.raw,
+        })
+      }
+    } catch (err) {
+      console.log('[woovi/setup-webhook] Erro:', err.message || err)
+      return e.json(500, { error: err.message || 'Falha ao registrar webhook da Woovi.' })
+    }
+  },
+  $apis.requireAuth(),
+)
+
+/**
+ * POST /backend/v1/public/woovi/webhook
+ * Webhook público da Woovi para receber confirmação de pagamento Pix.
+ * Idempotente: se já estiver paga, ignora sem erro.
+ * Atualiza contek_charges (status=PAGA, paid_at=hoje, payment_method=PIX) e histórico da assinatura.
+ */
+routerAdd('POST', '/backend/v1/public/woovi/webhook', (e) => {
+  try {
+    const rawBody = e.requestInfo().body || {}
+    console.log('[woovi_webhook] Evento recebido da Woovi')
+
+    // Suporte aos formatos de evento da Woovi / OpenPix
+    const eventName = rawBody.event || ''
+    const chargeData = rawBody.charge || (rawBody.pix ? rawBody.pix.charge : null) || rawBody
+
+    // Localizar correlationID na raiz ou no objeto da cobrança
+    const correlationId =
+      chargeData.correlationID ||
+      rawBody.correlationID ||
+      (rawBody.pix && rawBody.pix.charge ? rawBody.pix.charge.correlationID : '') ||
+      ''
+
+    const transactionId =
+      chargeData.transactionID ||
+      chargeData.identifier ||
+      (rawBody.pix ? rawBody.pix.transactionID : '') ||
+      ''
+
+    if (!correlationId && !transactionId) {
+      console.log('[woovi_webhook] Webhook recebido sem correlationID ou transactionID, ignorando.')
+      return e.json(200, { received: true, note: 'Sem identificador de cobrança Contek.' })
+    }
+
+    // Buscar a cobrança no banco pelo correlation_id ou pelo woovi_charge_id
+    let chargeRecord = null
+    if (correlationId) {
+      const records = $app.findRecordsByFilter(
+        'contek_charges',
+        `correlation_id = "${correlationId}"`,
+        '-created',
+        1,
+        0,
+      )
+      if (records && records.length > 0) {
+        chargeRecord = records[0]
+      }
+    }
+
+    if (!chargeRecord && transactionId) {
+      const records = $app.findRecordsByFilter(
+        'contek_charges',
+        `woovi_charge_id = "${transactionId}"`,
+        '-created',
+        1,
+        0,
+      )
+      if (records && records.length > 0) {
+        chargeRecord = records[0]
+      }
+    }
+
+    if (!chargeRecord) {
+      console.log(
+        `[woovi_webhook] Cobrança não encontrada para correlationID=${correlationId} / transactionID=${transactionId}.`,
+      )
+      return e.json(200, {
+        received: true,
+        note: 'Cobrança não localizada no Financeiro Contek.',
+      })
+    }
+
+    // IDEMPOTÊNCIA: Se já estiver PAGA, não duplica e retorna sucesso
+    if (chargeRecord.getString('status') === 'PAGA') {
+      console.log(
+        `[woovi_webhook] Cobrança ${chargeRecord.id} já está PAGA (idempotência atendida).`,
+      )
+      return e.json(200, {
+        received: true,
+        idempotent: true,
+        message: 'Cobrança já processada anteriormente.',
+      })
+    }
+
+    // Determinar data do pagamento
+    const now = new Date()
+    const paidAtStr =
+      chargeData.paidAt ||
+      (rawBody.pix && rawBody.pix.time ? rawBody.pix.time : '') ||
+      now.toISOString()
+    const paidAtDateOnly = paidAtStr.slice(0, 10)
+
+    // Atualiza status da cobrança
+    chargeRecord.set('status', 'PAGA')
+    chargeRecord.set('payment_method', 'PIX')
+    chargeRecord.set('paid_at', paidAtDateOnly)
+    if (transactionId) {
+      chargeRecord.set('woovi_charge_id', String(transactionId))
+    }
+
+    const currentNotes = chargeRecord.getString('notes') || ''
+    chargeRecord.set(
+      'notes',
+      (currentNotes ? currentNotes + ' | ' : '') +
+        `Liquidada automaticamente via Pix Woovi (${eventName || 'OPENPIX:CHARGE_COMPLETED'}).`,
+    )
+    $app.save(chargeRecord)
+
+    // Atualizar Subscription correspondente
+    const subId = chargeRecord.getString('subscription_id')
+    const orgId = chargeRecord.getString('organization_id')
+    let subRecord = null
+
+    if (subId) {
+      try {
+        subRecord = $app.findRecordById('subscriptions', subId)
+      } catch (_) {}
+    } else if (orgId) {
+      try {
+        const subs = $app.findRecordsByFilter(
+          'subscriptions',
+          `organization_id = "${orgId}"`,
+          '-created',
+          1,
+          0,
+        )
+        if (subs && subs.length > 0) subRecord = subs[0]
+      } catch (_) {}
+    }
+
+    if (subRecord) {
+      if (
+        subRecord.getString('status') === 'overdue' ||
+        subRecord.getString('status') === 'trial'
+      ) {
+        subRecord.set('status', 'active')
+      }
+
+      // Estende vigência para +30 dias a partir do vencimento ou de hoje
+      const dueStr = chargeRecord.getString('due_date') || now.toISOString().slice(0, 10)
+      const baseDate = new Date(dueStr)
+      const newPeriodEnd = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000)
+      subRecord.set('current_period_ends_at', newPeriodEnd.toISOString())
+
+      let historyList = []
+      try {
+        const rawH = subRecord.get('history')
+        if (Array.isArray(rawH)) historyList = rawH.slice()
+        else if (typeof rawH === 'string' && rawH.trim()) historyList = JSON.parse(rawH)
+      } catch (_) {}
+
+      historyList.push({
+        date: now.toISOString(),
+        action: 'PAYMENT_RECEIVED_WOOVI_PIX',
+        changed_by: 'WOOVI_WEBHOOK_AUTOMATION',
+        note: `Cobrança de R$ ${chargeRecord.getFloat('amount').toFixed(2)} liquidada automaticamente via Pix Woovi. Assinatura ativa com vigência renovada até ${newPeriodEnd.toISOString().slice(0, 10)}.`,
+      })
+      subRecord.set('history', JSON.stringify(historyList))
+      $app.save(subRecord)
+    }
+
+    // Reativa organização se estava suspensa
+    if (orgId) {
+      try {
+        const org = $app.findRecordById('organizations', orgId)
+        if (org.getString('status') === 'suspended') {
+          org.set('status', 'active')
+          $app.save(org)
+        }
+      } catch (_) {}
+    }
+
+    console.log(`[woovi_webhook] Cobrança ${chargeRecord.id} liquidada com sucesso via Pix Woovi!`)
+    return e.json(200, {
+      success: true,
+      charge_id: chargeRecord.id,
+      status: 'PAGA',
+      payment_method: 'PIX',
+    })
+  } catch (err) {
+    console.log('[woovi_webhook] Erro ao processar webhook:', err.message || err)
+    return e.json(500, { error: err.message || 'Erro interno no processamento do webhook.' })
+  }
+})
 
 routerAdd(
   'POST',
@@ -459,6 +967,8 @@ routerAdd(
           due_date: chargeRecord.getString('due_date'),
           status: chargeRecord.getString('status'),
           description: chargeRecord.getString('description'),
+          pix_brcode: chargeRecord.getString('pix_brcode'),
+          pix_qrcode_image: chargeRecord.getString('pix_qrcode_image'),
         },
       })
     } catch (err) {
@@ -523,7 +1033,6 @@ routerAdd(
       }
 
       if (subRecord) {
-        // Se a assinatura estava overdue, reativa para 'active'
         if (
           subRecord.getString('status') === 'overdue' ||
           subRecord.getString('status') === 'trial'
@@ -531,7 +1040,6 @@ routerAdd(
           subRecord.set('status', 'active')
         }
 
-        // Estende current_period_ends_at para +30 dias da data de vencimento da cobrança (ou de hoje)
         const dueStr = chargeRecord.getString('due_date') || now.toISOString().slice(0, 10)
         const baseDate = new Date(dueStr)
         const newPeriodEnd = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000)
@@ -687,12 +1195,10 @@ routerAdd(
 
       if (action === 'ACTIVATE_MANUAL') {
         sub.set('status', 'active')
-        // Define vigência para +30 dias a partir de agora se estiver vazia
         const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
         sub.set('current_period_ends_at', periodEnd.toISOString())
         actionMessage = `Assinatura ativada manualmente pelo SuperAdmin. Vigência até ${periodEnd.toISOString().slice(0, 10)}.`
 
-        // Garantir que a organização esteja active
         if (orgId) {
           try {
             const org = $app.findRecordById('organizations', orgId)
@@ -712,7 +1218,6 @@ routerAdd(
         sub.set('trial_ends_at', newTrialEnd.toISOString())
         actionMessage = `Período de teste gratuito (Trial) estendido em +${extend_days} dias, novo término em ${newTrialEnd.toISOString().slice(0, 10)}.`
 
-        // Se a org estava suspended, reativa para trial
         if (orgId) {
           try {
             const org = $app.findRecordById('organizations', orgId)
@@ -727,7 +1232,6 @@ routerAdd(
         sub.set('canceled_at', nowIso)
         actionMessage = 'Assinatura cancelada pelo SuperAdmin.'
 
-        // Suspender organização
         if (orgId) {
           try {
             const org = $app.findRecordById('organizations', orgId)
