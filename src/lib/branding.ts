@@ -61,6 +61,43 @@ export const PRODUCTS_CONFIG: Record<ProductType, ProductBranding> = {
 }
 
 /**
+ * Contexto de marca derivado do domínio de acesso da aplicação.
+ * - 'agyli': agyli.com.br, www.agyli.com.br (landing monomarca azul AGYLI)
+ * - 'contek': grupocontek.com.br, www.grupocontek.com.br (landing institucional Contek com ambos os produtos + link /admin)
+ * - 'default': goskip.app, preview, localhost, etc. (landing comercial padrão Contek)
+ */
+export type BrandDomainContext = 'agyli' | 'contek' | 'default'
+
+/**
+ * Identifica o contexto de marca a partir do hostname acessado.
+ * Suporta formatos com ou sem www, portas (ex: localhost:5173) e subdomínios.
+ */
+export function resolveBrandDomainContext(hostname: string): BrandDomainContext {
+  if (!hostname) return 'default'
+  const cleanHost = hostname.toLowerCase().split(':')[0].trim()
+
+  // Domínio AGYLI: agyli.com.br ou www.agyli.com.br (ou subdomínio .agyli.com.br)
+  if (
+    cleanHost === 'agyli.com.br' ||
+    cleanHost === 'www.agyli.com.br' ||
+    cleanHost.endsWith('.agyli.com.br')
+  ) {
+    return 'agyli'
+  }
+
+  // Domínio GRUPO CONTEK: grupocontek.com.br ou www.grupocontek.com.br (ou subdomínio .grupocontek.com.br)
+  if (
+    cleanHost === 'grupocontek.com.br' ||
+    cleanHost === 'www.grupocontek.com.br' ||
+    cleanHost.endsWith('.grupocontek.com.br')
+  ) {
+    return 'contek'
+  }
+
+  return 'default'
+}
+
+/**
  * Mapeamento de hostname para detecção multi-domínio futura.
  * Exemplo:
  * agyli.com.br -> agyli

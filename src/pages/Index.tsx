@@ -1,53 +1,101 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
-  Calendar,
   Sparkles,
   ShieldCheck,
   Check,
   ArrowRight,
   Clock,
-  MessageSquare,
-  Users,
-  ChevronRight,
-  Zap,
-  DollarSign,
   HeartHandshake,
   Star,
+  Zap,
+  Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
-import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
+import { AgyliLogo } from '@/components/AgyliBranding'
+import { MarkalyLogo } from '@/components/MarkalyBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
+import { resolveBrandDomainContext, type BrandDomainContext } from '@/lib/branding'
 
-export const Index: React.FC = () => {
-  const navigate = useNavigate()
-  const [selectedProduct, setSelectedProduct] = useState<'both' | 'agyli' | 'markaly'>('both')
+interface IndexProps {
+  /**
+   * Força um contexto de domínio específico (útil para testes ou preview).
+   * Se omitido, infere automaticamente a partir de window.location.hostname.
+   */
+  forcedDomainContext?: BrandDomainContext
+}
+
+export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
+  const domainContext: BrandDomainContext = useMemo(() => {
+    if (forcedDomainContext) return forcedDomainContext
+    if (typeof window !== 'undefined') {
+      return resolveBrandDomainContext(window.location.hostname)
+    }
+    return 'default'
+  }, [forcedDomainContext])
+
+  const isAgyliDomain = domainContext === 'agyli'
+  const isContekDomain = domainContext === 'contek'
 
   return (
-    <div className="min-h-screen bg-[#0A0F1D] text-slate-100 flex flex-col font-['Poppins',sans-serif] selection:bg-[#3B82F6] selection:text-white">
+    <div
+      data-testid="index-root"
+      data-domain-context={domainContext}
+      className="min-h-screen bg-[#0A0F1D] text-slate-100 flex flex-col font-['Poppins',sans-serif] selection:bg-[#3B82F6] selection:text-white"
+    >
       {/* NAVBAR SUPERIOR */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0D1B2A]/85 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <ContekFullLogo height={38} theme="dark" />
+            {isAgyliDomain ? (
+              <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
+                <AgyliLogo height={38} theme="dark" showSlogan={false} showSignature={false} />
+              </Link>
+            ) : (
+              <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
+                <ContekFullLogo height={38} theme="dark" />
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Acesso ao SuperAdmin em destaque exclusivo para o domínio CONTEK */}
+            {isContekDomain && (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-blue-500/50 bg-blue-950/40 text-blue-300 hover:text-white hover:bg-blue-900/60 text-xs sm:text-sm font-semibold rounded-xl"
+                data-testid="contek-admin-link"
+              >
+                <Link to="/admin">
+                  <Lock className="w-3.5 h-3.5 mr-1 text-blue-400" />
+                  Painel SuperAdmin
+                </Link>
+              </Button>
+            )}
+
             <Button
               asChild
               variant="ghost"
               size="sm"
               className="text-slate-300 hover:text-white hover:bg-slate-800/80 text-xs sm:text-sm font-medium"
             >
-              <Link to="/login">Entrar</Link>
+              <Link to={isAgyliDomain ? '/login?brand=agyli' : '/login'}>Entrar</Link>
             </Button>
+
             <Button
               asChild
               size="sm"
-              className="bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/20 rounded-xl"
+              className={
+                isAgyliDomain
+                  ? 'bg-gradient-to-r from-[#2563EB] to-[#3B82F6] hover:from-[#1D4ED8] hover:to-[#2563EB] text-white text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/25 rounded-xl'
+                  : 'bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white text-xs sm:text-sm font-semibold shadow-md shadow-blue-500/20 rounded-xl'
+              }
             >
-              <Link to="/login?tab=signup">Começar 7 dias grátis</Link>
+              <Link to={isAgyliDomain ? '/login?tab=signup&brand=agyli' : '/login?tab=signup'}>
+                Começar 7 dias grátis
+              </Link>
             </Button>
           </div>
         </div>
@@ -55,11 +103,15 @@ export const Index: React.FC = () => {
 
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8">
-        {/* Glow ambient background */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-gradient-to-tr from-[#1E3A8A]/25 via-[#7C3AED]/20 to-[#EC4899]/15 rounded-full blur-3xl pointer-events-none" />
+        {/* Ambient Glow */}
+        {isAgyliDomain ? (
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-gradient-to-tr from-[#1E3A8A]/35 via-[#2563EB]/25 to-[#38BDF8]/20 rounded-full blur-3xl pointer-events-none" />
+        ) : (
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-gradient-to-tr from-[#1E3A8A]/25 via-[#7C3AED]/20 to-[#EC4899]/15 rounded-full blur-3xl pointer-events-none" />
+        )}
 
         <div className="max-w-4xl mx-auto text-center relative z-10 space-y-6">
-          {/* Badge institucional Grupo CONTEK */}
+          {/* Badge institucional */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-xs font-medium text-slate-300 shadow-sm">
             <ContekSymbol size={16} />
             <span>
@@ -67,27 +119,51 @@ export const Index: React.FC = () => {
             </span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            A agenda online inteligente que{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#38BDF8] via-[#818CF8] to-[#EC4899]">
-              organiza seu dia
-            </span>{' '}
-            e atrai clientes.
-          </h1>
+          {/* Título do Hero */}
+          {isAgyliDomain ? (
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+              A agenda com IA que{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#60A5FA] via-[#3B82F6] to-[#93C5FD]">
+                organiza seus agendamentos
+              </span>{' '}
+              e multiplica seu faturamento.
+            </h1>
+          ) : (
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+              A agenda online inteligente que{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#38BDF8] via-[#818CF8] to-[#EC4899]">
+                organiza seu dia
+              </span>{' '}
+              e atrai clientes.
+            </h1>
+          )}
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Elimine faltas, marque horários 24 horas por dia e receba pagamentos com facilidade.
-            Escolha a solução que melhor se adapta ao momento do seu negócio.
-          </p>
+          {/* Descrição do Hero */}
+          {isAgyliDomain ? (
+            <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+              Elimine faltas com confirmações online, receba pagamentos com facilidade, controle seu
+              financeiro completo e conte com uma recepcionista virtual de Inteligência Artificial
+              para o seu negócio.
+            </p>
+          ) : (
+            <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+              Elimine faltas, marque horários 24 horas por dia e receba pagamentos com facilidade.
+              Escolha a solução que melhor se adapta ao momento do seu negócio.
+            </p>
+          )}
 
           {/* CTA Principal */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto h-12 px-8 text-base font-semibold bg-gradient-to-r from-[#3B82F6] via-[#6366F1] to-[#8B5CF6] hover:opacity-95 text-white shadow-xl shadow-blue-500/25 rounded-xl transition-all"
+              className={
+                isAgyliDomain
+                  ? 'w-full sm:w-auto h-12 px-8 text-base font-semibold bg-gradient-to-r from-[#2563EB] via-[#3B82F6] to-[#60A5FA] hover:opacity-95 text-white shadow-xl shadow-blue-500/25 rounded-xl transition-all'
+                  : 'w-full sm:w-auto h-12 px-8 text-base font-semibold bg-gradient-to-r from-[#3B82F6] via-[#6366F1] to-[#8B5CF6] hover:opacity-95 text-white shadow-xl shadow-blue-500/25 rounded-xl transition-all'
+              }
             >
-              <Link to="/login?tab=signup">
+              <Link to="/login?tab=signup&brand=agyli">
                 Começar 7 dias grátis
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
@@ -98,47 +174,70 @@ export const Index: React.FC = () => {
               size="lg"
               className="w-full sm:w-auto h-12 px-6 border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-200 text-sm font-medium rounded-xl"
             >
-              <a href="#produtos">Ver soluções e preços</a>
+              <a href="#produtos">
+                {isAgyliDomain ? 'Ver recursos e plano' : 'Ver soluções e preços'}
+              </a>
             </Button>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400 pt-2">
             <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />7 dias de teste grátis
+              <ShieldCheck className="w-4 h-4 text-emerald-400" /> 7 dias de teste grátis
             </span>
             <span>•</span>
             <span className="inline-flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-amber-400" />
-              Sem taxa de adesão
+              <Zap className="w-4 h-4 text-amber-400" /> Sem taxa de adesão
             </span>
             <span>•</span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="w-4 h-4 text-blue-400" />
-              Cancele quando quiser
+              <Check className="w-4 h-4 text-blue-400" /> Cancele quando quiser
             </span>
           </div>
         </div>
       </section>
 
-      {/* APRESENTAÇÃO DOS DOIS PRODUTOS (AGYLI e MARKALY) */}
+      {/* SEÇÃO DE PRODUTO(S) */}
       <section
         id="produtos"
         className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 bg-slate-950/60 border-t border-slate-800/80"
       >
         <div className="max-w-6xl mx-auto space-y-12">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-              Dois produtos feitos para impulsionar seu atendimento
-            </h2>
-            <p className="text-sm sm:text-base text-slate-400">
-              Conheça nossas duas linhas exclusivas desenvolvidas pelo Grupo CONTEK: do essencial ao
-              sistema com inteligência artificial integrada.
-            </p>
-          </div>
+          {/* Cabeçalho da seção */}
+          {isAgyliDomain ? (
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                Plataforma Completa AGYLI Pro
+              </h2>
+              <p className="text-sm sm:text-base text-slate-400">
+                Tudo o que sua clínica, consultório ou empresa precisa para automatizar
+                agendamentos, receber clientes e controlar o financeiro com inteligência artificial.
+              </p>
+            </div>
+          ) : (
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                Dois produtos feitos para impulsionar seu atendimento
+              </h2>
+              <p className="text-sm sm:text-base text-slate-400">
+                Conheça nossas duas linhas exclusivas desenvolvidas pelo Grupo CONTEK: do essencial
+                ao sistema com inteligência artificial integrada.
+              </p>
+            </div>
+          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-            {/* PRODUTO 1: AGYLI PRO */}
-            <div className="relative rounded-3xl p-6 sm:p-8 border border-blue-500/40 bg-gradient-to-b from-[#0F1E38] to-[#0D1527] shadow-2xl shadow-blue-950/50 flex flex-col justify-between">
+          {/* Grid de produtos: se for AGYLI, mostra apenas o card AGYLI (centralizado); senão, ambos */}
+          <div
+            className={
+              isAgyliDomain
+                ? 'max-w-xl mx-auto'
+                : 'grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch'
+            }
+          >
+            {/* PRODUTO 1: AGYLI PRO (sempre exibido) */}
+            <div
+              data-testid="agyli-product-card"
+              className="relative rounded-3xl p-6 sm:p-8 border border-blue-500/40 bg-gradient-to-b from-[#0F1E38] to-[#0D1527] shadow-2xl shadow-blue-950/50 flex flex-col justify-between"
+            >
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/20 border border-blue-400/40 text-blue-300">
                   <Star className="w-3.5 h-3.5 text-blue-400 fill-blue-400" /> Mais Completo
@@ -237,105 +336,115 @@ export const Index: React.FC = () => {
               </div>
             </div>
 
-            {/* PRODUTO 2: MARKALY ESSENCIAL */}
-            <div className="relative rounded-3xl p-6 sm:p-8 border border-purple-500/40 bg-gradient-to-b from-[#210738] to-[#140224] shadow-2xl shadow-purple-950/50 flex flex-col justify-between">
-              <div className="absolute top-4 right-4">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 border border-orange-400/40 text-orange-300">
-                  <Zap className="w-3.5 h-3.5 text-orange-400" /> Essencial & Ágil
-                </span>
-              </div>
-
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <MarkalyLogo height={44} theme="dark" showSlogan={false} showSignature={false} />
+            {/* PRODUTO 2: MARKALY ESSENCIAL (exibido apenas se NÃO for o domínio do AGYLI) */}
+            {!isAgyliDomain && (
+              <div
+                data-testid="markaly-product-card"
+                className="relative rounded-3xl p-6 sm:p-8 border border-purple-500/40 bg-gradient-to-b from-[#210738] to-[#140224] shadow-2xl shadow-purple-950/50 flex flex-col justify-between"
+              >
+                <div className="absolute top-4 right-4">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 border border-orange-400/40 text-orange-300">
+                    <Zap className="w-3.5 h-3.5 text-orange-400" /> Essencial & Ágil
+                  </span>
                 </div>
 
-                <div>
-                  <h3 className="text-2xl font-bold text-white">MARKALY Essencial</h3>
-                  <p className="text-xs text-orange-300 font-medium mt-0.5">
-                    Organização que impulsiona seu negócio com máxima praticidade
-                  </p>
-                  <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-                    Perfeito para autônomos, barbearias, manicures, esteticistas e profissionais
-                    liberais que buscam uma agenda fácil, ágil e focada em resultados.
-                  </p>
-                </div>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <MarkalyLogo
+                      height={44}
+                      theme="dark"
+                      showSlogan={false}
+                      showSignature={false}
+                    />
+                  </div>
 
-                {/* Preço */}
-                <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800/60 flex items-baseline justify-between">
                   <div>
-                    <span className="text-xs text-slate-400 block font-medium">
-                      Investimento mensal
-                    </span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-white">R$ 59,90</span>
-                      <span className="text-xs text-slate-400">/mês</span>
+                    <h3 className="text-2xl font-bold text-white">MARKALY Essencial</h3>
+                    <p className="text-xs text-orange-300 font-medium mt-0.5">
+                      Organização que impulsiona seu negócio com máxima praticidade
+                    </p>
+                    <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+                      Perfeito para autônomos, barbearias, manicures, esteticistas e profissionais
+                      liberais que buscam uma agenda fácil, ágil e focada em resultados.
+                    </p>
+                  </div>
+
+                  {/* Preço */}
+                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800/60 flex items-baseline justify-between">
+                    <div>
+                      <span className="text-xs text-slate-400 block font-medium">
+                        Investimento mensal
+                      </span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-white">R$ 59,90</span>
+                        <span className="text-xs text-slate-400">/mês</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-lg">
+                        <ShieldCheck className="w-3.5 h-3.5" /> 7 dias grátis
+                      </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-lg">
-                      <ShieldCheck className="w-3.5 h-3.5" /> 7 dias grátis
-                    </span>
+
+                  {/* Recursos inclusos */}
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                      O que está incluso no MARKALY Essencial:
+                    </p>
+                    <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Agendamento Rápido e Descomplicado:</strong> Organize atendimentos
+                          com visual limpo e prático.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Cadastro de Clientes e Serviços:</strong> Histórico de visitas,
+                          preferências e tabela de valores.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Página Pública Personalizada:</strong> Seus clientes agendam pelo
+                          link <code>/agendar/sua-empresa</code>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Confirmação de Presença Online:</strong> Botão prático para o
+                          cliente confirmar se comparecerá.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                        <span>
+                          <strong>Totalmente Otimizado para Celular:</strong> Acesso leve e rápido
+                          de qualquer smartphone.
+                        </span>
+                      </li>
+                    </ul>
                   </div>
                 </div>
 
-                {/* Recursos inclusos */}
-                <div className="space-y-3 pt-2">
-                  <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                    O que está incluso no MARKALY Essencial:
-                  </p>
-                  <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
-                    <li className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Agendamento Rápido e Descomplicado:</strong> Organize atendimentos
-                        com visual limpo e prático.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Cadastro de Clientes e Serviços:</strong> Histórico de visitas,
-                        preferências e tabela de valores.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Página Pública Personalizada:</strong> Seus clientes agendam pelo
-                        link <code>/agendar/sua-empresa</code>.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Confirmação de Presença Online:</strong> Botão prático para o
-                        cliente confirmar se comparecerá.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                      <span>
-                        <strong>Totalmente Otimizado para Celular:</strong> Acesso leve e rápido de
-                        qualquer smartphone.
-                      </span>
-                    </li>
-                  </ul>
+                <div className="pt-8">
+                  <Button
+                    asChild
+                    className="w-full h-12 bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-500/25"
+                  >
+                    <Link to="/login?tab=signup&brand=markaly">
+                      Começar 7 dias grátis no MARKALY Essencial
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
-
-              <div className="pt-8">
-                <Button
-                  asChild
-                  className="w-full h-12 bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-500/25"
-                >
-                  <Link to="/login?tab=signup&brand=markaly">
-                    Começar 7 dias grátis no MARKALY Essencial
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -411,7 +520,7 @@ export const Index: React.FC = () => {
               size="lg"
               className="h-12 px-8 text-base font-semibold bg-white text-slate-950 hover:bg-slate-100 shadow-xl rounded-xl transition-all"
             >
-              <Link to="/login?tab=signup">
+              <Link to="/login?tab=signup&brand=agyli">
                 Começar 7 dias grátis agora
                 <ArrowRight className="w-5 h-5 ml-2 text-blue-600" />
               </Link>
@@ -424,7 +533,11 @@ export const Index: React.FC = () => {
       <footer className="mt-auto border-t border-slate-800 bg-[#080D1A] py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto flex flex-col items-center justify-center space-y-6 text-center">
           <div className="flex items-center justify-center gap-2">
-            <ContekFullLogo height={32} theme="dark" />
+            {isAgyliDomain ? (
+              <AgyliLogo height={32} theme="dark" showSlogan={false} showSignature={false} />
+            ) : (
+              <ContekFullLogo height={32} theme="dark" />
+            )}
           </div>
 
           <p className="text-xs text-slate-400 max-w-lg">
@@ -437,26 +550,50 @@ export const Index: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-slate-400">
-            <Link to="/login" className="hover:text-white transition-colors">
+            <Link
+              to={isAgyliDomain ? '/login?brand=agyli' : '/login'}
+              className="hover:text-white transition-colors"
+            >
               Área de Acesso do Cliente
             </Link>
             <span>•</span>
-            <Link to="/login?tab=signup" className="hover:text-white transition-colors">
+            <Link
+              to={isAgyliDomain ? '/login?tab=signup&brand=agyli' : '/login?tab=signup'}
+              className="hover:text-white transition-colors"
+            >
               Criar Empresa (7 dias grátis)
             </Link>
             <span>•</span>
             <Link to="/agendar/contek-demo" className="hover:text-white transition-colors">
               Exemplo de Agendamento
             </Link>
+            {isContekDomain && (
+              <>
+                <span>•</span>
+                <Link
+                  to="/admin"
+                  className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                  data-testid="contek-admin-footer-link"
+                >
+                  Painel SuperAdmin (/admin)
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-800/80 w-full flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
             <div>© {new Date().getFullYear()} Grupo CONTEK. Todos os direitos reservados.</div>
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-medium">AGYLI</span>
-              <span>&</span>
-              <span className="text-slate-400 font-medium">MARKALY</span>
-              <span>— Soluções Grupo CONTEK</span>
+              {isAgyliDomain ? (
+                <span className="text-slate-400 font-medium">AGYLI — Uma solução Grupo CONTEK</span>
+              ) : (
+                <>
+                  <span className="text-slate-400 font-medium">AGYLI</span>
+                  <span>&</span>
+                  <span className="text-slate-400 font-medium">MARKALY</span>
+                  <span>— Soluções Grupo CONTEK</span>
+                </>
+              )}
             </div>
           </div>
         </div>
