@@ -46,6 +46,7 @@ import { ptBR } from 'date-fns/locale'
 import { AgyliLogo, AgyliEmblem } from '@/components/AgyliBranding'
 import { MarkalyLogo, MarkalyEmblem } from '@/components/MarkalyBranding'
 import { ContekSymbol } from '@/components/ContekBranding'
+import { WhatsAppFloatingButton } from '@/components/WhatsAppFloatingButton'
 
 export const AgendamentoPublico: React.FC = () => {
   const { slug } = useParams<{ slug: string }>()
@@ -1316,6 +1317,16 @@ export const AgendamentoPublico: React.FC = () => {
           <span className="text-[11px] text-slate-500 font-mono">CNPJ 47.769.566/0001-46</span>
         </footer>
       </div>
+
+      {/* Botão Flutuante de WhatsApp Direto com a Luciana (Página Pública de Agendamento) */}
+      <WhatsAppFloatingButton
+        brandContext={isMarkaly ? 'markaly' : 'agyli'}
+        defaultMessage={
+          org
+            ? `Olá! Estou na página de agendamento da empresa ${org.name} no AGYLI e tenho uma dúvida.`
+            : 'Olá! Vi o site do AGYLI e tenho uma dúvida.'
+        }
+      />
     </div>
   )
 }

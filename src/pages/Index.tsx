@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TestimonialsCarousel } from '@/components/TestimonialsCarousel'
+import { WhatsAppFloatingButton } from '@/components/WhatsAppFloatingButton'
 import { AgyliLogo } from '@/components/AgyliBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
 import { resolveBrandDomainContext, type BrandDomainContext } from '@/lib/branding'
@@ -619,6 +620,16 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
           </div>
         </div>
       </footer>
+
+      {/* Botão Flutuante de WhatsApp Direto com a Luciana (Páginas Públicas) */}
+      <WhatsAppFloatingButton
+        brandContext={domainContext}
+        defaultMessage={
+          isContekDomain
+            ? 'Olá! Vi o site do Grupo CONTEK e tenho uma dúvida.'
+            : 'Olá! Vi o site do AGYLI e tenho uma dúvida.'
+        }
+      />
     </div>
   )
 }
