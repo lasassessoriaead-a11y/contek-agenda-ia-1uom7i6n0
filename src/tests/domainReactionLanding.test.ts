@@ -47,11 +47,11 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
         const isAgyliDomain = domainContext === 'agyli'
         const rendered: string[] = []
         // AGYLI sempre renderiza
-        rendered.push('AGYLI Pro', 'R$ 129,90', '7 dias grátis', '/login?tab=signup&brand=agyli')
+        rendered.push('AGYLI Pro', 'R$ 29,90', '7 dias grátis', '/login?tab=signup&brand=agyli')
 
         // MARKALY só renderiza se NÃO for isAgyliDomain
         if (!isAgyliDomain) {
-          rendered.push('MARKALY Essencial', 'R$ 59,90', '/login?tab=signup&brand=markaly')
+          rendered.push('MARKALY Essencial', 'R$ 19,90', '/login?tab=signup&brand=markaly')
         }
 
         return rendered
@@ -59,11 +59,10 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
 
       const agyliLanding = renderCards('agyli')
       expect(agyliLanding).toContain('AGYLI Pro')
-      expect(agyliLanding).toContain('R$ 129,90')
-      expect(agyliLanding).toContain('/login?tab=signup&brand=agyli')
+      expect(agyliLanding).toContain('R$ 29,90')
+      expect(agyliLanding).toContain('7 dias grátis')
       expect(agyliLanding).not.toContain('MARKALY Essencial')
-      expect(agyliLanding).not.toContain('R$ 59,90')
-    })
+      expect(agyliLanding).not.toContain('R$ 19,90')    })
 
     it('no código de Index.tsx, MARKALY está envolvido pela guarda !isAgyliDomain', () => {
       expect(indexSource).toContain('const isAgyliDomain = domainContext === \'agyli\'')

@@ -135,7 +135,7 @@ routerAdd(
           name: p.getString('name'),
           slug: p.getString('slug'),
           product: p.getString('product'),
-          price: p.getInt('price_monthly'),
+          price: p.getFloat('price_monthly'),
           trial_days: p.getInt('trial_days'),
           max_professionals: p.getInt('max_professionals'),
         })),
@@ -144,6 +144,64 @@ routerAdd(
     } catch (err) {
       console.log('[superadmin/overview] error:', err.message || err)
       return e.json(500, { error: err.message || 'Erro ao carregar dados do SuperAdmin.' })
+    }
+  },
+  $apis.requireAuth(),
+)
+
+routerAdd(
+  'POST',
+  '/backend/v1/superadmin/plans/update-price',
+  (e) => {
+    try {
+      const user = e.auth
+      if (!user) return e.unauthorizedError('Autenticação necessária.')
+      if (!user.getBool('is_super_admin')) {
+        return e.forbiddenError('Acesso restrito a Super Administradores da Contek.')
+      }
+
+      const body = e.requestInfo().body || {}
+      const { plan_id, price_monthly } = body
+
+      if (!plan_id) {
+        return e.badRequestError('ID ou slug do plano é obrigatório.')
+      }
+
+      const numPrice = Number(price_monthly)
+      if (isNaN(numPrice) || numPrice <= 0) {
+        return e.badRequestError('Informe um valor de preço mensal válido maior que zero.')
+      }
+
+      let planRecord = null
+      try {
+        planRecord = $app.findRecordById('plans', plan_id)
+      } catch (_) {
+        try {
+          planRecord = $app.findFirstRecordByData('plans', 'slug', plan_id)
+        } catch (_) {}
+      }
+
+      if (!planRecord) {
+        return e.json(404, { error: 'Plano não encontrado no banco de dados.' })
+      }
+
+      planRecord.set('price_monthly', numPrice)
+      $app.save(planRecord)
+
+      return e.json(200, {
+        success: true,
+        message: 'Preço do plano atualizado com sucesso!',
+        plan: {
+          id: planRecord.id,
+          name: planRecord.getString('name'),
+          slug: planRecord.getString('slug'),
+          product: planRecord.getString('product'),
+          price: planRecord.getFloat('price_monthly'),
+        },
+      })
+    } catch (err) {
+      console.log('[superadmin/plans/update-price] error:', err.message || err)
+      return e.json(500, { error: err.message || 'Erro ao atualizar preço do plano.' })
     }
   },
   $apis.requireAuth(),

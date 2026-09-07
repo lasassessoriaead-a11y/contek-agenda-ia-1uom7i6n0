@@ -211,7 +211,7 @@ export const FinanceiroContek: React.FC = () => {
 
     // Achar plano e valor da primeira org para pré-preencher
     const matchedSub = data?.subscriptions?.find((s) => s.organization_id === defaultOrg)
-    setChargeAmount(matchedSub ? String(matchedSub.plan_price) : '129.90')
+    setChargeAmount(matchedSub ? String(matchedSub.plan_price) : '29.90')
     setChargeDescription(
       matchedSub ? `Mensalidade ${matchedSub.plan_name}` : 'Cobrança Mensalidade Contek',
     )

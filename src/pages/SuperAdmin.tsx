@@ -54,6 +54,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   DollarSign,
+  Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProductType } from '@/types'
@@ -130,6 +131,60 @@ export const SuperAdmin: React.FC = () => {
   const [data, setData] = useState<SuperAdminOverviewResponse | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [productFilter, setProductFilter] = useState<'all' | 'agyli' | 'markaly'>('all')
+
+  // Edição de Preços dos Planos (AGYLI Pro e MARKALY Essencial)
+  const [editingPlanPrices, setEditingPlanPrices] = useState<Record<string, string>>({})
+  const [savingPlanId, setSavingPlanId] = useState<string | null>(null)
+
+  // Sincronizar preços dos planos quando data.plans é carregado
+  useEffect(() => {
+    if (data?.plans) {
+      const initialPrices: Record<string, string> = {}
+      data.plans.forEach((p) => {
+        initialPrices[p.id] = String(p.price)
+      })
+      setEditingPlanPrices(initialPrices)
+    }
+  }, [data?.plans])
+
+  const handleSavePlanPrice = async (planId: string, planName: string) => {
+    const rawVal = editingPlanPrices[planId]
+    const numPrice = Number(rawVal?.replace(',', '.'))
+    if (isNaN(numPrice) || numPrice <= 0) {
+      toast.error('Informe um valor de preço mensal válido maior que zero.')
+      return
+    }
+
+    setSavingPlanId(planId)
+    try {
+      const res = await pb.send<{ success: boolean; message?: string }>(
+        '/backend/v1/superadmin/plans/update-price',
+        {
+          method: 'POST',
+          body: {
+            plan_id: planId,
+            price_monthly: numPrice,
+          },
+        },
+      )
+
+      if (res.success) {
+        toast.success(
+          `Preço de ${planName} atualizado para R$ ${numPrice.toFixed(2).replace('.', ',')}/mês!`,
+        )
+        await loadOverview()
+      }
+    } catch (err: unknown) {
+      console.error(err)
+      const message =
+        (err as { data?: { error?: string } })?.data?.error ||
+        (err as { message?: string })?.message ||
+        'Erro ao atualizar preço do plano.'
+      toast.error(message)
+    } finally {
+      setSavingPlanId(null)
+    }
+  }
 
   // Modal de edição de organização
   const [editingOrg, setEditingOrg] = useState<SuperAdminOrgItem | null>(null)
@@ -658,6 +713,115 @@ export const SuperAdmin: React.FC = () => {
             </Tooltip>
           </div>
         </div>
+
+        {/* GESTÃO DE PREÇOS DOS PLANOS (AGYLI Pro e MARKALY Essencial) */}
+        <Card className="border-indigo-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg overflow-hidden">
+          <CardHeader className="pb-3 border-b border-indigo-800/40">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono text-[10px]">
+                    VALORES PÚBLICOS & SISTEMA
+                  </Badge>
+                  <CardTitle className="text-base font-bold text-white flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    Tabela de Preços dos Sistemas Contek
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs text-indigo-200 mt-1">
+                  Altere o valor mensal cobrado por cada plano de software. O valor salvo entra em
+                  vigor imediatamente no banco de dados e nos novos cadastros.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(data?.plans || []).map((plan) => {
+                const isAgyli = plan.product === 'agyli'
+                const currentEdited = editingPlanPrices[plan.id] ?? String(plan.price)
+                const isSaving = savingPlanId === plan.id
+                const originalPrice = plan.price
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={`p-4 rounded-xl border flex flex-col justify-between ${
+                      isAgyli
+                        ? 'bg-blue-950/40 border-cyan-800/60'
+                        : 'bg-purple-950/40 border-purple-800/60'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            className={
+                              isAgyli
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold text-[10px]'
+                                : 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold text-[10px]'
+                            }
+                          >
+                            {isAgyli ? 'AGYLI PRO' : 'MARKALY ESSENCIAL'}
+                          </Badge>
+                          <span className="text-xs font-semibold text-slate-200">{plan.name}</span>
+                        </div>
+                        <span className="text-[11px] font-mono text-slate-400">/{plan.slug}</span>
+                      </div>
+
+                      <div className="text-xs text-slate-300 mb-3">
+                        {isAgyli
+                          ? 'Software completo com IA, WhatsApp e Financeiro Avançado.'
+                          : 'Software simplificado e ágil para agendamento essencial.'}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[11px] text-slate-400 block font-medium">
+                          Preço Mensal Atual
+                        </span>
+                        <div className="text-sm font-extrabold text-emerald-400">
+                          R$ {Number(originalPrice).toFixed(2).replace('.', ',')}{' '}
+                          <span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative w-32">
+                          <span className="absolute left-2.5 top-2 text-xs font-semibold text-slate-400">
+                            R$
+                          </span>
+                          <Input
+                            type="text"
+                            value={currentEdited}
+                            onChange={(e) =>
+                              setEditingPlanPrices((prev) => ({
+                                ...prev,
+                                [plan.id]: e.target.value,
+                              }))
+                            }
+                            placeholder="0,00"
+                            className="pl-8 text-xs font-bold h-8 bg-slate-900/90 text-white border-slate-700 focus:border-cyan-400"
+                          />
+                        </div>
+                        <Button
+                          size="sm"
+                          disabled={isSaving || currentEdited === String(originalPrice)}
+                          onClick={() => handleSavePlanPrice(plan.id, plan.name)}
+                          className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                        >
+                          <Save className={`w-3.5 h-3.5 mr-1 ${isSaving ? 'animate-spin' : ''}`} />
+                          {isSaving ? 'Salvando...' : 'Salvar'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* METRIC CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

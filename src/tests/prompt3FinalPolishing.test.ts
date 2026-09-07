@@ -5,17 +5,17 @@ import loginSource from '../pages/Login.tsx?raw'
 
 describe('Public Sales Landing Page & End-to-End Consistency (Prompt 3)', () => {
   it('Index.tsx contains AGYLI Pro with exact pricing and 7 days free', () => {
-    // AGYLI Pro: R$ 129,90/mês
+    // AGYLI Pro: R$ 29,90/mês
     expect(indexSource).toContain('AGYLI Pro')
-    expect(indexSource).toContain('129,90')
+    expect(indexSource).toContain('29,90')
     expect(indexSource).toContain('7 dias')
     expect(indexSource).toContain('Começar 7 dias grátis')
   })
 
   it('Index.tsx contains MARKALY Essencial with exact pricing and 7 days free', () => {
-    // MARKALY Essencial: R$ 59,90/mês
+    // MARKALY Essencial: R$ 19,90/mês
     expect(indexSource).toContain('MARKALY Essencial')
-    expect(indexSource).toContain('59,90')
+    expect(indexSource).toContain('19,90')
     expect(indexSource).toContain('7 dias')
   })
 

@@ -80,7 +80,7 @@ class SelfServiceOnboardingEngine {
       name: 'AGYLI Pro Completo',
       slug: 'agyli-pro',
       product: 'agyli',
-      price: 129.9,
+      price: 29.9,
       trial_days: 7,
     },
     {
@@ -88,7 +88,7 @@ class SelfServiceOnboardingEngine {
       name: 'MARKALY Essencial',
       slug: 'markaly-start',
       product: 'markaly',
-      price: 59.9,
+      price: 19.9,
       trial_days: 7,
     },
   ]

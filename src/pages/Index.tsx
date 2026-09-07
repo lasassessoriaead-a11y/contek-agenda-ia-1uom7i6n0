@@ -267,7 +267,7 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                       Investimento mensal
                     </span>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-white">R$ 129,90</span>
+                      <span className="text-3xl font-extrabold text-white">R$ 29,90</span>
                       <span className="text-xs text-slate-400">/mês</span>
                     </div>
                   </div>
@@ -277,7 +277,6 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                     </span>
                   </div>
                 </div>
-
                 {/* Recursos inclusos */}
                 <div className="space-y-3 pt-2">
                   <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
@@ -376,7 +375,7 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                         Investimento mensal
                       </span>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-white">R$ 59,90</span>
+                        <span className="text-3xl font-extrabold text-white">R$ 19,90</span>
                         <span className="text-xs text-slate-400">/mês</span>
                       </div>
                     </div>

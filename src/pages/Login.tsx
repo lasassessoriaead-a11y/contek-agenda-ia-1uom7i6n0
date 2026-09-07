@@ -1258,7 +1258,7 @@ export const Login: React.FC = () => {
                                   </h4>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-xs font-bold text-cyan-300">R$ 129,90</div>
+                                  <div className="text-xs font-bold text-cyan-300">R$ 29,90</div>
                                   <div className="text-[10px] text-slate-400">/mês</div>
                                 </div>
                               </div>
@@ -1305,7 +1305,7 @@ export const Login: React.FC = () => {
                                   </h4>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-xs font-bold text-orange-300">R$ 59,90</div>
+                                  <div className="text-xs font-bold text-orange-300">R$ 19,90</div>
                                   <div className="text-[10px] text-slate-400">/mês</div>
                                 </div>
                               </div>
@@ -1424,8 +1424,8 @@ export const Login: React.FC = () => {
                             <span className="text-slate-400">Plano escolhido:</span>
                             <span className="font-bold text-white">
                               {signupPlanSlug === 'markaly-start'
-                                ? 'MARKALY Essencial (R$ 59,90/mês)'
-                                : 'AGYLI Pro (R$ 129,90/mês)'}
+                                ? 'MARKALY Essencial (R$ 19,90/mês)'
+                                : 'AGYLI Pro (R$ 29,90/mês)'}
                             </span>
                           </div>
 
