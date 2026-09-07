@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Sparkles,
@@ -14,9 +14,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { TestimonialsCarousel } from '@/components/TestimonialsCarousel'
 import { AgyliLogo } from '@/components/AgyliBranding'
-import { MarkalyLogo } from '@/components/MarkalyBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
 import { resolveBrandDomainContext, type BrandDomainContext } from '@/lib/branding'
+import { pb } from '@/lib/pocketbase/client'
+import type { Plan } from '@/types'
 
 interface IndexProps {
   /**
@@ -37,6 +38,43 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
 
   const isAgyliDomain = domainContext === 'agyli'
   const isContekDomain = domainContext === 'contek'
+
+  // Preços dinâmicos da coleção plans (com fallbacks padrão caso offline)
+  const [plans, setPlans] = useState<Plan[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+    pb.collection('plans')
+      .getFullList<Plan>({
+        filter: 'active = true',
+        sort: 'price_monthly',
+      })
+      .then((records) => {
+        if (isMounted && records.length > 0) {
+          setPlans(records)
+        }
+      })
+      .catch(() => {
+        // Fallback silencioso mantendo os valores padrão
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const essencialPrice = useMemo(() => {
+    const p = plans.find((item) => item.slug === 'agyli-essencial')
+    return p?.price_monthly ?? 19.9
+  }, [plans])
+
+  const proPrice = useMemo(() => {
+    const p = plans.find((item) => item.slug === 'agyli-pro')
+    return p?.price_monthly ?? 29.9
+  }, [plans])
+
+  const formatPrice = (val: number) => {
+    return Number(val).toFixed(2).replace('.', ',')
+  }
 
   return (
     <div
@@ -204,37 +242,124 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
       >
         <div className="max-w-6xl mx-auto space-y-12">
           {/* Cabeçalho da seção */}
-          {isAgyliDomain ? (
-            <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-                Plataforma Completa AGYLI Pro
-              </h2>
-              <p className="text-sm sm:text-base text-slate-400">
-                Tudo o que sua clínica, consultório ou empresa precisa para automatizar
-                agendamentos, receber clientes e controlar o financeiro com inteligência artificial.
-              </p>
-            </div>
-          ) : (
-            <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
-                Dois produtos feitos para impulsionar seu atendimento
-              </h2>
-              <p className="text-sm sm:text-base text-slate-400">
-                Conheça nossas duas linhas exclusivas desenvolvidas pelo Grupo CONTEK: do essencial
-                ao sistema com inteligência artificial integrada.
-              </p>
-            </div>
-          )}
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+              Planos sob medida para o seu atendimento
+            </h2>
+            <p className="text-sm sm:text-base text-slate-400">
+              Escolha o plano ideal para a sua rotina: do agendamento ágil para 1 profissional à
+              plataforma completa com inteligência artificial e financeiro integrado.
+            </p>
+          </div>
+          {/* Grid dos dois planos AGYLI (Essencial e Pro) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+            {/* PLANO 1: AGYLI ESSENCIAL */}
+            <div
+              data-testid="agyli-essencial-card"
+              className="relative rounded-3xl p-6 sm:p-8 border border-cyan-500/30 bg-gradient-to-b from-[#0B1E33] to-[#0A1626] shadow-xl shadow-cyan-950/30 flex flex-col justify-between"
+            >
+              <div className="absolute top-4 right-4">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-500/20 border border-cyan-400/40 text-cyan-300">
+                  <Zap className="w-3.5 h-3.5 text-cyan-400" /> Essencial & Ágil
+                </span>
+              </div>
 
-          {/* Grid de produtos: se for AGYLI, mostra apenas o card AGYLI (centralizado); senão, ambos */}
-          <div
-            className={
-              isAgyliDomain
-                ? 'max-w-xl mx-auto'
-                : 'grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch'
-            }
-          >
-            {/* PRODUTO 1: AGYLI PRO (sempre exibido) */}
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <AgyliLogo height={40} theme="dark" showSlogan={false} showSignature={false} />
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-bold text-white">AGYLI Essencial</h3>
+                  <p className="text-xs text-cyan-300 font-medium mt-0.5">
+                    Focado em 1 profissional • Agendamento inteligente descomplicado
+                  </p>
+                  <p className="text-sm text-slate-300 mt-2 leading-relaxed">
+                    Perfeito para autônomos, consultórios individuais, manicures, barbearias e
+                    esteticistas que buscam uma agenda ágil, controle de clientes e link público sem
+                    complexidade.
+                  </p>
+                </div>
+
+                {/* Preço */}
+                <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-800/40 flex items-baseline justify-between">
+                  <div>
+                    <span className="text-xs text-slate-400 block font-medium">
+                      Investimento mensal
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-extrabold text-white">
+                        R$ {formatPrice(essencialPrice)}
+                      </span>
+                      <span className="text-xs text-slate-400">/mês</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-lg">
+                      <ShieldCheck className="w-3.5 h-3.5" /> 7 dias grátis
+                    </span>
+                  </div>
+                </div>
+
+                {/* Recursos inclusos */}
+                <div className="space-y-3 pt-2">
+                  <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
+                    O que está incluso no AGYLI Essencial:
+                  </p>
+                  <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong>1 Profissional:</strong> Gerenciamento exclusivo para você ou seu
+                        atendente.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Agenda Online em Tempo Real:</strong> Marcação rápida presencial e
+                        online 24h.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Cadastro de Clientes e Serviços:</strong> Histórico de visitas e
+                        catálogo de procedimentos.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Link Público Personalizado:</strong> Seu link exclusivo{' '}
+                        <code>/agendar/sua-empresa</code>.
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Confirmações Online:</strong> Menos faltas com lembretes e
+                        notificações.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="pt-8">
+                <Button
+                  asChild
+                  className="w-full h-12 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-cyan-500/20"
+                >
+                  <Link to="/login?tab=signup&brand=agyli&plan=agyli-essencial">
+                    Começar 7 dias grátis
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            {/* PLANO 2: AGYLI PRO */}
             <div
               data-testid="agyli-product-card"
               className="relative rounded-3xl p-6 sm:p-8 border border-blue-500/40 bg-gradient-to-b from-[#0F1E38] to-[#0D1527] shadow-2xl shadow-blue-950/50 flex flex-col justify-between"
@@ -247,17 +372,18 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
 
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <AgyliLogo height={44} theme="dark" showSlogan={false} showSignature={false} />
+                  <AgyliLogo height={40} theme="dark" showSlogan={false} showSignature={false} />
                 </div>
 
                 <div>
                   <h3 className="text-2xl font-bold text-white">AGYLI Pro</h3>
                   <p className="text-xs text-blue-300 font-medium mt-0.5">
-                    Plataforma inteligente de gestão e recepção com Inteligência Artificial
+                    Até 5 profissionais • Financeiro total + IA integrada + Encaixes
                   </p>
                   <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-                    Ideal para clínicas, consultórios, salões de alto padrão e profissionais que
-                    precisam de gestão financeira completa, emissão de cobranças e assistente de IA.
+                    Ideal para clínicas, consultórios, salões e equipes que necessitam de controle
+                    financeiro completo com comissões, recepção WhatsApp por IA e relatórios
+                    estratégicos.
                   </p>
                 </div>
 
@@ -268,7 +394,9 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                       Investimento mensal
                     </span>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-extrabold text-white">R$ 29,90</span>
+                      <span className="text-3xl font-extrabold text-white">
+                        R$ {formatPrice(proPrice)}
+                      </span>
                       <span className="text-xs text-slate-400">/mês</span>
                     </div>
                   </div>
@@ -278,6 +406,7 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                     </span>
                   </div>
                 </div>
+
                 {/* Recursos inclusos */}
                 <div className="space-y-3 pt-2">
                   <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
@@ -287,36 +416,36 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                     <li className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        <strong>Agenda Online Inteligente:</strong> Horários em tempo real,
-                        múltiplos profissionais e serviços.
+                        <strong>Até 5 Profissionais:</strong> Múltiplas agendas simultâneas com
+                        turnos independentes.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        <strong>Módulo Financeiro Completo:</strong> Controle de fluxo de caixa,
-                        receitas, despesas e comissões.
+                        <strong>Módulo Financeiro Completo:</strong> Fluxo de caixa, recebimentos e
+                        cálculo de comissões por profissional.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        <strong>Assistente de IA Integrado:</strong> Análise de desempenho do
-                        negócio e suporte automatizado.
+                        <strong>Assistente de IA & WhatsApp:</strong> Agente inteligente para
+                        atendimento, tirar dúvidas e apoio na recepção.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        <strong>Link Público de Agendamento:</strong> Seu link exclusivo{' '}
-                        <code>/agendar/sua-empresa</code> sem necessidade de site.
+                        <strong>Encaixes Inteligentes & Relatórios:</strong> Otimização da ocupação
+                        de horários e análise de desempenho.
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
                       <span>
-                        <strong>Lembretes e Confirmações:</strong> Redução drástica de faltas com
-                        avisos online.
+                        <strong>Página Pública & Lembretes:</strong> Link{' '}
+                        <code>/agendar/sua-empresa</code> personalizado e confirmação de presença.
                       </span>
                     </li>
                   </ul>
@@ -328,124 +457,14 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
                   asChild
                   className="w-full h-12 bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] hover:from-[#2563EB] hover:to-[#7C3AED] text-white font-semibold text-sm rounded-xl shadow-lg shadow-blue-500/25"
                 >
-                  <Link to="/login?tab=signup&brand=agyli">
-                    Começar 7 dias grátis no AGYLI Pro
+                  <Link to="/login?tab=signup&brand=agyli&plan=agyli-pro">
+                    Começar 7 dias grátis
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
               </div>
             </div>
-
-            {/* PRODUTO 2: MARKALY ESSENCIAL (exibido apenas se NÃO for o domínio do AGYLI) */}
-            {!isAgyliDomain && (
-              <div
-                data-testid="markaly-product-card"
-                className="relative rounded-3xl p-6 sm:p-8 border border-purple-500/40 bg-gradient-to-b from-[#210738] to-[#140224] shadow-2xl shadow-purple-950/50 flex flex-col justify-between"
-              >
-                <div className="absolute top-4 right-4">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-500/20 border border-orange-400/40 text-orange-300">
-                    <Zap className="w-3.5 h-3.5 text-orange-400" /> Essencial & Ágil
-                  </span>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <MarkalyLogo
-                      height={44}
-                      theme="dark"
-                      showSlogan={false}
-                      showSignature={false}
-                    />
-                  </div>
-
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">MARKALY Essencial</h3>
-                    <p className="text-xs text-orange-300 font-medium mt-0.5">
-                      Organização que impulsiona seu negócio com máxima praticidade
-                    </p>
-                    <p className="text-sm text-slate-300 mt-2 leading-relaxed">
-                      Perfeito para autônomos, barbearias, manicures, esteticistas e profissionais
-                      liberais que buscam uma agenda fácil, ágil e focada em resultados.
-                    </p>
-                  </div>
-
-                  {/* Preço */}
-                  <div className="p-4 rounded-2xl bg-purple-950/60 border border-purple-800/60 flex items-baseline justify-between">
-                    <div>
-                      <span className="text-xs text-slate-400 block font-medium">
-                        Investimento mensal
-                      </span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-white">R$ 19,90</span>
-                        <span className="text-xs text-slate-400">/mês</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-1 rounded-lg">
-                        <ShieldCheck className="w-3.5 h-3.5" /> 7 dias grátis
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Recursos inclusos */}
-                  <div className="space-y-3 pt-2">
-                    <p className="text-xs font-semibold text-slate-200 uppercase tracking-wider">
-                      O que está incluso no MARKALY Essencial:
-                    </p>
-                    <ul className="space-y-2.5 text-xs sm:text-sm text-slate-300">
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Agendamento Rápido e Descomplicado:</strong> Organize atendimentos
-                          com visual limpo e prático.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Cadastro de Clientes e Serviços:</strong> Histórico de visitas,
-                          preferências e tabela de valores.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Página Pública Personalizada:</strong> Seus clientes agendam pelo
-                          link <code>/agendar/sua-empresa</code>.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Confirmação de Presença Online:</strong> Botão prático para o
-                          cliente confirmar se comparecerá.
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-orange-400 flex-shrink-0 mt-0.5" />
-                        <span>
-                          <strong>Totalmente Otimizado para Celular:</strong> Acesso leve e rápido
-                          de qualquer smartphone.
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="pt-8">
-                  <Button
-                    asChild
-                    className="w-full h-12 bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#7C3AED] hover:opacity-95 text-white font-semibold text-sm rounded-xl shadow-lg shadow-orange-500/25"
-                  >
-                    <Link to="/login?tab=signup&brand=markaly">
-                      Começar 7 dias grátis no MARKALY Essencial
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          </div>{' '}
         </div>
       </section>
 
@@ -595,16 +614,7 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
               <span className="text-slate-400 font-medium font-mono">CNPJ 47.769.566/0001-46</span>
             </div>
             <div className="flex items-center gap-2">
-              {isAgyliDomain ? (
-                <span className="text-slate-400 font-medium">AGYLI — Uma solução Grupo CONTEK</span>
-              ) : (
-                <>
-                  <span className="text-slate-400 font-medium">AGYLI</span>
-                  <span>&</span>
-                  <span className="text-slate-400 font-medium">MARKALY</span>
-                  <span>— Soluções Grupo CONTEK</span>
-                </>
-              )}
+              <span className="text-slate-400 font-medium">AGYLI — Uma solução Grupo CONTEK</span>
             </div>
           </div>
         </div>

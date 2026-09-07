@@ -33,14 +33,42 @@ routerAdd(
         return e.badRequestError('Organização não identificada para este usuário.')
       }
 
-      // 2. Multi-product feature check: Assistente IA não está liberado para MARKALY
+      // 2. Multi-product and plan feature check: Assistente IA não está liberado para MARKALY ou AGYLI Essencial
       try {
         const orgCheck = $app.findRecordById('organizations', orgId)
         const orgProduct = orgCheck.getString('product') || 'agyli'
+        const orgPlan = (orgCheck.getString('plan_id') || '').toLowerCase()
         if (orgProduct === 'markaly') {
           return e.json(403, {
             error:
-              'O Assistente IA não está habilitado para o produto MARKALY. Faça upgrade para o produto AGYLI para ter inteligência artificial integrada.',
+              'O Assistente IA não está habilitado para o produto MARKALY. Faça upgrade para o plano AGYLI Pro para ter inteligência artificial integrada.',
+          })
+        }
+
+        // Buscar subscription ativa ou plano cadastrado
+        let isEssencial = orgPlan === 'agyli-essencial'
+        if (!isEssencial) {
+          try {
+            const subs = $app.findRecordsByFilter(
+              'subscriptions',
+              'organization_id = "' + orgId + '"',
+              '-created',
+              1,
+              0,
+            )
+            if (subs && subs.length > 0) {
+              const planRec = $app.findRecordById('plans', subs[0].getString('plan_id'))
+              if (planRec && planRec.getString('slug') === 'agyli-essencial') {
+                isEssencial = true
+              }
+            }
+          } catch (_) {}
+        }
+
+        if (isEssencial) {
+          return e.json(403, {
+            error:
+              'O Assistente IA é exclusivo do plano AGYLI Pro. Faça upgrade para contar com respostas automáticas e inteligência operacional integrada.',
           })
         }
       } catch (_) {}

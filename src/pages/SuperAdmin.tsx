@@ -714,7 +714,7 @@ export const SuperAdmin: React.FC = () => {
           </div>
         </div>
 
-        {/* GESTÃO DE PREÇOS DOS PLANOS (AGYLI Pro e MARKALY Essencial) */}
+        {/* GESTÃO DE PREÇOS DOS PLANOS (AGYLI Essencial e AGYLI Pro) */}
         <Card className="border-indigo-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-lg overflow-hidden">
           <CardHeader className="pb-3 border-b border-indigo-800/40">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -737,88 +737,94 @@ export const SuperAdmin: React.FC = () => {
           </CardHeader>
           <CardContent className="pt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(data?.plans || []).map((plan) => {
-                const isAgyli = plan.product === 'agyli'
-                const currentEdited = editingPlanPrices[plan.id] ?? String(plan.price)
-                const isSaving = savingPlanId === plan.id
-                const originalPrice = plan.price
+              {(data?.plans || [])
+                .filter((plan) => plan.slug === 'agyli-essencial' || plan.slug === 'agyli-pro')
+                .map((plan) => {
+                  const isEssencial = plan.slug === 'agyli-essencial'
+                  const currentEdited = editingPlanPrices[plan.id] ?? String(plan.price)
+                  const isSaving = savingPlanId === plan.id
+                  const originalPrice = plan.price
 
-                return (
-                  <div
-                    key={plan.id}
-                    className={`p-4 rounded-xl border flex flex-col justify-between ${
-                      isAgyli
-                        ? 'bg-blue-950/40 border-cyan-800/60'
-                        : 'bg-purple-950/40 border-purple-800/60'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            className={
-                              isAgyli
-                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold text-[10px]'
-                                : 'bg-purple-500/20 text-purple-300 border-purple-500/40 font-bold text-[10px]'
-                            }
-                          >
-                            {isAgyli ? 'AGYLI PRO' : 'MARKALY ESSENCIAL'}
-                          </Badge>
-                          <span className="text-xs font-semibold text-slate-200">{plan.name}</span>
-                        </div>
-                        <span className="text-[11px] font-mono text-slate-400">/{plan.slug}</span>
-                      </div>
-
-                      <div className="text-xs text-slate-300 mb-3">
-                        {isAgyli
-                          ? 'Software completo com IA, WhatsApp e Financeiro Avançado.'
-                          : 'Software simplificado e ágil para agendamento essencial.'}
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`p-4 rounded-xl border flex flex-col justify-between ${
+                        isEssencial
+                          ? 'bg-cyan-950/40 border-cyan-800/60'
+                          : 'bg-blue-950/40 border-blue-800/60'
+                      }`}
+                    >
                       <div>
-                        <span className="text-[11px] text-slate-400 block font-medium">
-                          Preço Mensal Atual
-                        </span>
-                        <div className="text-sm font-extrabold text-emerald-400">
-                          R$ {Number(originalPrice).toFixed(2).replace('.', ',')}{' '}
-                          <span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={
+                                isEssencial
+                                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold text-[10px]'
+                                  : 'bg-blue-500/20 text-blue-300 border-blue-500/40 font-bold text-[10px]'
+                              }
+                            >
+                              {isEssencial ? 'AGYLI ESSENCIAL' : 'AGYLI PRO'}
+                            </Badge>
+                            <span className="text-xs font-semibold text-slate-200">
+                              {plan.name}
+                            </span>
+                          </div>
+                          <span className="text-[11px] font-mono text-slate-400">/{plan.slug}</span>
+                        </div>
+
+                        <div className="text-xs text-slate-300 mb-3">
+                          {isEssencial
+                            ? 'Software para 1 profissional: agendamento ágil sem módulo financeiro ou IA.'
+                            : 'Software para até 5 profissionais: completo com IA integrada, WhatsApp e Financeiro Total.'}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="relative w-32">
-                          <span className="absolute left-2.5 top-2 text-xs font-semibold text-slate-400">
-                            R$
+                      <div className="pt-2 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[11px] text-slate-400 block font-medium">
+                            Preço Mensal Atual
                           </span>
-                          <Input
-                            type="text"
-                            value={currentEdited}
-                            onChange={(e) =>
-                              setEditingPlanPrices((prev) => ({
-                                ...prev,
-                                [plan.id]: e.target.value,
-                              }))
-                            }
-                            placeholder="0,00"
-                            className="pl-8 text-xs font-bold h-8 bg-slate-900/90 text-white border-slate-700 focus:border-cyan-400"
-                          />
+                          <div className="text-sm font-extrabold text-emerald-400">
+                            R$ {Number(originalPrice).toFixed(2).replace('.', ',')}{' '}
+                            <span className="text-[10px] text-slate-400 font-normal">/mês</span>
+                          </div>
                         </div>
-                        <Button
-                          size="sm"
-                          disabled={isSaving || currentEdited === String(originalPrice)}
-                          onClick={() => handleSavePlanPrice(plan.id, plan.name)}
-                          className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
-                        >
-                          <Save className={`w-3.5 h-3.5 mr-1 ${isSaving ? 'animate-spin' : ''}`} />
-                          {isSaving ? 'Salvando...' : 'Salvar'}
-                        </Button>
+
+                        <div className="flex items-center gap-2">
+                          <div className="relative w-32">
+                            <span className="absolute left-2.5 top-2 text-xs font-semibold text-slate-400">
+                              R$
+                            </span>
+                            <Input
+                              type="text"
+                              value={currentEdited}
+                              onChange={(e) =>
+                                setEditingPlanPrices((prev) => ({
+                                  ...prev,
+                                  [plan.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="0,00"
+                              className="pl-8 text-xs font-bold h-8 bg-slate-900/90 text-white border-slate-700 focus:border-cyan-400"
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={isSaving || currentEdited === String(originalPrice)}
+                            onClick={() => handleSavePlanPrice(plan.id, plan.name)}
+                            className="h-8 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm"
+                          >
+                            <Save
+                              className={`w-3.5 h-3.5 mr-1 ${isSaving ? 'animate-spin' : ''}`}
+                            />
+                            {isSaving ? 'Salvando...' : 'Salvar'}
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
             </div>
           </CardContent>
         </Card>

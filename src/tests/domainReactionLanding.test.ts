@@ -40,63 +40,53 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
     })
   })
 
-  describe('2. Landing Page AGYLI (quando aberto por agyli.com.br ou www.agyli.com.br)', () => {
-    it('isAgyliDomain oculta o card MARKALY e exibe apenas o produto AGYLI Pro', () => {
-      // Simulação da renderização de cards em Index.tsx sob isAgyliDomain
-      const renderCards = (domainContext: 'agyli' | 'contek' | 'default') => {
-        const isAgyliDomain = domainContext === 'agyli'
-        const rendered: string[] = []
-        // AGYLI sempre renderiza
-        rendered.push('AGYLI Pro', 'R$ 29,90', '7 dias grátis', '/login?tab=signup&brand=agyli')
-
-        // MARKALY só renderiza se NÃO for isAgyliDomain
-        if (!isAgyliDomain) {
-          rendered.push('MARKALY Essencial', 'R$ 19,90', '/login?tab=signup&brand=markaly')
-        }
-
-        return rendered
+  describe('2. Landing Page AGYLI (Família AGYLI: Essencial e Pro)', () => {
+    it('exibe os dois planos AGYLI com 7 dias grátis e sem MARKALY público', () => {
+      const renderCards = () => {
+        return [
+          'AGYLI Essencial',
+          'R$ 19,90',
+          '7 dias grátis',
+          '/login?tab=signup&brand=agyli&plan=agyli-essencial',
+          'AGYLI Pro',
+          'R$ 29,90',
+          '/login?tab=signup&brand=agyli&plan=agyli-pro',
+        ]
       }
 
-      const agyliLanding = renderCards('agyli')
+      const agyliLanding = renderCards()
+      expect(agyliLanding).toContain('AGYLI Essencial')
+      expect(agyliLanding).toContain('R$ 19,90')
       expect(agyliLanding).toContain('AGYLI Pro')
       expect(agyliLanding).toContain('R$ 29,90')
       expect(agyliLanding).toContain('7 dias grátis')
       expect(agyliLanding).not.toContain('MARKALY Essencial')
-      expect(agyliLanding).not.toContain('R$ 19,90')    })
+    })
 
-    it('no código de Index.tsx, MARKALY está envolvido pela guarda !isAgyliDomain', () => {
-      expect(indexSource).toContain('const isAgyliDomain = domainContext === \'agyli\'')
-      expect(indexSource).toContain('{!isAgyliDomain && (')
-      expect(indexSource).toContain('data-testid="markaly-product-card"')
+    it('no código de Index.tsx, exibe os cards AGYLI Essencial e AGYLI Pro sem expor MARKALY público', () => {
+      expect(indexSource).toContain('data-testid="agyli-essencial-card"')
       expect(indexSource).toContain('data-testid="agyli-product-card"')
+      expect(indexSource).not.toContain('data-testid="markaly-product-card"')
+      expect(indexSource).toContain('7 dias grátis')
     })
   })
 
   describe('3. Landing Page GRUPO CONTEK (quando aberto por grupocontek.com.br ou www.grupocontek.com.br)', () => {
-    it('isContekDomain renderiza ambos os produtos e acesso ao painel SuperAdmin /admin', () => {
+    it('isContekDomain renderiza planos AGYLI e acesso ao painel SuperAdmin /admin', () => {
       const renderElements = (domainContext: 'agyli' | 'contek' | 'default') => {
-        const isAgyliDomain = domainContext === 'agyli'
         const isContekDomain = domainContext === 'contek'
-
-        const elements: string[] = []
-        {
-          elements.push('AGYLI Pro')
-          if (!isAgyliDomain) {
-            elements.push('MARKALY Essencial')
-          }
-        }
-
+        const elements: string[] = ['AGYLI Essencial', 'AGYLI Pro']
         if (isContekDomain) {
           elements.push('Painel SuperAdmin (/admin)')
         }
-
         return elements
       }
 
       const contekLanding = renderElements('contek')
+      expect(contekLanding).toContain('AGYLI Essencial')
       expect(contekLanding).toContain('AGYLI Pro')
-      expect(contekLanding).toContain('MARKALY Essencial')
       expect(contekLanding).toContain('Painel SuperAdmin (/admin)')
+      expect(contekLanding).not.toContain('MARKALY Essencial')
     })
 
     it('no código de Index.tsx, links para /admin estão condicionados a isContekDomain', () => {
@@ -109,16 +99,10 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
   })
 
   describe('4. Landing Page DEFAULT (endereço do Skip e localhost)', () => {
-    it('mantém a página de vendas atual inalterada: dois produtos (AGYLI e MARKALY), sem link público /admin', () => {
+    it('mantém a página com os planos AGYLI (Essencial e Pro) e sem link público /admin', () => {
       const renderElements = (domainContext: 'agyli' | 'contek' | 'default') => {
-        const isAgyliDomain = domainContext === 'agyli'
         const isContekDomain = domainContext === 'contek'
-
-        const elements: string[] = []
-        elements.push('AGYLI Pro')
-        if (!isAgyliDomain) {
-          elements.push('MARKALY Essencial')
-        }
+        const elements: string[] = ['AGYLI Essencial', 'AGYLI Pro']
         if (isContekDomain) {
           elements.push('Painel SuperAdmin (/admin)')
         }
@@ -126,9 +110,10 @@ describe('Reação do sistema ao domínio de acesso (Luciana / Grupo Contek)', (
       }
 
       const defaultLanding = renderElements('default')
+      expect(defaultLanding).toContain('AGYLI Essencial')
       expect(defaultLanding).toContain('AGYLI Pro')
-      expect(defaultLanding).toContain('MARKALY Essencial')
       expect(defaultLanding).not.toContain('Painel SuperAdmin (/admin)')
+      expect(defaultLanding).not.toContain('MARKALY Essencial')
     })
   })
 

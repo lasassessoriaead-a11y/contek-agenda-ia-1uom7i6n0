@@ -76,6 +76,14 @@ class SelfServiceOnboardingEngine {
 
   plans = [
     {
+      id: 'plan_agyli_essencial',
+      name: 'AGYLI Essencial',
+      slug: 'agyli-essencial',
+      product: 'agyli',
+      price: 19.9,
+      trial_days: 7,
+    },
+    {
       id: 'plan_agyli_pro',
       name: 'AGYLI Pro Completo',
       slug: 'agyli-pro',
@@ -371,7 +379,7 @@ describe('Self-Service Onboarding Engine (Cadastro Público)', () => {
     expect(duplicate.error).toContain('já está cadastrado no sistema')
   })
 
-  it('4. Permite cadastro MARKALY Essencial com criação sem serviço de exemplo', () => {
+  it('4. Permite cadastro AGYLI Essencial (R$ 19,90) e valida gating sem módulo financeiro/IA', () => {
     const engine = new SelfServiceOnboardingEngine()
 
     const result = engine.executeSelfServiceSignup({
@@ -379,14 +387,15 @@ describe('Self-Service Onboarding Engine (Cadastro Público)', () => {
       email: 'carlos@personal.com',
       password: 'SenhaForte123@',
       org_name: 'Studio Carlos Fitness',
-      product: 'markaly',
-      plan_slug: 'markaly-start',
+      product: 'agyli',
+      plan_slug: 'agyli-essencial',
       create_example_service: false,
     })
 
     expect(result.success).toBe(true)
-    expect(result.organization?.product).toBe('markaly')
-    expect(result.organization?.plan_id).toBe('markaly-start')
+    expect(result.organization?.product).toBe('agyli')
+    expect(result.organization?.plan_id).toBe('agyli-essencial')
+    expect(result.subscription?.plan_id).toBe('plan_agyli_essencial')
 
     const services = engine.services.filter((s) => s.organization_id === result.organization?.id)
     expect(services.length).toBe(0) // Nao criou servico de exemplo

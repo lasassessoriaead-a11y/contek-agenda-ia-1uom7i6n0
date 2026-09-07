@@ -27,10 +27,32 @@ routerAdd(
 
       const org = $app.findRecordById('organizations', orgId)
       const product = org.getString('product') || 'agyli'
+      const orgPlan = (org.getString('plan_id') || '').toLowerCase()
+
+      // Verificar se o plano da organização é AGYLI Essencial
+      let isEssencial = orgPlan === 'agyli-essencial'
+      if (!isEssencial) {
+        try {
+          const subs = $app.findRecordsByFilter(
+            'subscriptions',
+            'organization_id = "' + orgId + '"',
+            '-created',
+            1,
+            0,
+          )
+          if (subs && subs.length > 0) {
+            const planRec = $app.findRecordById('plans', subs[0].getString('plan_id'))
+            if (planRec && planRec.getString('slug') === 'agyli-essencial') {
+              isEssencial = true
+            }
+          }
+        } catch (_) {}
+      }
 
       // Buscar features do produto
       let features = []
-      let productName = product === 'markaly' ? 'MARKALY' : 'AGYLI'
+      let productName =
+        product === 'markaly' ? 'MARKALY' : isEssencial ? 'AGYLI Essencial' : 'AGYLI'
       let productDescription = ''
 
       try {
@@ -69,19 +91,31 @@ routerAdd(
       // Se não for array válido ou vier vazio, aplicar fallback com as features padrão do produto
       if (!Array.isArray(features) || features.length === 0) {
         if (product === 'agyli') {
-          features = [
-            'dashboard',
-            'agenda',
-            'clientes',
-            'servicos',
-            'profissionais',
-            'financeiro',
-            'assistente_ia',
-            'whatsapp_ai',
-            'relatorios',
-            'configuracoes_basicas',
-            'configuracoes_avancadas',
-          ]
+          if (isEssencial) {
+            features = [
+              'dashboard',
+              'agenda',
+              'clientes',
+              'servicos',
+              'profissionais',
+              'configuracoes_basicas',
+              'whatsapp_notificacoes',
+            ]
+          } else {
+            features = [
+              'dashboard',
+              'agenda',
+              'clientes',
+              'servicos',
+              'profissionais',
+              'financeiro',
+              'assistente_ia',
+              'whatsapp_ai',
+              'relatorios',
+              'configuracoes_basicas',
+              'configuracoes_avancadas',
+            ]
+          }
         } else {
           features = [
             'dashboard',
@@ -95,8 +129,20 @@ routerAdd(
         }
       }
 
-      // Para agyli, garantir configuracoes_avancadas E configuracoes_basicas no array retornado
-      if (product === 'agyli') {
+      // Se for essencial, expurgar financeiro e IA caso tenham vindo do product_features geral
+      if (isEssencial) {
+        features = features.filter(
+          (f) =>
+            f !== 'financeiro' &&
+            f !== 'assistente_ia' &&
+            f !== 'whatsapp_ai' &&
+            f !== 'relatorios' &&
+            f !== 'configuracoes_avancadas',
+        )
+      }
+
+      // Para agyli pro, garantir configuracoes_avancadas E configuracoes_basicas no array retornado
+      if (product === 'agyli' && !isEssencial) {
         if (!features.includes('configuracoes_avancadas')) {
           features.push('configuracoes_avancadas')
         }

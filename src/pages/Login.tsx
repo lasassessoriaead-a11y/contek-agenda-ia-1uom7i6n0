@@ -47,6 +47,7 @@ export const Login: React.FC = () => {
   const brandParam = searchParams.get('brand')?.toLowerCase()
   const orgParam = searchParams.get('org')?.trim()
   const emailParam = searchParams.get('email')?.trim()
+  const planParam = searchParams.get('plan')?.toLowerCase()
 
   // Se o link contiver parâmetros de credenciais/marca/e-mail de ativação (ex: vindos de e-mail),
   // NUNCA pular direto para dentro: força a exibição da tela de login da marca certa.
@@ -159,9 +160,9 @@ export const Login: React.FC = () => {
   const [signupOrgName, setSignupOrgName] = useState('')
   const [signupSlug, setSignupSlug] = useState('')
   const [isSlugEditedManually, setIsSlugEditedManually] = useState(false)
-  const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
+  const [signupProduct, setSignupProduct] = useState<'agyli' | 'markaly'>('agyli')
   const [signupPlanSlug, setSignupPlanSlug] = useState<string>(
-    initialDetectedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
+    planParam === 'agyli-essencial' ? 'agyli-essencial' : 'agyli-pro',
   )
   const [signupCreateExampleService, setSignupCreateExampleService] = useState(true)
   const [loadingSignup, setLoadingSignup] = useState(false)
@@ -186,9 +187,9 @@ export const Login: React.FC = () => {
   const [manualAdminName, setManualAdminName] = useState('')
   const [manualAdminEmail, setManualAdminEmail] = useState('')
   const [manualAdminPassword, setManualAdminPassword] = useState('')
-  const [manualProduct, setManualProduct] = useState<'agyli' | 'markaly'>(initialDetectedProduct)
+  const [manualProduct, setManualProduct] = useState<'agyli' | 'markaly'>('agyli')
   const [manualPlan, setManualPlan] = useState(
-    initialDetectedProduct === 'markaly' ? 'markaly-start' : 'agyli-pro',
+    planParam === 'agyli-essencial' ? 'agyli-essencial' : 'agyli-pro',
   )
   const [loadingManual, setLoadingManual] = useState(false)
 
@@ -387,7 +388,12 @@ export const Login: React.FC = () => {
       setSignupSuccessData({
         orgName: res.organization?.name || signupOrgName.trim(),
         slug: res.organization?.slug || signupSlug.trim() || generateSlugFromName(signupOrgName),
-        planName: signupPlanSlug === 'markaly-start' ? 'MARKALY Essencial' : 'AGYLI Pro',
+        planName:
+          signupPlanSlug === 'agyli-essencial'
+            ? 'AGYLI Essencial'
+            : signupPlanSlug === 'markaly-start'
+              ? 'MARKALY Essencial'
+              : 'AGYLI Pro',
         product: signupProduct,
         email: signupEmail.trim().toLowerCase(),
       })
@@ -1222,6 +1228,59 @@ export const Login: React.FC = () => {
                           </Label>
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Card AGYLI ESSENCIAL */}
+                            <div
+                              onClick={() => {
+                                setSignupProduct('agyli')
+                                setSignupPlanSlug('agyli-essencial')
+                              }}
+                              className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
+                                signupPlanSlug === 'agyli-essencial'
+                                  ? 'border-cyan-500 bg-cyan-950/60 shadow-lg ring-1 ring-cyan-500'
+                                  : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950 px-2 py-0.5 rounded-full border border-cyan-800/60 mb-1">
+                                    Essencial & Ágil
+                                  </span>
+                                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                                    AGYLI Essencial
+                                  </h4>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-bold text-cyan-300">R$ 19,90</div>
+                                  <div className="text-[10px] text-slate-400">/mês</div>
+                                </div>
+                              </div>
+
+                              <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
+                                <Calendar className="w-3 h-3" /> 7 dias grátis de teste
+                              </div>
+
+                              <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                                  <span>1 Profissional incluso</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                                  <span>Agenda inteligente online & presencial</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                                  <span>Gestão de clientes & catálogo de serviços</span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                                  <span>
+                                    Link público <code>/agendar/slug</code>
+                                  </span>
+                                </li>
+                              </ul>
+                            </div>
+
                             {/* Card AGYLI PRO */}
                             <div
                               onClick={() => {
@@ -1229,7 +1288,7 @@ export const Login: React.FC = () => {
                                 setSignupPlanSlug('agyli-pro')
                               }}
                               className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
-                                signupProduct === 'agyli' && signupPlanSlug === 'agyli-pro'
+                                signupPlanSlug === 'agyli-pro'
                                   ? 'border-[#3B82F6] bg-blue-950/70 shadow-lg ring-1 ring-[#3B82F6]'
                                   : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700'
                               }`}
@@ -1244,7 +1303,7 @@ export const Login: React.FC = () => {
                                   </h4>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-xs font-bold text-cyan-300">R$ 29,90</div>
+                                  <div className="text-xs font-bold text-blue-300">R$ 29,90</div>
                                   <div className="text-[10px] text-slate-400">/mês</div>
                                 </div>
                               </div>
@@ -1256,7 +1315,7 @@ export const Login: React.FC = () => {
                               <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
                                 <li className="flex items-center gap-1.5">
                                   <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                                  <span>Agenda inteligente multi-profissional</span>
+                                  <span>Até 5 Profissionais simultâneos</span>
                                 </li>
                                 <li className="flex items-center gap-1.5">
                                   <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
@@ -1264,54 +1323,11 @@ export const Login: React.FC = () => {
                                 </li>
                                 <li className="flex items-center gap-1.5">
                                   <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                                  <span>Assistente de IA & Recepção WhatsApp</span>
-                                </li>
-                              </ul>
-                            </div>
-
-                            {/* Card MARKALY ESSENCIAL */}
-                            <div
-                              onClick={() => {
-                                setSignupProduct('markaly')
-                                setSignupPlanSlug('markaly-start')
-                              }}
-                              className={`p-3.5 rounded-xl border cursor-pointer transition-all relative ${
-                                signupProduct === 'markaly' && signupPlanSlug === 'markaly-start'
-                                  ? 'border-[#F97316] bg-orange-950/40 shadow-lg ring-1 ring-[#F97316]'
-                                  : 'border-slate-800 bg-[#0F172A]/70 hover:border-slate-700'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between">
-                                <div>
-                                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded-full border border-orange-800/60 mb-1">
-                                    Essencial & Ágil
-                                  </span>
-                                  <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-                                    MARKALY Essencial
-                                  </h4>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-xs font-bold text-orange-300">R$ 19,90</div>
-                                  <div className="text-[10px] text-slate-400">/mês</div>
-                                </div>
-                              </div>
-
-                              <div className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-md">
-                                <Calendar className="w-3 h-3" /> 7 dias grátis de teste
-                              </div>
-
-                              <ul className="mt-3 space-y-1.5 text-[11px] text-slate-300">
-                                <li className="flex items-center gap-1.5">
-                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                                  <span>Agendamento ágil online & presencial</span>
+                                  <span>Assistente IA & Recepção WhatsApp</span>
                                 </li>
                                 <li className="flex items-center gap-1.5">
-                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                                  <span>Gestão de clientes & catálogo de serviços</span>
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <Check className="w-3.5 h-3.5 text-orange-400 flex-shrink-0" />
-                                  <span>Página pública /agendar/slug personalizada</span>
+                                  <Check className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                                  <span>Encaixes inteligentes & relatórios</span>
                                 </li>
                               </ul>
                             </div>
@@ -1409,9 +1425,11 @@ export const Login: React.FC = () => {
                           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                             <span className="text-slate-400">Plano escolhido:</span>
                             <span className="font-bold text-white">
-                              {signupPlanSlug === 'markaly-start'
-                                ? 'MARKALY Essencial (R$ 19,90/mês)'
-                                : 'AGYLI Pro (R$ 29,90/mês)'}
+                              {signupPlanSlug === 'agyli-essencial'
+                                ? 'AGYLI Essencial (R$ 19,90/mês)'
+                                : signupPlanSlug === 'markaly-start'
+                                  ? 'MARKALY Essencial (R$ 19,90/mês)'
+                                  : 'AGYLI Pro (R$ 29,90/mês)'}
                             </span>
                           </div>
 

@@ -100,7 +100,7 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
     }
 
     // 4. Resolver o plano correto
-    // Se passou plan_slug (ex: 'agyli-pro' ou 'markaly-start'), buscar por slug primeiro
+    // Se passou plan_slug (ex: 'agyli-essencial', 'agyli-pro' ou 'markaly-start'), buscar por slug primeiro
     let resolvedPlanRecord = null
     const targetPlanSlug =
       typeof plan_slug === 'string' && plan_slug.trim()
@@ -110,32 +110,33 @@ routerAdd('POST', '/backend/v1/onboarding/self-service', (e) => {
           : 'agyli-pro'
 
     try {
-      resolvedPlanRecord = $app.findFirstRecordByData('plans', 'slug', targetPlanSlug)
-    } catch (_) {
+      resolvedPlanRecord = txApp.findFirstRecordByData('plans', 'slug', targetPlanSlug)
+    } catch (_) {}
+
+    if (!resolvedPlanRecord) {
       try {
-        const defaultPlans = $app.findRecordsByFilter(
-          'plans',
-          'product = "' + requestedProduct + '"',
-          '-created',
-          1,
-          0,
-        )
-        if (defaultPlans && defaultPlans.length > 0) {
-          resolvedPlanRecord = defaultPlans[0]
-        }
+        resolvedPlanRecord = txApp.findFirstRecordByData('plans', 'slug', 'agyli-pro')
       } catch (_) {}
     }
 
-    const planSlugToSave = resolvedPlanRecord
+    if (!resolvedPlanRecord) {
+      try {
+        resolvedPlanRecord = txApp.findFirstRecordByData('plans', 'product', requestedProduct)
+      } catch (_) {}
+    }
+
+    const planIdForSub = resolvedPlanRecord ? resolvedPlanRecord.id : null
+    const planSlugForOrg = resolvedPlanRecord
       ? resolvedPlanRecord.getString('slug')
       : targetPlanSlug
 
     const planDisplayName = resolvedPlanRecord
       ? resolvedPlanRecord.getString('name')
-      : requestedProduct === 'markaly'
-        ? 'MARKALY Essencial'
-        : 'AGYLI Pro Completo'
-
+      : targetPlanSlug === 'agyli-essencial'
+        ? 'AGYLI Essencial'
+        : requestedProduct === 'markaly'
+          ? 'MARKALY Essencial'
+          : 'AGYLI Pro'
     let createdOrg = null
     let createdUser = null
     let createdSub = null
@@ -504,23 +505,22 @@ routerAdd('POST', '/backend/v1/onboarding/manual', (e) => {
 
   const body = e.requestInfo().body || {}
   const {
-    org_name,
-    slug = '',
+    name,
+    slug,
     admin_name,
     admin_email,
     admin_password,
-    plan = 'agyli-pro',
     product = 'agyli',
+    plan = 'agyli-pro',
+    create_example_service = true,
   } = body
 
-  const cleanOrgName = typeof org_name === 'string' ? org_name.trim() : ''
-  const customSlug = typeof slug === 'string' ? slug.trim() : ''
+  const cleanName = typeof name === 'string' ? name.trim() : ''
+  const cleanEmail = typeof admin_email === 'string' ? admin_email.trim().toLowerCase() : ''
   const cleanAdminName = typeof admin_name === 'string' ? admin_name.trim() : ''
-  const cleanAdminEmail = typeof admin_email === 'string' ? admin_email.trim().toLowerCase() : ''
-  const cleanAdminPassword = typeof admin_password === 'string' ? admin_password : ''
+  const cleanPassword = typeof admin_password === 'string' ? admin_password : ''
   const cleanPlan = typeof plan === 'string' && plan.trim() ? plan.trim() : 'agyli-pro'
   const chosenProduct = product === 'markaly' ? 'markaly' : 'agyli'
-
   // Validações
   if (!cleanOrgName) {
     return e.json(400, { error: 'O nome da empresa é obrigatório.' })
