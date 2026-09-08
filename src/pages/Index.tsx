@@ -16,7 +16,14 @@ import { TestimonialsCarousel } from '@/components/TestimonialsCarousel'
 import { WhatsAppFloatingButton } from '@/components/WhatsAppFloatingButton'
 import { AgyliLogo } from '@/components/AgyliBranding'
 import { ContekSymbol, ContekFullLogo } from '@/components/ContekBranding'
-import { resolveBrandDomainContext, type BrandDomainContext } from '@/lib/branding'
+import {
+  resolveBrandDomainContext,
+  getDomainBrandTitle,
+  getDomainPageTitle,
+  type BrandDomainContext,
+} from '@/lib/branding'
+import { LUCIANA_WHATSAPP_NUMBER } from '@/components/WhatsAppFloatingButton'
+import { Smartphone, Palette, Globe, Layers, MessageCircle } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import type { Plan } from '@/types'
 
@@ -39,6 +46,16 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
 
   const isAgyliDomain = domainContext === 'agyli'
   const isContekDomain = domainContext === 'contek'
+
+  const brandTitle = useMemo(() => getDomainBrandTitle(domainContext), [domainContext])
+  const customAppName = isAgyliDomain ? 'App AGYLI Personalizado' : 'App Personalizado Contek'
+
+  // Sincroniza o document.title com base no contexto de domínio
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = getDomainPageTitle(domainContext)
+    }
+  }, [domainContext])
 
   // Preços dinâmicos da coleção plans (com fallbacks padrão caso offline)
   const [plans, setPlans] = useState<Plan[]>([])
@@ -86,16 +103,54 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
       {/* NAVBAR SUPERIOR */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-[#0D1B2A]/85 border-b border-slate-800/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {isAgyliDomain ? (
-              <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-                <AgyliLogo height={38} theme="dark" showSlogan={false} showSignature={false} />
-              </Link>
-            ) : (
-              <Link to="/" className="flex items-center gap-2 hover:opacity-95 transition-opacity">
-                <ContekFullLogo height={38} theme="dark" />
-              </Link>
-            )}
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 hover:opacity-95 transition-opacity"
+              data-testid="navbar-brand-link"
+              title={brandTitle}
+              aria-label={brandTitle}
+            >
+              {isAgyliDomain ? (
+                <>
+                  <AgyliLogo height={38} theme="dark" showSlogan={false} showSignature={false} />
+                  <span
+                    data-testid="domain-brand-title"
+                    className="font-bold text-base sm:text-lg text-white tracking-tight hidden sm:inline-block font-['Poppins',sans-serif]"
+                  >
+                    Agenda AGYLI
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ContekFullLogo height={38} theme="dark" />
+                  <span
+                    data-testid="domain-brand-title"
+                    className="font-bold text-base sm:text-lg text-white tracking-tight hidden sm:inline-block font-['Poppins',sans-serif]"
+                  >
+                    Agenda Contek IA
+                  </span>
+                </>
+              )}
+            </Link>
+
+            {/* Menu de navegação / abas de topo */}
+            <nav className="hidden md:flex items-center gap-1 text-xs font-medium text-slate-300">
+              <a
+                href="#produtos"
+                className="px-3 py-1.5 rounded-lg hover:text-white hover:bg-slate-800/60 transition-colors"
+              >
+                Planos
+              </a>
+              <a
+                href="#app-personalizado"
+                data-testid="nav-tab-app-personalizado"
+                className="px-3 py-1.5 rounded-lg hover:text-cyan-300 hover:bg-cyan-950/40 text-cyan-400 font-semibold transition-colors flex items-center gap-1.5"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                App Personalizado
+              </a>
+            </nav>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -216,6 +271,17 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
             >
               <a href="#produtos">
                 {isAgyliDomain ? 'Ver recursos e plano' : 'Ver soluções e preços'}
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto h-12 px-6 border-cyan-500/40 bg-cyan-950/30 hover:bg-cyan-900/40 text-cyan-300 text-sm font-medium rounded-xl"
+            >
+              <a href="#app-personalizado" className="inline-flex items-center gap-1.5">
+                <Smartphone className="w-4 h-4 text-cyan-400" />
+                App Personalizado
               </a>
             </Button>
           </div>

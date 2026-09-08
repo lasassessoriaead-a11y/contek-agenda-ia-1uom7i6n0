@@ -98,6 +98,32 @@ export function resolveBrandDomainContext(hostname: string): BrandDomainContext 
 }
 
 /**
+ * Retorna o título da marca/produto para cabeçalhos e <title> de acordo com o contexto de domínio.
+ * - agyli: "Agenda AGYLI"
+ * - contek: "Agenda Contek IA" (ou Grupo CONTEK)
+ * - default: "Agenda Contek IA"
+ */
+export function getDomainBrandTitle(context: BrandDomainContext): string {
+  if (context === 'agyli') {
+    return 'Agenda AGYLI'
+  }
+  return 'Agenda Contek IA'
+}
+
+/**
+ * Retorna o document.title completo para a landing page dependendo do contexto de domínio.
+ */
+export function getDomainPageTitle(context: BrandDomainContext): string {
+  if (context === 'agyli') {
+    return 'Agenda AGYLI — Gestão e Agendamento Inteligente com IA'
+  }
+  if (context === 'contek') {
+    return 'Agenda Contek IA — Gestão e Agendamento Inteligente Grupo CONTEK'
+  }
+  return 'Agenda Contek IA — Gestão e Agendamento Inteligente'
+}
+
+/**
  * Mapeamento de hostname para detecção multi-domínio futura.
  * Exemplo:
  * agyli.com.br -> agyli
