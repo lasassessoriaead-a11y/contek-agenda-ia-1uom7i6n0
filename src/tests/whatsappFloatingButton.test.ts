@@ -20,10 +20,12 @@ describe('Botão Flutuante de WhatsApp (Luciana / Plataforma AGYLI & Contek)', (
       expect(floatingBtnSource).toContain('5515996327431')
     })
 
-    it('possui a cor oficial verde WhatsApp (#25D366) e ícone oficial', () => {
+    it('possui a cor oficial verde WhatsApp (#25D366) e ícone oficial do WhatsApp (Simple Icons / Meta)', () => {
       expect(floatingBtnSource).toContain('#25D366')
       expect(floatingBtnSource).toContain('svg')
-      expect(floatingBtnSource).toContain('viewBox="0 0 32 32"')
+      expect(floatingBtnSource).toContain('viewBox="0 0 24 24"')
+      // Glifo oficial clássico do WhatsApp (balão com monofone centralizado sem sobreposições)
+      expect(floatingBtnSource).toContain('M17.472 14.382')
     })
 
     it('possui a mensagem padrão pré-preenchida e bolha informativa com texto amigável', () => {
