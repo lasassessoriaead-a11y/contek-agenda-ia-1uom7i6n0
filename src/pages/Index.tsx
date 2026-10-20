@@ -196,6 +196,20 @@ export const Index: React.FC<IndexProps> = ({ forcedDomainContext }) => {
         </div>
       </header>
 
+      {isContekDomain && (
+        <section aria-label="FarmaPreço Gestão" className="border-b border-emerald-500/20 bg-emerald-950/40 px-4 py-5 sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-white">FarmaPreço Gestão</h2>
+              <p className="mt-1 text-sm text-slate-300">Estoque, lotes, vendas e caixa para sua farmácia. Acesse ou instale o aplicativo.</p>
+            </div>
+            <Button asChild className="shrink-0 bg-emerald-600 text-white hover:bg-emerald-500">
+              <a href="https://farmapreco.grupocontek.com.br/gestao">Acessar FarmaPreço Gestão <ArrowRight className="ml-2 h-4 w-4" /></a>
+            </Button>
+          </div>
+        </section>
+      )}
+
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-12 pb-16 sm:pt-20 sm:pb-24 px-4 sm:px-6 lg:px-8">
         {/* Ambient Glow */}
